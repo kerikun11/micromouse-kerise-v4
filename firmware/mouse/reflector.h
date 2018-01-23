@@ -12,9 +12,7 @@ class Reflector : TaskBase {
     bool begin() {
       for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
         value[i] = 0;
-        offset[i] = 0;
         pinMode(tx_pins[i], OUTPUT);
-        digitalWrite(tx_pins[i], LOW);
       }
       return createTask("Reflector", 10, 4096, 1);
     }
@@ -49,24 +47,8 @@ class Reflector : TaskBase {
     const std::array<int8_t, REFLECTOR_CH_SIZE> rx_pins;
     int16_t value_buffer[ave_num][REFLECTOR_CH_SIZE];
     int16_t value[REFLECTOR_CH_SIZE];
-    int16_t offset[REFLECTOR_CH_SIZE];
 
-    void calibration() {
-      for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
-        const int ave_count = 100;
-        int sum = 0;
-        portTickType xLastWakeTime = xTaskGetTickCount();
-        for (int t = 0; t < ave_count; t++) {
-          sum += analogRead(rx_pins[i]);
-          vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-        }
-        offset[i] = sum / ave_count;
-      }
-      log_d("Reflector Offset:\t%d\t%d\t%d\t%d", offset[0], offset[1], offset[2], offset[3]);
-    }
     void task() {
-      calibration();
-
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
@@ -77,16 +59,16 @@ class Reflector : TaskBase {
           }
         }
         // Sampling
-        for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
-          //          digitalWrite(tx_pins[i], LOW);        //< 充電開始
-          //          delayMicroseconds(50);                //< 充電時間
-          //          digitalWrite(tx_pins[i], HIGH);       //< 放電開始
-          //          delayMicroseconds(15);                //< 最大振幅になるまでの待ち時間
-          //          int raw = analogRead(rx_pins[i]);     //< サンプリング
-          //          int temp = offset[i] - raw;           //< オフセットとの差をとる
-          //          value_buffer[0][i] = std::max(temp, 1);//< 0以下にならないように1で飽和
-          //          delayMicroseconds(50);                 // 放電時間
-          value_buffer[0][i] = analogRead(rx_pins[i]);     //< サンプリング
+        for (int i = 0; i < REFLECTOR_CH_SIZE; i++) {
+          uint16_t offset = analogRead(rx_pins[i]); //< オフセットをサンプル
+          digitalWrite(tx_pins[i], HIGH);           //< 放電開始
+          delayMicroseconds(10);                    //< 最大振幅になるまでの待ち時間
+          uint16_t raw = analogRead(rx_pins[i]);    //< サンプリング
+          digitalWrite(tx_pins[i], LOW);            //< 充電開始
+          int temp = (int)raw - offset;           //< オフセットとの差をとる
+          if (temp < 1) temp = 1;                   //< 0以下にならないように1で飽和
+          value_buffer[0][i] = temp;                //< 保存
+          delayMicroseconds(100);                   //< 放電時間
         }
         // LPF
         for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
@@ -99,6 +81,4 @@ class Reflector : TaskBase {
       }
     }
 };
-
-extern Reflector ref;
 

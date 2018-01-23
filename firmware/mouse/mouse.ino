@@ -15,10 +15,12 @@ void task(void* arg) {
   //  int prev[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
+    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
     //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
+    imu.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
     //    printf("%d,%d\n", (enc.getPulses(0) - prev[0]) * 1000, (enc.getPulses(1) - prev[1]) * 1000);  prev[0] = enc.getPulses(0); prev[1] = enc.getPulses(1);
     //    printf("%ul,%d,%f", millis(), tof.getDistance(), sc.position.x);
   }
@@ -32,15 +34,19 @@ void setup() {
   if (!led.begin(true)) bz.play(Buzzer::ERROR);
   ui.batteryCheck();
   bz.play(Buzzer::BOOT);
+  delay(200);
+  pinMode(AS5048A_CS_PIN, INPUT_PULLUP);
+  pinMode(26, INPUT_PULLUP);
+  pinMode(27, INPUT_PULLUP);
 
   //  if (!SPIFFS.begin(false)) bz.play(Buzzer::ERROR);
-  if (!imu.begin(true, ICM20602_SCLK_PIN, ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_CS_PIN, ICM20602_SPI_HOST)) bz.play(Buzzer::ERROR);
-  if (!enc.begin(false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_CS_PIN, AS5048A_SPI_HOST)) bz.play(Buzzer::ERROR);
+  if (!imu.begin(true, ICM20602_SCLK_PIN, ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_CS_PIN, ICM20602_SPI_HOST, ICM20602_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
+  if (!enc.begin(false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_CS_PIN, AS5048A_SPI_HOST, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  //    if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  //  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
   //  if (!wd.begin()) bz.play(Buzzer::ERROR);
-  //  em.begin();
-  //  ec.begin();
+  em.begin();
+  ec.begin();
 
   xTaskCreate(task, "test", 4096, NULL, 0, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 0, NULL); // debug output

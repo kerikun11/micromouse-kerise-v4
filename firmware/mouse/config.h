@@ -19,15 +19,15 @@
 #define AS5048A_SCLK_PIN        9
 #define AS5048A_CS_PIN          4
 #define AS5048A_SPI_HOST        HSPI_HOST
-#define AS5048A_SPI_DMA_CHAIN   1
+#define AS5048A_SPI_DMA_CHAIN   0
 
 #define ICM20602_MOSI_PIN       2
 #define ICM20602_MISO_PIN       10
 #define ICM20602_SCLK_PIN       9
-#define ICM20602_CS_PIN         26
+#define ICM20602_CS_PIN         27
 //#define ICM20602_CS_PINS        {26,27}
 #define ICM20602_SPI_HOST       HSPI_HOST
-#define ICM20602_SPI_DMA_CHAIN  1
+#define ICM20602_SPI_DMA_CHAIN  0
 
 #define TOF_SDA_PIN             21
 #define TOF_SCL_PIN             22
