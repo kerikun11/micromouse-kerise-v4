@@ -18,11 +18,11 @@ class Reflector : TaskBase {
     }
     int16_t side(uint8_t isRight) const {
       if (isRight == 0) return read(0);
-      else return read(3);;
+      else return read(1);
     }
     int16_t front(uint8_t isRight) const {
-      if (isRight == 0) return read(1);
-      else return read(2);
+      if (isRight == 0) return read(2);
+      else return read(3);
     }
     int16_t read(const int8_t ch) const {
       if (ch < 0 || ch >= REFLECTOR_CH_SIZE) {

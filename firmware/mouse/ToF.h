@@ -33,6 +33,7 @@ class ToF {
     void csv() {
       printf("0,90,180,270,360,%d\n", getDistance());
       //      printf("0,20,40,%d\n", passed_ms);
+      //    printf("%ul,%d,%f", millis(), tof.getDistance(), sc.position.x);
     }
   private:
     const int pin_sda, pin_scl;

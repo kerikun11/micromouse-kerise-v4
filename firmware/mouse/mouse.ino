@@ -12,7 +12,6 @@
 
 void task(void* arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  //  int prev[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
     //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -20,9 +19,7 @@ void task(void* arg) {
     //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
     //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
-    imu.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
-    //    printf("%d,%d\n", (enc.getPulses(0) - prev[0]) * 1000, (enc.getPulses(1) - prev[1]) * 1000);  prev[0] = enc.getPulses(0); prev[1] = enc.getPulses(1);
-    //    printf("%ul,%d,%f", millis(), tof.getDistance(), sc.position.x);
+    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
   }
 }
 
@@ -39,14 +36,15 @@ void setup() {
   pinMode(26, INPUT_PULLUP);
   pinMode(27, INPUT_PULLUP);
 
-  //  if (!SPIFFS.begin(false)) bz.play(Buzzer::ERROR);
+  if (!SPIFFS.begin(false)) bz.play(Buzzer::ERROR);
   if (!imu.begin(true, ICM20602_SCLK_PIN, ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_CS_PIN, ICM20602_SPI_HOST, ICM20602_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
   if (!enc.begin(false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_CS_PIN, AS5048A_SPI_HOST, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  //  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
-  //  if (!wd.begin()) bz.play(Buzzer::ERROR);
+  //    if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  if (!wd.begin()) bz.play(Buzzer::ERROR);
   em.begin();
   ec.begin();
+  //  imu.calibration();
 
   xTaskCreate(task, "test", 4096, NULL, 0, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 0, NULL); // debug output
@@ -217,6 +215,12 @@ void normal_drive() {
       sc.disable();
       break;
     //* リセット
+    case 14:
+      mt.drive(100, 100);
+      delay(2000);
+      mt.free();
+      break;
+    //* リセット
     case 15:
       ESP.restart();
       break;
@@ -234,6 +238,19 @@ void position_test() {
 }
 
 void trapizoid_test() {
+  while (1) {
+    if (btn.pressed) {
+      btn.flags = 0;
+      bz.play(Buzzer::CONFIRM);
+      break;
+    }
+    if (btn.long_pressing_1) {
+      btn.flags = 0;
+      bz.play(Buzzer::SELECT);
+      lg.print();
+    }
+    delay(100);
+  }
   if (!ui.waitForCover()) return;
   delay(1000);
   imu.calibration();
@@ -241,9 +258,9 @@ void trapizoid_test() {
   delay(500);
   lg.start();
   sc.enable();
-  const float accel = 15000;
-  const float decel = 12000;
-  const float v_max = 2400;
+  const float accel = 9000;
+  const float decel = 9000;
+  const float v_max = 1200;
   const float v_start = 0;
   float T = 1.5f * (v_max - v_start) / accel;
   portTickType xLastWakeTime = xTaskGetTickCount();
@@ -283,6 +300,19 @@ void straight_test() {
 }
 
 void turn_test() {
+  while (1) {
+    if (btn.pressed) {
+      btn.flags = 0;
+      bz.play(Buzzer::CONFIRM);
+      break;
+    }
+    if (btn.long_pressing_1) {
+      btn.flags = 0;
+      bz.play(Buzzer::SELECT);
+      lg.print();
+    }
+    delay(100);
+  }
   if (!ui.waitForCover()) return;
   delay(1000);
   imu.calibration();

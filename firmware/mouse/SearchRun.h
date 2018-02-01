@@ -34,9 +34,9 @@ extern WallDetector wd;
 #include "Logger.h"
 extern Logger lg;
 
-#define SEARCH_WALL_ATTACH_ENABLED  true
-#define SEARCH_WALL_CUT_ENABLED     true
-#define SEARCH_WALL_FRONT_ENABLED   true
+#define SEARCH_WALL_ATTACH_ENABLED  false
+#define SEARCH_WALL_CUT_ENABLED     false
+#define SEARCH_WALL_FRONT_ENABLED   false
 #define SEARCH_WALL_AVOID_ENABLED   true
 
 #define SEARCH_END_REMAIN           3

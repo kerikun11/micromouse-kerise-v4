@@ -16,8 +16,8 @@ extern ToF tof;
 
 #define WALL_DETECTOR_BACKUP_PATH     "/WallDetector.bin"
 
-#define WALL_DETECTOR_THRESHOLD_FRONT 120
-#define WALL_DETECTOR_THRESHOLD_SIDE  60
+#define WALL_DETECTOR_THRESHOLD_FRONT 240
+#define WALL_DETECTOR_THRESHOLD_SIDE  240
 
 class WallDetector {
   public:
@@ -77,7 +77,11 @@ class WallDetector {
       xSemaphoreTake(calibrationFrontEndSemaphore, portMAX_DELAY);
     }
     void print() {
-      printf("Wall:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
+      printf("Wall:\tref\t%d\t%d\t%d\t%d\tdiff:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
+             ref.side(0),
+             ref.front(0),
+             ref.front(1),
+             ref.side(1),
              wall_diff.side[0],
              wall_diff.front[0],
              wall_diff.front[1],
@@ -109,6 +113,7 @@ class WallDetector {
     SemaphoreHandle_t calibrationFrontEndSemaphore;
     static const int ave_num = 16;
     int16_t side_buf[ave_num][2];
+    int16_t front_buf[ave_num][2];
 
     void calibration_side() {
       float sum[2] = {0.0f, 0.0f};
@@ -136,9 +141,11 @@ class WallDetector {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
 
         // detect front wall
-        if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f) wall[2] = true;
-        else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f) wall[2] = false;
-        if (tof.passedTimeMs() > 200) wall[2] = false;
+        {
+          int value = (ref.front(0) + ref.front(1)) / 2;
+          if (value > WALL_DETECTOR_THRESHOLD_FRONT * 1.1f) wall[2] = true;
+          else if (value < WALL_DETECTOR_THRESHOLD_FRONT * 0.9f) wall[2] = false;
+        }
 
         // detect side wall
         for (int i = 0; i < 2; i++) {
