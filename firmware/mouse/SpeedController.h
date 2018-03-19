@@ -67,6 +67,9 @@ class  Accumulator {
       head = 0;
       clear(value);
     }
+    ~Accumulator() {
+      free(buffer);
+    }
     void clear(const T& value = T()) {
       for (int i = 0; i < _size; i++) buffer[i] = value;
     }
@@ -75,7 +78,7 @@ class  Accumulator {
       buffer[head] = value;
     }
     const T& operator[](const size_t index) const {
-      return buffer[(_size + head - index) % _size];
+      return buffer[((int)_size + head - index) % _size];
     }
     const T& average(const int num) const {
       T& sum = T();
@@ -95,8 +98,8 @@ class  Accumulator {
 #define SPEED_CONTROLLER_TASK_PRIORITY  4
 #define SPEED_CONTROLLER_STACK_SIZE     4096
 
-#define SPEED_CONTROLLER_KP   1.2f
-#define SPEED_CONTROLLER_KI   144.0f
+#define SPEED_CONTROLLER_KP   0.9f
+#define SPEED_CONTROLLER_KI   12.0f
 #define SPEED_CONTROLLER_KD   0.01f
 
 #define SPEED_CONTROLLER_PERIOD_US  1000
@@ -119,14 +122,11 @@ class SpeedController {
           wheel[1] = trans + MACHINE_ROTATION_RADIUS * rot;
         }
         void wheel2pole() {
-          rot = (wheel[1] - wheel[0]) / 2.0f / MACHINE_ROTATION_RADIUS;
-          trans = (wheel[1] + wheel[0]) / 2.0f;
+          rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
+          trans = (wheel[1] + wheel[0]) / 2;
         }
         void clear() {
-          trans = 0;
-          rot = 0;
-          wheel[0] = 0;
-          wheel[1] = 0;
+          trans = 0; rot = 0; wheel[0] = 0; wheel[1] = 0;
         }
     };
     WheelParameter target;
@@ -167,7 +167,7 @@ class SpeedController {
       target.rot = rot;
       target.pole2wheel();
     }
-  private:
+    //  private:
     bool enabled = false;
     static const int acc_num = 16;
     Accumulator<float, acc_num> wheel_position[2];
@@ -191,7 +191,11 @@ class SpeedController {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-        if (enabled == false) continue;
+        if (enabled == false) continue; //< 有効でなければスルー
+
+        // サンプリング終了まで待つ
+        enc.take();
+        imu.take();
 
         // 最新のデータの追加
         for (int i = 0; i < 2; i++) wheel_position[i].push(enc.position(i));
@@ -210,27 +214,31 @@ class SpeedController {
           enconly.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) * 1000000 / SPEED_CONTROLLER_PERIOD_US;
         }
         acconly.trans = sum_accel * SPEED_CONTROLLER_PERIOD_US / 1000000 / 2;
-
         enconly.wheel2pole();
+
+        // calculate actual value
         actual.wheel2pole();
         actual.trans += sum_accel * SPEED_CONTROLLER_PERIOD_US / 1000000 / 2;
         actual.rot = imu.gyro.z;
         actual.pole2wheel();
+
+        // calculate pid value
         for (int i = 0; i < 2; i++) {
           integral.wheel[i] += (target.wheel[i] - actual.wheel[i]) * SPEED_CONTROLLER_PERIOD_US / 1000000;
           proportional.wheel[i] = target.wheel[i] - actual.wheel[i];
         }
-        //        differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
-        differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000;
-        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
+        integral.wheel2pole();
+        proportional.wheel2pole();
+        differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
+        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
         differential.pole2wheel();
+
+        // calculate pwm value
         float pwm_value[2];
         for (int i = 0; i < 2; i++) pwm_value[i] = Kp * proportional.wheel[i] + Ki * integral.wheel[i] + Kd * differential.wheel[i];
         mt.drive(pwm_value[0], pwm_value[1]);
 
-        proportional.wheel2pole();
-        integral.wheel2pole();
-
+        // calculate odometry value
         position.theta += (actual_prev.rot + actual.rot) / 2 * SPEED_CONTROLLER_PERIOD_US / 1000000;
         position.x += (actual_prev.trans + actual.trans) / 2 * cos(position.theta) * SPEED_CONTROLLER_PERIOD_US / 1000000;
         position.y += (actual_prev.trans + actual.trans) / 2 * sin(position.theta) * SPEED_CONTROLLER_PERIOD_US / 1000000;

@@ -56,6 +56,7 @@ class IMU {
   public:
     MotionParameter gyro, accel;
     float angle, angular_accel;
+
   private:
     xTaskHandle task_handle;
     SemaphoreHandle_t calibration_start_semaphore;

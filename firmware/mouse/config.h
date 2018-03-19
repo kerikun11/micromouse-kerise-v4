@@ -24,8 +24,9 @@
 #define ICM20602_MOSI_PIN       2
 #define ICM20602_MISO_PIN       10
 #define ICM20602_SCLK_PIN       9
-#define ICM20602_CS_PIN         27
-//#define ICM20602_CS_PINS        {26,27}
+#define ICM20602_L_CS_PIN       26
+#define ICM20602_R_CS_PIN       27
+#define ICM20602_CS_PINS        {ICM20602_L_CS_PIN, ICM20602_R_CS_PIN}
 #define ICM20602_SPI_HOST       HSPI_HOST
 #define ICM20602_SPI_DMA_CHAIN  0
 
@@ -44,7 +45,7 @@
 
 /* Machine Size Parameter */
 #define MACHINE_ROTATION_RADIUS 16.75f
-#define MACHINE_GEAR_RATIO      (13.0f/41.0f)
+#define MACHINE_GEAR_RATIO      (12.0f/37.0f)
 #define MACHINE_WHEEL_DIAMETER  13.807967f
 #define MACHINE_TAIL_LENGTH     18.4f
 

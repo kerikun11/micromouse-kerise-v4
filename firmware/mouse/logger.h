@@ -13,13 +13,12 @@ extern Reflector ref;
 #include "tof.h"
 extern ToF tof;
 
-#define LOGGER_TASK_PRIORITY 1
+#define LOGGER_TASK_PRIORITY 0
 #define LOGGER_STACK_SIZE    4096
 
 class Logger {
   public:
     Logger() {
-      mutex = xSemaphoreCreateBinary();
       end();
       xTaskCreate([](void* obj) {
         static_cast<Logger*>(obj)->task();
@@ -27,10 +26,10 @@ class Logger {
     }
     void start(bool clear = true) {
       if (clear) log = "";
-      xSemaphoreGive(mutex);
+      enabled = true;
     }
     void end() {
-      xSemaphoreTake(mutex, 0);
+      enabled = false;
     }
     void print() {
       Serial.print(log);
@@ -49,7 +48,7 @@ class Logger {
 
   private:
     xTaskHandle task_handle;
-    SemaphoreHandle_t mutex;
+    bool enabled;
     String log;
 
     void printToLog() {
@@ -69,10 +68,10 @@ class Logger {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 2 / portTICK_RATE_MS);
-        xSemaphoreTake(mutex, portMAX_DELAY);
-        printToLog();
-        xSemaphoreGive(mutex);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        if (enabled) {
+          printToLog();
+        }
       }
     }
 };

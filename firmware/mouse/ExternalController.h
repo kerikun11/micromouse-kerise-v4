@@ -7,6 +7,8 @@
 extern Buzzer bz;
 #include "imu.h"
 extern IMU imu;
+#include "Logger.h"
+extern Logger lg;
 
 #define EXTERNAL_CONTROLLER_TASK_PRIORITY 1
 #define EXTERNAL_CONTROLLER_STACK_SIZE    4096
@@ -32,6 +34,8 @@ class ExternalController {
               bz.play(Buzzer::CONFIRM);
               imu.calibration();
               break;
+            case 'l':
+              lg.print();
           }
         }
       }

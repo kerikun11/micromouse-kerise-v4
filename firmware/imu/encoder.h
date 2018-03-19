@@ -11,9 +11,7 @@
 
 class Encoder {
   public:
-    Encoder() {
-      sampling_semaphore = xSemaphoreCreateBinary();
-    }
+    Encoder() {}
     bool begin(spi_host_device_t spi_host,
                int8_t pin_cs,
                bool spi_bus_initializing,
@@ -71,48 +69,39 @@ class Encoder {
       return value;
     }
     void csv() {
-      //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES, getRaw(0), getRaw(1));
+      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES, getRaw(0), getRaw(1));
       //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES, getPulses(0), getPulses(1));
-      printf("0,%f,%f\n", position(0), position(1));
-    }
-    void take() {
-      xSemaphoreTake(sampling_semaphore, portMAX_DELAY);
+      //      printf("0,%f,%f\n", position(0), position(1));
     }
   private:
     spi_device_handle_t encoder_spi;
-    SemaphoreHandle_t sampling_semaphore;
     int pulses[2];
     int pulses_prev[2];
     int pulses_ovf[2];
-
-    void update() {
-      uint8_t rxbuf[4];
-      spi_transaction_t tx = {0};
-      tx.flags |= SPI_TRANS_USE_TXDATA;
-      tx.tx_data[0] = 0xFF; tx.tx_data[1] = 0xFF; tx.tx_data[2] = 0xFF; tx.tx_data[3] = 0xFF;
-      tx.rx_buffer = rxbuf;
-      tx.length = 32;
-      ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
-
-      pulses[1] = ((uint16_t)(0x3F & (rxbuf[0])) << 8) | rxbuf[1];
-      pulses[0] = ((uint16_t)(0x3F & (rxbuf[2])) << 8) | rxbuf[3];
-      for (int i = 0; i < 2; i++) {
-        if (pulses[i] > pulses_prev[i] + ENCODER_PULSES / 2) {
-          pulses_ovf[i]--;
-        } else if (pulses[i] < pulses_prev[i] - ENCODER_PULSES / 2) {
-          pulses_ovf[i]++;
-        }
-        pulses_prev[i] = pulses[i];
-      }
-
-    }
 
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-        update();
-        xSemaphoreGive(sampling_semaphore);
+
+        uint8_t rxbuf[4];
+        spi_transaction_t tx = {0};
+        tx.flags |= SPI_TRANS_USE_TXDATA;
+        tx.tx_data[0] = 0xFF; tx.tx_data[1] = 0xFF; tx.tx_data[2] = 0xFF; tx.tx_data[3] = 0xFF;
+        tx.rx_buffer = rxbuf;
+        tx.length = 32;
+        ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
+
+        pulses[1] = ((uint16_t)(0x3F & (rxbuf[0])) << 8) | rxbuf[1];
+        pulses[0] = ((uint16_t)(0x3F & (rxbuf[2])) << 8) | rxbuf[3];
+        for (int i = 0; i < 2; i++) {
+          if (pulses[i] > pulses_prev[i] + ENCODER_PULSES / 2) {
+            pulses_ovf[i]--;
+          } else if (pulses[i] < pulses_prev[i] - ENCODER_PULSES / 2) {
+            pulses_ovf[i]++;
+          }
+          pulses_prev[i] = pulses[i];
+        }
       }
     }
 };

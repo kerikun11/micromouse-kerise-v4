@@ -16,8 +16,8 @@ extern ToF tof;
 
 #define WALL_DETECTOR_BACKUP_PATH     "/WallDetector.bin"
 
-#define WALL_DETECTOR_THRESHOLD_FRONT 240
-#define WALL_DETECTOR_THRESHOLD_SIDE  240
+#define WALL_DETECTOR_THRESHOLD_FRONT 45
+#define WALL_DETECTOR_THRESHOLD_SIDE  120
 
 class WallDetector {
   public:
@@ -111,7 +111,7 @@ class WallDetector {
     SemaphoreHandle_t calibrationEndSemaphore;
     SemaphoreHandle_t calibrationFrontStartSemaphore;
     SemaphoreHandle_t calibrationFrontEndSemaphore;
-    static const int ave_num = 16;
+    static const int ave_num = 4;
     int16_t side_buf[ave_num][2];
     int16_t front_buf[ave_num][2];
 

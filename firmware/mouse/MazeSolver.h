@@ -52,7 +52,7 @@ extern FastRun fr;
 //#define MAZE_GOAL           {Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20), Vector(20, 21), Vector(20, 22), Vector(21, 20), Vector(21, 21), Vector(21, 22)}
 #define MAZE_BACKUP_SIZE    5
 
-//#define printf  lg.printf
+#define printf  lg.printf
 
 #define MAZE_BACKUP_PATH    "/maze_backup.bin"
 
@@ -143,7 +143,19 @@ class MazeSolver: TaskBase {
         const Vector v = agent.getCurVec();
         const Dir d = agent.getCurDir();
         printf("Cur: ( %3d, %3d, %3d), State: %s       \n", v.x, v.y, uint8_t(d), agent.stateString(agent.getState()));
-        printf("ToF: %d, (passed: %d)\n", tof.getDistance(), tof.passedTimeMs());
+        //        printf("ToF: %d, (passed: %d)\n", tof.getDistance(), tof.passedTimeMs());
+        printf("Wall:\tref\t%d\t%d\t%d\t%d\tdiff:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
+               ref.side(0),
+               ref.front(0),
+               ref.front(1),
+               ref.side(1),
+               wd.wall_diff.side[0],
+               wd.wall_diff.front[0],
+               wd.wall_diff.front[1],
+               wd.wall_diff.side[1],
+               wd.wall[0] ? 'X' : '.',
+               wd.wall[2] ? 'X' : '.',
+               wd.wall[1] ? 'X' : '.');
         agent.updateWall(v, d + 1, wd.wall[0]); // left
         agent.updateWall(v, d + 0, wd.wall[2]); // front
         agent.updateWall(v, d - 1, wd.wall[1]); // right
