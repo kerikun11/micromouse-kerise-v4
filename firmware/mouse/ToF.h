@@ -15,14 +15,13 @@ class ToF {
       sensor.setTimeout(10);
       sensor.init();
       sensor.configureDefault();
-      //      if (!sensor.init()) {
-      //        log_e("ToF init failed :(");
-      //        return false;
-      //      }
-
       xTaskCreate([](void* obj) {
         static_cast<ToF*>(obj)->task();
       }, "ToF", TOF_TASK_STACK_SIZE, this, TOF_TASK_PRIORITY, NULL);
+      if (sensor.last_status != 0) {
+        log_e("ToF failed :(");
+        return false;
+      }
       return true;
     }
     uint16_t getDistance() {

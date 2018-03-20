@@ -16,8 +16,8 @@ extern ToF tof;
 
 #define WALL_DETECTOR_BACKUP_PATH     "/WallDetector.bin"
 
-#define WALL_DETECTOR_THRESHOLD_FRONT 45
-#define WALL_DETECTOR_THRESHOLD_SIDE  120
+#define WALL_DETECTOR_THRESHOLD_FRONT 120
+#define WALL_DETECTOR_THRESHOLD_SIDE  300
 
 class WallDetector {
   public:
@@ -141,11 +141,9 @@ class WallDetector {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
 
         // detect front wall
-        {
-          int value = (ref.front(0) + ref.front(1)) / 2;
-          if (value > WALL_DETECTOR_THRESHOLD_FRONT * 1.1f) wall[2] = true;
-          else if (value < WALL_DETECTOR_THRESHOLD_FRONT * 0.9f) wall[2] = false;
-        }
+        if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f) wall[2] = true;
+        else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f) wall[2] = false;
+        if (tof.passedTimeMs() > 200) wall[2] = false;
 
         // detect side wall
         for (int i = 0; i < 2; i++) {

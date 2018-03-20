@@ -9,17 +9,17 @@
 
 #include "global.h"
 
-
 void task(void* arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
-    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    enc.csv();
+    //    ref.csv();
+    //    tof.csv();
+    //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
 
     //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",
     //           sc.target.trans,
@@ -30,12 +30,7 @@ void task(void* arg) {
     //           sc.Ki * sc.integral.trans,
     //           sc.Kd * sc.differential.trans,
     //           sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans
-    //          ); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    printf("%.1f,%.1f\n",
-    //           imu.gyro.z * 100,
-    //           imu.angular_accel
     //          );
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
 }
 
@@ -57,7 +52,7 @@ void setup() {
   if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
 
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  //  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
   if (!wd.begin()) bz.play(Buzzer::ERROR);
   em.begin();
   ec.begin();
