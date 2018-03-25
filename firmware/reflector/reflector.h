@@ -13,7 +13,7 @@ class Reflector {
   public:
     Reflector(std::array<int8_t, REFLECTOR_CH_SIZE> tx_pins, std::array<int8_t, REFLECTOR_CH_SIZE> rx_pins)
       : tx_pins(tx_pins), rx_pins(rx_pins) {
-      sampling_semaphore = xSemaphoreCreateBinary();
+      sampling_end_semaphore = xSemaphoreCreateBinary();
     }
     bool begin() {
       for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
@@ -53,13 +53,13 @@ class Reflector {
       printf("\n");
     }
     void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
-      xSemaphoreTake(sampling_semaphore, xBlockTime);
+      xSemaphoreTake(sampling_end_semaphore, xBlockTime);
     }
   private:
     const std::array<int8_t, REFLECTOR_CH_SIZE> tx_pins;  //< 赤外線LEDのピン
     const std::array<int8_t, REFLECTOR_CH_SIZE> rx_pins;  //< フォトトランジスタのピン
     int16_t value[REFLECTOR_CH_SIZE]; //< リフレクタの測定値
-    SemaphoreHandle_t sampling_semaphore; //< サンプリング終了を知らせるセマフォ
+    SemaphoreHandle_t sampling_end_semaphore; //< サンプリング終了を知らせるセマフォ
     TimerSemaphore ts;  //< インターバル用タイマー
 
     void sampling() {
@@ -87,7 +87,7 @@ class Reflector {
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
         sampling();
-        xSemaphoreGive(sampling_semaphore); //< サンプリング終了を知らせる
+        xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
       }
     }
 };

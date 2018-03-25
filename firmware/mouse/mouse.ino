@@ -1,5 +1,5 @@
 /**
-  KERISE v3-2
+  KERISE
   Author:  kerikun11 (Github: kerikun11)
   Date:    2017.10.25
 */
@@ -11,8 +11,12 @@
 
 void task(void* arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
+  float prev[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    printf("0,100,%f\n", (enc.position(1) - prev[1]) * 1000);
+    prev[0] = enc.position(0);
+    prev[1] = enc.position(1);
     //    enc.csv();
     //    ref.csv();
     //    tof.csv();
@@ -37,7 +41,7 @@ void task(void* arg) {
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
-  printf("\n**************** KERISE ****************\n");
+  printf("\n**************** KERISEv5 ****************\n");
   if (!bz.begin()) bz.play(Buzzer::ERROR);
   if (!led.begin(true)) bz.play(Buzzer::ERROR);
   ui.batteryCheck();
@@ -52,10 +56,11 @@ void setup() {
   if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
 
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  //  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
   if (!wd.begin()) bz.play(Buzzer::ERROR);
   em.begin();
   ec.begin();
+  mt.drive(80, 80);
 
   xTaskCreate(task, "test", 4096, NULL, 0, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 0, NULL); // debug output

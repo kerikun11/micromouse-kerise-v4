@@ -194,8 +194,8 @@ class SpeedController {
         if (enabled == false) continue; //< 有効でなければスルー
 
         // サンプリング終了まで待つ
-        enc.take();
-        imu.take();
+        enc.samplingSemaphoreTake();
+        imu.samplingSemaphoreTake();
 
         // 最新のデータの追加
         for (int i = 0; i < 2; i++) wheel_position[i].push(enc.position(i));

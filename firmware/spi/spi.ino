@@ -13,6 +13,14 @@ IMU imu;
 #include "encoder.h"
 Encoder enc;
 
+void task(void* arg) {
+  portTickType xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
+  while (1) {
+    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+  }
+}
+
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
@@ -25,11 +33,12 @@ void setup() {
   enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN);
 
   imu.calibration();
+  xTaskCreate(task, "test", 4096, NULL, 0, NULL);
 }
 
 void loop() {
-  imu.print();
-  enc.print();
+  //  imu.print();
+  //  enc.print();
   delay(100);
   if (Serial.available()) {
     switch (Serial.read()) {

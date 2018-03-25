@@ -52,7 +52,7 @@ extern FastRun fr;
 //#define MAZE_GOAL           {Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20), Vector(20, 21), Vector(20, 22), Vector(21, 20), Vector(21, 21), Vector(21, 22)}
 #define MAZE_BACKUP_SIZE    5
 
-#define printf  lg.printf
+//#define printf  lg.printf
 
 #define MAZE_BACKUP_PATH    "/maze_backup.bin"
 

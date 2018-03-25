@@ -4,7 +4,7 @@
 #include "driver/spi_master.h"
 #include "esp_err.h"
 
-#define ENCODER_PULSES            16384
+#define ENCODER_PULSES      16384
 
 #define ENCODER_STACK_SIZE  4096
 #define ENCODER_PRIORITY    5
@@ -12,12 +12,12 @@
 class Encoder {
   public:
     Encoder() {
-      sampling_semaphore = xSemaphoreCreateBinary();
+      sampling_end_semaphore = xSemaphoreCreateBinary();
     }
     bool begin(spi_host_device_t spi_host,
                int8_t pin_cs,
-               bool spi_bus_initializing,
-               int8_t pin_sclk, int8_t pin_miso, int8_t pin_mosi,
+               bool spi_bus_initializing = false,
+               int8_t pin_sclk = -1, int8_t pin_miso = -1, int8_t pin_mosi = -1,
                int dma_chain = 0) {
       if (spi_bus_initializing) {
         // ESP-IDF SPI bus initialization
@@ -51,10 +51,6 @@ class Encoder {
       }, "Encoder", ENCODER_STACK_SIZE, this, ENCODER_PRIORITY, NULL);
       return true;
     }
-    void print() {
-      //      printf("L: %d\tR: %d\n", getRaw(0), getRaw(1));
-      printf("L:\t%f\tR:\t%f\n", position(0), position(1));
-    }
     float position(uint8_t ch) {
       float value = ((float)pulses_ovf[ch] * ENCODER_PULSES + pulses[ch]) * MACHINE_WHEEL_DIAMETER * M_PI * MACHINE_GEAR_RATIO / ENCODER_PULSES;
       if (ch == 0)value = -value;
@@ -70,17 +66,21 @@ class Encoder {
       if (ch == 0)value = -value;
       return value;
     }
+    void print() {
+      log_d("Encoder L:\t%f\tR:\t%f\n", position(0), position(1));
+    }
     void csv() {
       //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES, getRaw(0), getRaw(1));
       //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES, getPulses(0), getPulses(1));
       printf("0,%f,%f\n", position(0), position(1));
     }
-    void take() {
-      xSemaphoreTake(sampling_semaphore, portMAX_DELAY);
+    void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+      xSemaphoreTake(sampling_end_semaphore, xBlockTime);
     }
+
   private:
     spi_device_handle_t encoder_spi;
-    SemaphoreHandle_t sampling_semaphore;
+    SemaphoreHandle_t sampling_end_semaphore;
     int pulses[2];
     int pulses_prev[2];
     int pulses_ovf[2];
@@ -104,7 +104,6 @@ class Encoder {
         }
         pulses_prev[i] = pulses[i];
       }
-
     }
 
     void task() {
@@ -112,7 +111,7 @@ class Encoder {
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         update();
-        xSemaphoreGive(sampling_semaphore);
+        xSemaphoreGive(sampling_end_semaphore);
       }
     }
 };
