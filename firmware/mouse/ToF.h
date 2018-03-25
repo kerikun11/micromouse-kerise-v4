@@ -1,17 +1,29 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Wire.h>
+//#include <Wire.h>
 #include "VL6180X.h"
 
 #define TOF_TASK_PRIORITY     1
 #define TOF_TASK_STACK_SIZE   4096
+#define I2C_PORT_NUM_TOF    I2C_NUM_0
 
 class ToF {
   public:
     ToF(const int pin_sda, const int pin_scl): pin_sda(pin_sda), pin_scl(pin_scl) {}
     bool begin(bool initializeWire = false) {
-      if (initializeWire) Wire.begin(pin_sda, pin_scl);
+      //      if (initializeWire) Wire.begin(pin_sda, pin_scl);
+      if (initializeWire) {
+        i2c_config_t conf;
+        conf.mode = I2C_MODE_MASTER;
+        conf.sda_io_num = (gpio_num_t)pin_sda;
+        conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.scl_io_num = (gpio_num_t)pin_scl;
+        conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.master.clk_speed = 1000000;
+        i2c_param_config(I2C_PORT_NUM_TOF, &conf);
+        i2c_driver_install(I2C_PORT_NUM_TOF, conf.mode, 0, 0, 0);
+      }
       sensor.setTimeout(10);
       sensor.init();
       sensor.configureDefault();
@@ -31,7 +43,7 @@ class ToF {
       return passed_ms;
     }
     void print() {
-      log_d("ToF: %d\n", getDistance());
+      log_d("ToF: %d [mm]", getDistance());
     }
     void csv() {
       printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
@@ -58,7 +70,7 @@ class ToF {
         }
         uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
         sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-        distance = range + 20;
+        distance = range + 24;
         if (range != 255) {
           passed_ms = 0;
         }

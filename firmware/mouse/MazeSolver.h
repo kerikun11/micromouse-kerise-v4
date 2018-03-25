@@ -352,6 +352,7 @@ class MazeSolver: TaskBase {
       }
     }
     void readyToStartWait(const int wait_ms = 3000) {
+      delay(200);
       for (int ms = 0; ms < wait_ms; ms++) {
         delay(1);
         if (fabs(imu.accel.z) > 9800 * 1) {

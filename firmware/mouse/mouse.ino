@@ -14,16 +14,14 @@ void task(void* arg) {
   float prev[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printf("0,100,%f\n", (enc.position(1) - prev[1]) * 1000);
-    prev[0] = enc.position(0);
-    prev[1] = enc.position(1);
+    //    printf("0,100,%f\n", (enc.position(1) - prev[1]) * 1000); prev[0] = enc.position(0); prev[1] = enc.position(1);
     //    enc.csv();
     //    ref.csv();
     //    tof.csv();
     //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
     //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
     //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    //    tof.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
 
     //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",
     //           sc.target.trans,
@@ -56,11 +54,10 @@ void setup() {
   if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
 
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  //  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
   if (!wd.begin()) bz.play(Buzzer::ERROR);
   em.begin();
   ec.begin();
-  mt.drive(80, 80);
 
   xTaskCreate(task, "test", 4096, NULL, 0, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 0, NULL); // debug output
@@ -275,7 +272,7 @@ void trapizoid_test() {
   lg.start();
   sc.enable();
   const float accel = 12000;
-  const float decel = 12000;
+  const float decel = 6000;
   const float v_max = 1800;
   const float v_start = 0;
   float T = 1.5f * (v_max - v_start) / accel;

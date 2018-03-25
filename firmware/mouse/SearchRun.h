@@ -192,9 +192,9 @@ class SearchRun: TaskBase {
       if (tof.getDistance() < 90) {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (1) {
-          const float gain = 0.01f;
+          const float gain = 0.02f;
           const float satu = 60.0f;
-          const float end = 0.5f;
+          const float end = 1.0f;
           SpeedController::WheelParameter wp;
           wp.wheel[0] = -std::max(std::min(wd.wall_diff.front[0] * gain, satu), -satu);
           wp.wheel[1] = -std::max(std::min(wd.wall_diff.front[1] * gain, satu), -satu);
@@ -244,7 +244,7 @@ class SearchRun: TaskBase {
         float value = tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
         float x = sc.position.x;
         if (value > 60 && value < 120) sc.position.x = 90 - value - ahead_length;
-        if (sc.position.x > 0.0f) sc.position.x = 0.0f;
+        //        if (sc.position.x > 0.0f) sc.position.x = 0.0f;
         printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
       }
 #endif

@@ -1,11 +1,13 @@
 #include "VL6180X.h"
-#include <Wire.h>
+//#include <Wire.h>
+#include <driver/i2c.h>
 
 // Defines /////////////////////////////////////////////////////////////////////
 
 // The Arduino two-wire interface uses a 7-bit number for the address,
 // and sets the last bit correctly based on reads and writes
 #define ADDRESS_DEFAULT 0b0101001
+#define I2C_PORT_NUM_TOF    I2C_NUM_0
 
 // RANGE_SCALER values for 1x, 2x, 3x scaling - see STSW-IMG003 core/src/vl6180x_api.c (ScalerLookUP[])
 static uint16_t const ScalerValues[] = {0, 253, 127, 84};
@@ -146,90 +148,166 @@ void VL6180X::configureDefault(void)
 // Writes an 8-bit register
 void VL6180X::writeReg(uint16_t reg, uint8_t value)
 {
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  Wire.write(value);
-  last_status = Wire.endTransmission();
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  Wire.write(value);
+//  last_status = Wire.endTransmission();
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_write_byte(cmd, value, true);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
 }
 
 // Writes a 16-bit register
 void VL6180X::writeReg16Bit(uint16_t reg, uint16_t value)
 {
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  Wire.write((value >> 8) & 0xff);  // value high byte
-  Wire.write(value & 0xff);         // value low byte
-  last_status = Wire.endTransmission();
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  Wire.write((value >> 8) & 0xff);  // value high byte
+//  Wire.write(value & 0xff);         // value low byte
+//  last_status = Wire.endTransmission();
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_write_byte(cmd, (value >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, value & 0xff, true);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
 }
 
 // Writes a 32-bit register
 void VL6180X::writeReg32Bit(uint16_t reg, uint32_t value)
 {
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  Wire.write((value >> 24) & 0xff); // value highest byte
-  Wire.write((value >> 16) & 0xff);
-  Wire.write((value >> 8) & 0xff);
-  Wire.write(value & 0xff);         // value lowest byte
-  last_status = Wire.endTransmission();
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  Wire.write((value >> 24) & 0xff); // value highest byte
+//  Wire.write((value >> 16) & 0xff);
+//  Wire.write((value >> 8) & 0xff);
+//  Wire.write(value & 0xff);         // value lowest byte
+//  last_status = Wire.endTransmission();
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_write_byte(cmd, (value >> 24) & 0xff, true);
+  i2c_master_write_byte(cmd, (value >> 16) & 0xff, true);
+  i2c_master_write_byte(cmd, (value >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, value & 0xff, true);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
 }
 
 // Reads an 8-bit register
 uint8_t VL6180X::readReg(uint16_t reg)
 {
+//  uint8_t value;
+//
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  last_status = Wire.endTransmission();
+//
+//  Wire.requestFrom(address, (uint8_t)1);
+//  value = Wire.read();
+//  Wire.endTransmission();
+//
+//  return value;
   uint8_t value;
-
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  last_status = Wire.endTransmission();
-
-  Wire.requestFrom(address, (uint8_t)1);
-  value = Wire.read();
-  Wire.endTransmission();
-
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
+  i2c_master_read_byte(cmd, &value, I2C_MASTER_NACK);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
   return value;
 }
 
 // Reads a 16-bit register
 uint16_t VL6180X::readReg16Bit(uint16_t reg)
 {
-  uint16_t value;
-
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  last_status = Wire.endTransmission();
-
-  Wire.requestFrom(address, (uint8_t)2);
-  value = (uint16_t)Wire.read() << 8; // value high byte
-  value |= Wire.read();               // value low byte
-  Wire.endTransmission();
-
-  return value;
+//  uint16_t value;
+//
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  last_status = Wire.endTransmission();
+//
+//  Wire.requestFrom(address, (uint8_t)2);
+//  value = (uint16_t)Wire.read() << 8; // value high byte
+//  value |= Wire.read();               // value low byte
+//  Wire.endTransmission();
+//
+//  return value;
+  uint8_t value[2];
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
+  i2c_master_read(cmd, value, 2, I2C_MASTER_NACK);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
+  return ((uint16_t)value[0] << 8) | value[1];
 }
 
 // Reads a 32-bit register
 uint32_t VL6180X::readReg32Bit(uint16_t reg)
 {
-  uint32_t value;
-
-  Wire.beginTransmission(address);
-  Wire.write((reg >> 8) & 0xff);  // reg high byte
-  Wire.write(reg & 0xff);         // reg low byte
-  last_status = Wire.endTransmission();
-
-  Wire.requestFrom(address, (uint8_t)4);
-  value = (uint32_t)Wire.read() << 24;  // value highest byte
-  value |= (uint32_t)Wire.read() << 16;
-  value |= (uint16_t)Wire.read() << 8;
-  value |= Wire.read();                 // value lowest byte
-  Wire.endTransmission();
-
-  return value;
+//  uint32_t value;
+//
+//  Wire.beginTransmission(address);
+//  Wire.write((reg >> 8) & 0xff);  // reg high byte
+//  Wire.write(reg & 0xff);         // reg low byte
+//  last_status = Wire.endTransmission();
+//
+//  Wire.requestFrom(address, (uint8_t)4);
+//  value = (uint32_t)Wire.read() << 24;  // value highest byte
+//  value |= (uint32_t)Wire.read() << 16;
+//  value |= (uint16_t)Wire.read() << 8;
+//  value |= Wire.read();                 // value lowest byte
+//  Wire.endTransmission();
+//
+//  return value;
+  uint8_t value[4];
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, (reg >> 8) & 0xff, true);
+  i2c_master_write_byte(cmd, reg & 0xff, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
+  i2c_master_read(cmd, value, 4, I2C_MASTER_NACK);
+  i2c_master_stop(cmd);
+  esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
+  i2c_cmd_link_delete(cmd);
+  last_status = (ret == ESP_OK) ? 0 : -1;
+  return ((uint16_t)value[0] << 24) | ((uint16_t)value[1] << 16) | ((uint16_t)value[2] << 8) | value[3];
 }
 
 // Set range scaling factor. The sensor uses 1x scaling by default, giving range
