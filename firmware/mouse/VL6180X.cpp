@@ -1,13 +1,13 @@
 #include "VL6180X.h"
 //#include <Wire.h>
 #include <driver/i2c.h>
+#include "config.h" //< for I2C_PORT_NUM_TOF
 
 // Defines /////////////////////////////////////////////////////////////////////
 
 // The Arduino two-wire interface uses a 7-bit number for the address,
 // and sets the last bit correctly based on reads and writes
 #define ADDRESS_DEFAULT 0b0101001
-#define I2C_PORT_NUM_TOF    I2C_NUM_0
 
 // RANGE_SCALER values for 1x, 2x, 3x scaling - see STSW-IMG003 core/src/vl6180x_api.c (ScalerLookUP[])
 static uint16_t const ScalerValues[] = {0, 253, 127, 84};
@@ -307,7 +307,7 @@ uint32_t VL6180X::readReg32Bit(uint16_t reg)
   esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
-  return ((uint16_t)value[0] << 24) | ((uint16_t)value[1] << 16) | ((uint16_t)value[2] << 8) | value[3];
+  return ((uint32_t)value[0] << 24) | ((uint32_t)value[1] << 16) | ((uint32_t)value[2] << 8) | value[3];
 }
 
 // Set range scaling factor. The sensor uses 1x scaling by default, giving range

@@ -39,7 +39,7 @@ void task(void* arg) {
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
-  printf("\n**************** KERISEv5 ****************\n");
+  log_i("\n**************** KERISEv5 ****************\n");
   if (!bz.begin()) bz.play(Buzzer::ERROR);
   if (!led.begin(true)) bz.play(Buzzer::ERROR);
   ui.batteryCheck();

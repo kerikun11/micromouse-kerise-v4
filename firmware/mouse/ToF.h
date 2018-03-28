@@ -1,18 +1,17 @@
 #pragma once
 
 #include <Arduino.h>
-//#include <Wire.h>
+#include <driver/i2c.h>
+#include "config.h" //< for I2C_PORT_NUM_TOF
 #include "VL6180X.h"
 
 #define TOF_TASK_PRIORITY     1
 #define TOF_TASK_STACK_SIZE   4096
-#define I2C_PORT_NUM_TOF    I2C_NUM_0
 
 class ToF {
   public:
     ToF(const int pin_sda, const int pin_scl): pin_sda(pin_sda), pin_scl(pin_scl) {}
     bool begin(bool initializeWire = false) {
-      //      if (initializeWire) Wire.begin(pin_sda, pin_scl);
       if (initializeWire) {
         i2c_config_t conf;
         conf.mode = I2C_MODE_MASTER;
