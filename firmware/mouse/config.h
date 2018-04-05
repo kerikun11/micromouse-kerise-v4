@@ -43,7 +43,8 @@
 
 #define LEDC_CH_BUZZER          4
 
-#define I2C_PORT_NUM_TOF        I2C_NUM_0
+#define I2C_PORT_NUM_LED        I2C_NUM_1
+#define I2C_PORT_NUM_TOF        I2C_NUM_1
 
 /* Machine Size Parameter */
 #define MACHINE_ROTATION_RADIUS 16.75f

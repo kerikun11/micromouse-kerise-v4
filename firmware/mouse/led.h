@@ -3,9 +3,9 @@
 #include <Arduino.h>
 //#include <Wire.h>
 #include <driver/i2c.h>
+#include "config.h"
 
 #define PCA9632_DEV_ID 0x62 //全体制御用のI2Cアドレス
-#define I2C_EXAMPLE_MASTER_NUM              I2C_NUM_0
 
 class LED {
   public:
@@ -19,8 +19,8 @@ class LED {
         conf.scl_io_num = (gpio_num_t)pin_scl;
         conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
         conf.master.clk_speed = 1000000;
-        i2c_param_config(I2C_EXAMPLE_MASTER_NUM, &conf);
-        i2c_driver_install(I2C_EXAMPLE_MASTER_NUM, conf.mode, 0, 0, 0);
+        i2c_param_config(I2C_PORT_NUM_LED, &conf);
+        i2c_driver_install(I2C_PORT_NUM_LED, conf.mode, 0, 0, 0);
       }
       writeReg(0x00, B10000001);
       return true;
@@ -53,7 +53,7 @@ class LED {
       i2c_master_write_byte(cmd, reg, true);
       i2c_master_write_byte(cmd, data, true);
       i2c_master_stop(cmd);
-      esp_err_t ret = i2c_master_cmd_begin(I2C_EXAMPLE_MASTER_NUM, cmd, 1 / portTICK_RATE_MS);
+      esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_LED, cmd, 1 / portTICK_RATE_MS);
       i2c_cmd_link_delete(cmd);
       //      return ret;
     }

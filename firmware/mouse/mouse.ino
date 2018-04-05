@@ -19,7 +19,7 @@ void task(void* arg) {
     //    ref.csv();
     //    tof.csv();
     //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    wd.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
     //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
     //    tof.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
 

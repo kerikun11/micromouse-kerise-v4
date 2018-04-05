@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <array>
 #include "TimerSemaphore.h"
+#include "Accumulator.h"
 
 #define REFLECTOR_CH_SIZE         4
 
@@ -61,6 +62,8 @@ class Reflector {
     int16_t value[REFLECTOR_CH_SIZE]; //< リフレクタの測定値
     SemaphoreHandle_t sampling_semaphore; //< サンプリング終了を知らせるセマフォ
     TimerSemaphore ts;  //< インターバル用タイマー
+    static const int ave_num = 16;
+    Accumulator<uint16_t, ave_num> buffer[REFLECTOR_CH_SIZE];
 
     void sampling() {
       ts.take(); //< スタートを同期
@@ -79,7 +82,8 @@ class Reflector {
 
         int temp = (int)raw - offset;         //< オフセットとの差をとる
         if (temp < 1) temp = 1;               //< 0以下にならないように1で飽和
-        value[i] = temp;                      //< 保存
+        buffer[i].push(temp);                 //< 保存
+        value[i] = buffer[i].average();
       }
     }
     void task() {

@@ -178,6 +178,7 @@ class MazeSolver: TaskBase {
           sr.waitForEnd();
           sr.disable();
           backup();
+          delay(1000);
           bz.play(Buzzer::MAZE_BACKUP);
           agent.updateCurVecDir(v.next(d + 2), d + 2); // u-turn
           sr.set_action(SearchRun::RETURN);
@@ -192,6 +193,7 @@ class MazeSolver: TaskBase {
           sr.waitForEnd();
           sr.disable();
           backup();
+          delay(1000);
           bz.play(Buzzer::MAZE_BACKUP);
           agent.updateCurVecDir(v.next(d + 2), d + 2); // u-turn
           sr.set_action(SearchRun::RETURN);

@@ -36,13 +36,13 @@ extern Logger lg;
 
 #define SEARCH_WALL_ATTACH_ENABLED  true
 #define SEARCH_WALL_CUT_ENABLED     false
-#define SEARCH_WALL_FRONT_ENABLED   true
+#define SEARCH_WALL_FRONT_ENABLED   false
 #define SEARCH_WALL_AVOID_ENABLED   false
 
 #define SEARCH_END_REMAIN           3
 #define SEARCH_ST_LOOK_AHEAD(v)     (6+2*v/100)
-#define SEARCH_ST_FB_GAIN           40
-#define SEARCH_CURVE_FB_GAIN        4.0f
+#define SEARCH_ST_FB_GAIN           1
+#define SEARCH_CURVE_FB_GAIN        2.0f
 
 #define ahead_length                0
 
@@ -50,9 +50,9 @@ extern Logger lg;
 #define SEARCH_RUN_STACK_SIZE       8192
 #define SEARCH_RUN_PERIOD           1000
 
-#define SEARCH_RUN_VELOCITY         200.0f
-#define SEARCH_RUN_V_CURVE          200.0f
-#define SEARCH_RUN_V_MAX            300.0f
+#define SEARCH_RUN_VELOCITY         120.0f
+#define SEARCH_RUN_V_CURVE          120.0f
+#define SEARCH_RUN_V_MAX            120.0f
 
 //#define printf  lg.printf
 
