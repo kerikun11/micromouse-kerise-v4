@@ -219,7 +219,7 @@ class IMU {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
         update(); //< データの更新
         xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
 

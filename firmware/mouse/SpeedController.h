@@ -63,7 +63,7 @@ class Position {
 #define SPEED_CONTROLLER_STACK_SIZE     4096
 
 #define SPEED_CONTROLLER_KP   0.6f
-#define SPEED_CONTROLLER_KI   96.0f
+#define SPEED_CONTROLLER_KI   72.0f
 #define SPEED_CONTROLLER_KD   0.001f
 
 #define SPEED_CONTROLLER_PERIOD_US  1000
@@ -154,7 +154,7 @@ class SpeedController {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         if (enabled == false) continue; //< 有効でなければスルー
 
         // サンプリング終了まで待つ
@@ -195,6 +195,7 @@ class SpeedController {
         proportional.wheel2pole();
         differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
         differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
+        //        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
         differential.pole2wheel();
 
         // calculate pwm value

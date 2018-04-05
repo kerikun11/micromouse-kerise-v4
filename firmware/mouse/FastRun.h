@@ -30,9 +30,10 @@ extern Logger lg;
 #define FAST_RUN_PERIOD         1000
 
 #define FAST_END_REMAIN         6
-#define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_FB_GAIN         20
-#define FAST_CURVE_FB_GAIN      3.0f
+//#define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
+#define FAST_ST_LOOK_AHEAD(v)   30
+#define FAST_ST_FB_GAIN         10
+#define FAST_CURVE_FB_GAIN      6.0f
 
 //#define printf  lg.printf
 
@@ -445,7 +446,7 @@ class FastRun: TaskBase {
         sc.set_target(velocity, FAST_ST_FB_GAIN * theta);
         wallAvoid();
         wallCut();
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         ms++;
       }
       sc.set_target(v_end, 0);
@@ -458,7 +459,7 @@ class FastRun: TaskBase {
       for (int i = 0; i < 2; i++) prev_wall[i] = wd.wall[i];
       while (1) {
         if (tr.getRemain() < FAST_END_REMAIN) break;
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         Position dir = tr.getNextDir(getRelativePosition(), velocity);
         sc.set_target(velocity, dir.theta);
         if (fabs(getRelativePosition().theta) < 0.01f * PI) {
@@ -514,6 +515,11 @@ class FastRun: TaskBase {
         path.replace("r", "Q");
       }
       printf("Running Path: %s\n", path.c_str());
+
+      // キャリブレーション
+      bz.play(Buzzer::CONFIRM);
+      imu.calibration();
+      bz.play(Buzzer::CANCEL);
 
       const float v_max = runParameter.max_speed;
       const float curve_gain = runParameter.curve_gain;

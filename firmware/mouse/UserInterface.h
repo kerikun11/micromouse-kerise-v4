@@ -20,9 +20,11 @@ extern ToF tof;
 
 class UserInterface {
   private:
-    const float thr_accel = 3 * 9807;
-    const float thr_gyro = 3 * PI;
+    const float thr_accel = 4 * 9807;
+    const float thr_gyro = 4 * PI;
     const float wait_ms = 200;
+    const int thr_side = 1800;
+    const int thr_front = 1800;
   public:
     UserInterface() {}
     int waitForSelect(int range = 16) {
@@ -74,12 +76,12 @@ class UserInterface {
     bool waitForCover(bool side = false) {
       while (1) {
         delay(1);
-        if (!side && ref.front(0) > 1800 && ref.front(1) > 1800) {
+        if (!side && ref.front(0) > thr_front && ref.front(1) > thr_front) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(front) => true");
           return true;
         }
-        if (side && ref.side(0) > 1800 && ref.side(1) > 1800) {
+        if (side && ref.side(0) > thr_side && ref.side(1) > thr_side) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(side) => true");
           return true;

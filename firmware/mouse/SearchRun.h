@@ -36,23 +36,23 @@ extern Logger lg;
 
 #define SEARCH_WALL_ATTACH_ENABLED  true
 #define SEARCH_WALL_CUT_ENABLED     false
-#define SEARCH_WALL_FRONT_ENABLED   false
+#define SEARCH_WALL_FRONT_ENABLED   true
 #define SEARCH_WALL_AVOID_ENABLED   false
 
 #define SEARCH_END_REMAIN           3
 #define SEARCH_ST_LOOK_AHEAD(v)     (6+2*v/100)
-#define SEARCH_ST_FB_GAIN           1
-#define SEARCH_CURVE_FB_GAIN        2.0f
+#define SEARCH_ST_FB_GAIN           10
+#define SEARCH_CURVE_FB_GAIN        1.0f
 
-#define ahead_length                0
+#define ahead_length                5
 
 #define SEARCH_RUN_TASK_PRIORITY    3
 #define SEARCH_RUN_STACK_SIZE       8192
 #define SEARCH_RUN_PERIOD           1000
 
-#define SEARCH_RUN_VELOCITY         120.0f
-#define SEARCH_RUN_V_CURVE          120.0f
-#define SEARCH_RUN_V_MAX            120.0f
+#define SEARCH_RUN_VELOCITY         200.0f
+#define SEARCH_RUN_V_CURVE          200.0f
+#define SEARCH_RUN_V_MAX            200.0f
 
 //#define printf  lg.printf
 
@@ -111,15 +111,15 @@ class S90: public SearchTrajectory {
   public:
     S90(bool mirror = false) : mirror(mirror) {}
     const float velocity = SEARCH_RUN_V_CURVE;
-    const float straight = 5.0f;
+    const float straight = 1.0f;
   private:
     bool mirror;
     virtual int size() const {
-      return 64;
+      return 71;
     }
     virtual Position position(int index) const {
-      static const float data[64 + 1][3] = {
-        {0.0000000000, 0.0000000000, 0.0000000000}, {0.9999998923, 0.0003078931, 0.0012198694}, {1.9999879340, 0.0046537958, 0.0089553852}, {2.9998345535, 0.0214405108, 0.0261752415}, {3.9990858694, 0.0594703540, 0.0506850977}, {4.9970180023, 0.1232942171, 0.0770580460}, {5.9929196733, 0.2134161267, 0.1034358823}, {6.9860978648, 0.3297733766, 0.1298137186}, {7.9758616801, 0.4722849639, 0.1561915549}, {8.9615225337, 0.6408517645, 0.1825693912}, {9.9423947145, 0.8353565446, 0.2089472275}, {10.9177954640, 1.0556639617, 0.2353250638}, {11.8870461556, 1.3016207441, 0.2617029002}, {12.8494727266, 1.5730556925, 0.2880807365}, {13.8044056782, 1.8697799428, 0.3144585728}, {14.7511803819, 2.1915871378, 0.3408364091}, {15.6891381198, 2.5382534269, 0.3672142454}, {16.6176260811, 2.9095375507, 0.3935920817}, {17.5359984703, 3.3051811902, 0.4199699180}, {18.4436165773, 3.7249089559, 0.4463477543}, {19.3398487945, 4.1684289024, 0.4727255906}, {20.2240715340, 4.6354325755, 0.4991034269}, {21.0956693878, 5.1255950138, 0.5254812633}, {21.9540359498, 5.6385751733, 0.5518590996}, {22.7985742712, 6.1740160196, 0.5782369359}, {23.6286968606, 6.7315449961, 0.6046147722}, {24.4438259508, 7.3107743679, 0.6309926085}, {25.2433944189, 7.9113012217, 0.6573704448}, {26.0268457756, 8.5327076105, 0.6837482811}, {26.7936351031, 9.1745611969, 0.7101261174}, {27.5432291145, 9.8364152266, 0.7365039537}, {28.2751061688, 10.5178093405, 0.7628817900}, {28.9887570281, 11.2182696507, 0.7892596264}, {29.6836850082, 11.9373087444, 0.8156374627}, {30.3594066195, 12.6744263170, 0.8420152990}, {31.0154519334, 13.4291093478, 0.8683931353}, {31.6513645811, 14.2008327341, 0.8947709716}, {32.2667019588, 14.9890597785, 0.9211488079}, {32.8610359510, 15.7932421891, 0.9475266442}, {33.4339529135, 16.6128202723, 0.9739044805}, {33.9850543619, 17.4472238166, 1.0002823168}, {34.5139570164, 18.2958720522, 1.0266601531}, {35.0202928125, 19.1581746928, 1.0530379895}, {35.5037094355, 20.0335320351, 1.0794158258}, {35.9638704483, 20.9213349629, 1.1057936621}, {36.4004556989, 21.8209657377, 1.1321714984}, {36.8131615650, 22.7317982415, 1.1585493347}, {37.2017009540, 23.6531987250, 1.1849271710}, {37.5658034276, 24.5845263972, 1.2113050073}, {37.9052156693, 25.5251334255, 1.2376828436}, {38.2197014609, 26.4743651613, 1.2640606799}, {38.5090420653, 27.4315611892, 1.2904385162}, {38.7730362530, 28.3960552774, 1.3168163526}, {39.0115003064, 29.3671765613, 1.3431941889}, {39.2242682882, 30.3442496582, 1.3695720252}, {39.4111921353, 31.3265946704, 1.3959498615}, {39.5721417980, 32.3135279516, 1.4223276978}, {39.7070053442, 33.3043628311, 1.4487055341}, {39.8156889585, 34.2984100205, 1.4750833704}, {39.8981169749, 35.2949779872, 1.5014612067}, {39.9542164196, 36.2933745674, 1.5277252106}, {39.9852996173, 37.2928693233, 1.5506123912}, {39.9974493868, 38.2927867446, 1.5650501394}, {39.9998937940, 39.2927825739, 1.5703586238}, {40.0000000000, 40.0000000000, 1.5707963268},
+      static const float data[71 + 1][3] = {
+        {0.0000000000, 0.0000000000, 0.0000000000}, {0.9999999901, 0.0000915712, 0.0003652106}, {1.9999988262, 0.0014393753, 0.0028446510}, {2.9999812693, 0.0070744275, 0.0091818750}, {3.9998725787, 0.0214539765, 0.0204440724}, {4.9994629773, 0.0496777091, 0.0368349648}, {5.9983439280, 0.0965883197, 0.0576590881}, {6.9959143616, 0.1659132508, 0.0814437245}, {7.9914894784, 0.2596081526, 0.1062591208}, {8.9844294170, 0.3780099662, 0.1311074535}, {9.9741209539, 0.5210456014, 0.1559557863}, {10.9599530354, 0.6886267474, 0.1808041190}, {11.9413171888, 0.8806498822, 0.2056524518}, {12.9176075226, 1.0969964756, 0.2305007845}, {13.8882212298, 1.3375330053, 0.2553491173}, {14.8525588869, 1.6021109571, 0.2801974500}, {15.8100250219, 1.8905669645, 0.3050457828}, {16.7600287081, 2.2027228892, 0.3298941155}, {17.7019835637, 2.5383859637, 0.3547424483}, {18.6353078372, 2.8973490227, 0.3795907810}, {19.5594253090, 3.2793905030, 0.4044391138}, {20.4737652018, 3.6842744702, 0.4292874465}, {21.3777630737, 4.1117509623, 0.4541357793}, {22.2708610157, 4.5615559331, 0.4789841120}, {23.1525076520, 5.0334116986, 0.5038324448}, {24.0221584823, 5.5270270496, 0.5286807776}, {24.8792765573, 6.0420972524, 0.5535291103}, {25.7233325411, 6.5783042163, 0.5783774431}, {26.5538054730, 7.1353168680, 0.6032257758}, {27.3701827870, 7.7127911894, 0.6280741086}, {28.1719603299, 8.3103707509, 0.6529224413}, {28.9586430618, 8.9276867323, 0.6777707741}, {29.7297451213, 9.5643579298, 0.7026191068}, {30.4847904304, 10.2199912524, 0.7274674396}, {31.2233130051, 10.8941817643, 0.7523157723}, {31.9448569558, 11.5865132010, 0.7771641051}, {32.6489766372, 12.2965582813, 0.8020124378}, {33.3352373362, 13.0238787068, 0.8268607706}, {34.0032152025, 13.7680252857, 0.8517091033}, {34.6524979203, 14.5285385942, 0.8765574361}, {35.2826847722, 15.3049488967, 0.9014057688}, {35.8933866392, 16.0967769345, 0.9262541016}, {36.4842263963, 16.9035340186, 0.9511024343}, {37.0548391948, 17.7247220299, 0.9759507671}, {37.6048726871, 18.5598338688, 1.0007990998}, {38.1339874042, 19.4083538442, 1.0256474326}, {38.6418567555, 20.2697579732, 1.0504957654}, {39.1281670734, 21.1435146100, 1.0753440981}, {39.5926181134, 22.0290844475, 1.1001924309}, {40.0349230206, 22.9259205757, 1.1250407636}, {40.4548087502, 23.8334693031, 1.1498890964}, {40.8520161668, 24.7511700759, 1.1747374291}, {41.2263000445, 25.6784563573, 1.1995857619}, {41.5774292138, 26.6147558666, 1.2244340946}, {41.9051868862, 27.5594905785, 1.2492824274}, {42.2093706515, 28.5120770329, 1.2741307601}, {42.4897927631, 29.4719270816, 1.2989790929}, {42.7462801463, 30.4384479183, 1.3238274256}, {42.9786744024, 31.4110429843, 1.3486757584}, {43.1868320272, 32.3891120048, 1.3735240911}, {43.3706244860, 33.3720509955, 1.3983724239}, {43.5299383122, 34.3592529306, 1.4232207566}, {43.6646751777, 35.3501083657, 1.4480690894}, {43.7747518930, 36.3440055843, 1.4729174221}, {43.8601349541, 37.3403282624, 1.4975887283}, {43.9215834395, 38.3384163875, 1.5205782448}, {43.9617034515, 39.3375954195, 1.5400372863}, {43.9846853187, 40.3373222759, 1.5547324671}, {43.9955596346, 41.3372593492, 1.5642656230}, {43.9993074321, 42.3372513328, 1.5691436188}, {43.9999823853, 43.3372510052, 1.5706894826}, {44.0000000000, 43.9999999950, 1.5707963268},
       };
       Position ret;
       if (index < 0) {
@@ -192,7 +192,7 @@ class SearchRun: TaskBase {
       if (tof.getDistance() < 90) {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (1) {
-          const float gain = 0.02f;
+          const float gain = 0.2f;
           const float satu = 60.0f;
           const float end = 1.0f;
           SpeedController::WheelParameter wp;
@@ -201,7 +201,7 @@ class SearchRun: TaskBase {
           wp.wheel2pole();
           if (fabs(wp.wheel[0]) + fabs(wp.wheel[1]) < end) break;
           sc.set_target(wp.trans, wp.rot);
-          vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+          xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         }
         sc.set_target(0, 0);
         printPosition("wall_attach");
@@ -225,13 +225,13 @@ class SearchRun: TaskBase {
         if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
           const float prev_x = sc.position.x;
           if (distance > 90 - 1)
-            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 70 - ahead_length;
+            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 76 - ahead_length;
           printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i, distance, prev_x, sc.position.x);
         }
         if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
           const float prev_x = sc.position.x;
           if (distance > 90 - 1)
-            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 60 - ahead_length;
+            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 64 - ahead_length;
           printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i, distance, prev_x, sc.position.x);
         }
         prev_wall[i] = wd.wall[i];
@@ -241,10 +241,10 @@ class SearchRun: TaskBase {
     void wall_calib(const float velocity) {
 #if SEARCH_WALL_FRONT_ENABLED
       if (wd.wall[2]) {
-        float value = tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
+        float value = tof.getDistance() - (10 + tof.passedTimeMs()) / 1000.0f * velocity;
         float x = sc.position.x;
         if (value > 60 && value < 120) sc.position.x = 90 - value - ahead_length;
-        //        if (sc.position.x > 0.0f) sc.position.x = 0.0f;
+        if (sc.position.x > 0.0f) sc.position.x = 0.0f;
         printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
       }
 #endif
@@ -264,11 +264,11 @@ class SearchRun: TaskBase {
         } else {
           sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
         }
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         ms++;
       }
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         float extra = angle - sc.position.theta;
         if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1) break;
         float target_speed = sqrt(2 * decel * fabs(extra));
@@ -286,8 +286,8 @@ class SearchRun: TaskBase {
       printPosition("Turn End");
     }
     void straight_x(const float distance, const float v_max, const float v_end) {
-      const float accel = 3600;
-      const float decel = 3600;
+      const float accel = 6000;
+      const float decel = 4000;
       int ms = 0;
       float v_start = sc.actual.trans;
       float T = 1.5f * (v_max - v_start) / accel;
@@ -306,7 +306,7 @@ class SearchRun: TaskBase {
         float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
         sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
         wall_avoid(distance);
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         ms++;
       }
       sc.set_target(v_end, 0);
@@ -318,7 +318,7 @@ class SearchRun: TaskBase {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         if (tr.getRemain() < SEARCH_END_REMAIN) break;
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         Position dir = tr.getNextDir(sc.position, velocity);
         sc.set_target(velocity, dir.theta);
       }
@@ -358,6 +358,7 @@ class SearchRun: TaskBase {
     virtual void task() {
       const float velocity = SEARCH_RUN_VELOCITY;
       const float v_max = SEARCH_RUN_V_MAX;
+      // スタート
       sc.enable();
       while (1) {
         //** SearchActionがキューされるまで直進で待つ
@@ -365,7 +366,7 @@ class SearchRun: TaskBase {
           S90 tr;
           portTickType xLastWakeTime = xTaskGetTickCount();
           while (q.empty()) {
-            vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+            xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
             Position cur = sc.position;
             float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
             sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);

@@ -7,8 +7,6 @@
 extern Buzzer bz;
 #include "imu.h"
 extern IMU imu;
-#include "Logger.h"
-extern Logger lg;
 
 #define EXTERNAL_CONTROLLER_TASK_PRIORITY 1
 #define EXTERNAL_CONTROLLER_STACK_SIZE    4096
@@ -25,7 +23,7 @@ class ExternalController {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         while (Serial.available()) {
           char c = Serial.read();
           printf("%c\n", c);
@@ -34,8 +32,6 @@ class ExternalController {
               bz.play(Buzzer::CONFIRM);
               imu.calibration();
               break;
-            case 'l':
-              lg.print();
           }
         }
       }

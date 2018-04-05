@@ -77,11 +77,7 @@ class WallDetector {
       xSemaphoreTake(calibrationFrontEndSemaphore, portMAX_DELAY);
     }
     void print() {
-      printf("Wall:\tref\t%d\t%d\t%d\t%d\tdiff:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
-             ref.side(0),
-             ref.front(0),
-             ref.front(1),
-             ref.side(1),
+      printf("Wall:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
              wall_diff.side[0],
              wall_diff.front[0],
              wall_diff.front[1],
@@ -111,9 +107,8 @@ class WallDetector {
     SemaphoreHandle_t calibrationEndSemaphore;
     SemaphoreHandle_t calibrationFrontStartSemaphore;
     SemaphoreHandle_t calibrationFrontEndSemaphore;
-    static const int ave_num = 4;
+    static const int ave_num = 16;
     int16_t side_buf[ave_num][2];
-    int16_t front_buf[ave_num][2];
 
     void calibration_side() {
       float sum[2] = {0.0f, 0.0f};
@@ -138,7 +133,7 @@ class WallDetector {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
 
         // detect front wall
         if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f) wall[2] = true;
@@ -163,12 +158,10 @@ class WallDetector {
         if (xSemaphoreTake(calibrationStartSemaphore, 0) == pdTRUE) {
           calibration_side();
           xSemaphoreGive(calibrationEndSemaphore);
-          xLastWakeTime = xTaskGetTickCount();
         }
         if (xSemaphoreTake(calibrationFrontStartSemaphore, 0) == pdTRUE) {
           calibration_front();
           xSemaphoreGive(calibrationFrontEndSemaphore);
-          xLastWakeTime = xTaskGetTickCount();
         }
       }
     }

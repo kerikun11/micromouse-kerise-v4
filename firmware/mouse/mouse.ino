@@ -1,60 +1,46 @@
 /**
-  KERISE
+  KERISE v5
   Author:  kerikun11 (Github: kerikun11)
   Date:    2017.10.25
 */
 
 #include <WiFi.h>
 #include <SPIFFS.h>
-
 #include "global.h"
+
+//#define printf lg.printf
 
 void task(void* arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  float prev[2] = {0, 0};
+  //  int prev[2] = {0, 0};
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    printf("0,100,%f\n", (enc.position(1) - prev[1]) * 1000); prev[0] = enc.position(0); prev[1] = enc.position(1);
-    //    enc.csv();
-    //    ref.csv();
-    //    tof.csv();
-    //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-    wd.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-    //    tof.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
-
-    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",
-    //           sc.target.trans,
-    //           sc.actual.trans,
-    //           sc.enconly.trans,
-    //           sc.acconly.trans,
-    //           sc.Kp * sc.proportional.trans,
-    //           sc.Ki * sc.integral.trans,
-    //           sc.Kd * sc.differential.trans,
-    //           sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans
-    //          );
+    xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    ref.csv(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    tof.csv(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    ref.print(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    wd.print(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    printf("%d,%d\n", (enc.getPulses(0) - prev[0]) * 1000, (enc.getPulses(1) - prev[1]) * 1000);  prev[0] = enc.getPulses(0); prev[1] = enc.getPulses(1);
+    //    printf("%ul,%d,%f", millis(), tof.getDistance(), sc.position.x);
   }
 }
 
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
-  log_i("\n**************** KERISEv5 ****************\n");
+  printf("\n**************** KERISE ****************\n");
   if (!bz.begin()) bz.play(Buzzer::ERROR);
   if (!led.begin(true)) bz.play(Buzzer::ERROR);
   ui.batteryCheck();
   bz.play(Buzzer::BOOT);
-  delay(200);
   pinMode(AS5048A_CS_PIN, INPUT_PULLUP);
   pinMode(ICM20602_L_CS_PIN, INPUT_PULLUP);
   pinMode(ICM20602_R_CS_PIN, INPUT_PULLUP);
 
-  if (!SPIFFS.begin(false)) bz.play(Buzzer::ERROR);
+  if (!SPIFFS.begin(true)) bz.play(Buzzer::ERROR);
   if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS, true, ICM20602_SCLK_PIN, ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
   if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN)) bz.play(Buzzer::ERROR);
-
   if (!ref.begin()) bz.play(Buzzer::ERROR);
-  if (!tof.begin(false)) bz.play(Buzzer::ERROR);
+  if (!tof.begin()) bz.play(Buzzer::ERROR);
   if (!wd.begin()) bz.play(Buzzer::ERROR);
   em.begin();
   ec.begin();
@@ -66,7 +52,6 @@ void setup() {
 void loop() {
   normal_drive();
   //  position_test();
-  //  step_test();
   //  trapizoid_test();
   //  straight_test();
   //  turn_test();
@@ -91,6 +76,7 @@ void normal_drive() {
       ms.start();
       btn.flags = 0;
       while (ms.isRunning() && !btn.pressed) delay(100);
+      delay(1000);
       bz.play(Buzzer::CANCEL);
       btn.flags = 0;
       ms.terminate();
@@ -228,11 +214,13 @@ void normal_drive() {
       straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
       sc.disable();
       break;
-    //* リセット
+    //* ログの表示
+    case 13:
+      lg.print();
+      break;
+    //* ログの表示
     case 14:
-      mt.drive(100, 100);
-      delay(2000);
-      mt.free();
+      ms.print();
       break;
     //* リセット
     case 15:
@@ -253,37 +241,35 @@ void position_test() {
 
 void trapizoid_test() {
   while (1) {
-    if (btn.pressed) {
-      btn.flags = 0;
+    int mode = ui.waitForSelect(2);
+    if (mode == 0) {
       bz.play(Buzzer::CONFIRM);
       break;
     }
-    if (btn.long_pressing_1) {
-      btn.flags = 0;
-      bz.play(Buzzer::SELECT);
-      lg.print();
-    }
+    bz.play(Buzzer::SELECT);
+    lg.print();
     delay(100);
   }
   if (!ui.waitForCover()) return;
   delay(1000);
   imu.calibration();
-  fan.drive(0.5); delay(500);
+  fan.drive(0.5);
+  delay(500);
   lg.start();
   sc.enable();
-  const float accel = 12000;
-  const float decel = 6000;
-  const float v_max = 1800;
+  const float accel = 9000;
+  const float decel = 9000;
+  const float v_max = 2400;
   const float v_start = 0;
   float T = 1.5f * (v_max - v_start) / accel;
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (int ms = 0; ms / 1000.0f < T; ms++) {
     float velocity_a = v_start + (v_max - v_start) * 6.0f * (-1.0f / 3 * pow(ms / 1000.0f / T, 3) + 1.0f / 2 * pow(ms / 1000.0f / T, 2));
     sc.set_target(velocity_a, 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   bz.play(Buzzer::SELECT);
-  delay(200);
+  delay(150);
   bz.play(Buzzer::SELECT);
   for (float v = v_max; v > 0; v -= decel / 1000) {
     sc.set_target(v, 0);
@@ -291,40 +277,10 @@ void trapizoid_test() {
   }
   sc.set_target(0, 0);
   delay(150);
-  lg.end();
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
-}
-
-void step_test() {
-  while (1) {
-    if (btn.pressed) {
-      btn.flags = 0;
-      bz.play(Buzzer::CONFIRM);
-      break;
-    }
-    if (btn.long_pressing_1) {
-      btn.flags = 0;
-      bz.play(Buzzer::SELECT);
-      lg.print();
-    }
-    delay(100);
-  }
-  if (!ui.waitForCover()) return;
-  delay(1000);
-  imu.calibration();
-  fan.drive(0.5); delay(500);
-  sc.enable();
-  lg.start();
-  const float value = 300;
-  mt.drive(value, value);
-  delay(1000);
-  mt.drive(0, 0);
   lg.end();
-  delay(1000);
-  sc.disable();
-  fan.drive(0);
 }
 
 void straight_test() {
@@ -343,19 +299,6 @@ void straight_test() {
 }
 
 void turn_test() {
-  while (1) {
-    if (btn.pressed) {
-      btn.flags = 0;
-      bz.play(Buzzer::CONFIRM);
-      break;
-    }
-    if (btn.long_pressing_1) {
-      btn.flags = 0;
-      bz.play(Buzzer::SELECT);
-      lg.print();
-    }
-    delay(100);
-  }
   if (!ui.waitForCover()) return;
   delay(1000);
   imu.calibration();
@@ -392,7 +335,7 @@ void straight_x(const float distance, const float v_max, const float v_end) {
     float theta = atan2f(-cur.y, TEST_LOOK_AHEAD * (1 + velocity / 600)) - cur.theta;
     sc.set_target(velocity, TEST_PROP_GAIN * theta);
     //    if (avoid) wall_avoid();
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     ms++;
     printf("%f\t[%c %c]\n", cur.x + 6 + MACHINE_TAIL_LENGTH, wd.wall[0] ? 'X' : '_', wd.wall[1] ? 'X' : '_');
   }
@@ -414,11 +357,11 @@ void turn(const float angle) {
     } else {
       sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
     }
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     ms++;
   }
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     float extra = angle - sc.position.theta;
     if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1) break;
     float target_speed = sqrt(2 * decel * fabs(extra));
