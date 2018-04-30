@@ -5,6 +5,7 @@
 #include <queue>
 #include "TaskBase.h"
 #include "config.h"
+#include "AccelDesigner.h"
 
 #include "motor.h"
 extern Motor mt;
@@ -30,10 +31,10 @@ extern Logger lg;
 #define FAST_RUN_PERIOD         1000
 
 #define FAST_END_REMAIN         6
-//#define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_LOOK_AHEAD(v)   30
+#define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
+//#define FAST_ST_LOOK_AHEAD(v)   30
 #define FAST_ST_FB_GAIN         10
-#define FAST_CURVE_FB_GAIN      6.0f
+#define FAST_CURVE_FB_GAIN      3.0f
 
 //#define printf  lg.printf
 
@@ -294,7 +295,7 @@ class FastRun: TaskBase {
       FAST_TURN_RIGHT_180 = 'U',
     };
     struct RunParameter {
-      RunParameter(const float curve_gain = 0.8, const float max_speed = 1200, const float accel = 6000, const float decel = 6000): curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel) {}
+      RunParameter(const float curve_gain = 0.7, const float max_speed = 1200, const float accel = 3000, const float decel = 3000): curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel) {}
       float curve_gain;
       float max_speed;
       float accel, decel;
@@ -446,7 +447,7 @@ class FastRun: TaskBase {
         sc.set_target(velocity, FAST_ST_FB_GAIN * theta);
         wallAvoid();
         wallCut();
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         ms++;
       }
       sc.set_target(v_end, 0);
@@ -459,7 +460,7 @@ class FastRun: TaskBase {
       for (int i = 0; i < 2; i++) prev_wall[i] = wd.wall[i];
       while (1) {
         if (tr.getRemain() < FAST_END_REMAIN) break;
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         Position dir = tr.getNextDir(getRelativePosition(), velocity);
         sc.set_target(velocity, dir.theta);
         if (fabs(getRelativePosition().theta) < 0.01f * PI) {

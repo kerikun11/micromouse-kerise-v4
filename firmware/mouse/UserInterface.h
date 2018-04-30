@@ -23,8 +23,6 @@ class UserInterface {
     const float thr_accel = 4 * 9807;
     const float thr_gyro = 4 * PI;
     const float wait_ms = 200;
-    const int thr_side = 1800;
-    const int thr_front = 1800;
   public:
     UserInterface() {}
     int waitForSelect(int range = 16) {
@@ -76,12 +74,12 @@ class UserInterface {
     bool waitForCover(bool side = false) {
       while (1) {
         delay(1);
-        if (!side && ref.front(0) > thr_front && ref.front(1) > thr_front) {
+        if (!side && ref.front(0) > 200 && ref.front(1) > 200) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(front) => true");
           return true;
         }
-        if (side && ref.side(0) > thr_side && ref.side(1) > thr_side) {
+        if (side && ref.side(0) > 500 && ref.side(1) > 500) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(side) => true");
           return true;
@@ -122,9 +120,10 @@ class UserInterface {
     //      }
     //    }
     static void batteryLedIndicate(const float voltage) {
-      if (voltage < 3.9f) led = 0x01;
+      led = 0;
+      if (voltage < 4.0f) led = 0x01;
       else if (voltage < 4.1f) led = 0x03;
-      else if (voltage < 4.3f) led = 0x07;
+      else if (voltage < 4.2f) led = 0x07;
       else led = 0x0F;
     }
     static void batteryCheck() {

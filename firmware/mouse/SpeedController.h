@@ -131,7 +131,7 @@ class SpeedController {
       target.rot = rot;
       target.pole2wheel();
     }
-    //  private:
+  private:
     bool enabled = false;
     static const int acc_num = 16;
     Accumulator<float, acc_num> wheel_position[2];
@@ -154,7 +154,7 @@ class SpeedController {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         if (enabled == false) continue; //< 有効でなければスルー
 
         // サンプリング終了まで待つ
@@ -194,8 +194,8 @@ class SpeedController {
         integral.wheel2pole();
         proportional.wheel2pole();
         differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
-        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
-        //        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
+        //        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
+        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
         differential.pole2wheel();
 
         // calculate pwm value

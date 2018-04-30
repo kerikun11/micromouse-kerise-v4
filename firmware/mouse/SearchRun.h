@@ -35,24 +35,24 @@ extern WallDetector wd;
 extern Logger lg;
 
 #define SEARCH_WALL_ATTACH_ENABLED  true
-#define SEARCH_WALL_CUT_ENABLED     false
+#define SEARCH_WALL_CUT_ENABLED     true
 #define SEARCH_WALL_FRONT_ENABLED   true
-#define SEARCH_WALL_AVOID_ENABLED   false
+#define SEARCH_WALL_AVOID_ENABLED   true
 
 #define SEARCH_END_REMAIN           3
 #define SEARCH_ST_LOOK_AHEAD(v)     (6+2*v/100)
-#define SEARCH_ST_FB_GAIN           10
-#define SEARCH_CURVE_FB_GAIN        1.0f
+#define SEARCH_ST_FB_GAIN           20
+#define SEARCH_CURVE_FB_GAIN        5.0f
 
-#define ahead_length                5
+#define ahead_length                2
 
 #define SEARCH_RUN_TASK_PRIORITY    3
 #define SEARCH_RUN_STACK_SIZE       8192
 #define SEARCH_RUN_PERIOD           1000
 
-#define SEARCH_RUN_VELOCITY         200.0f
-#define SEARCH_RUN_V_CURVE          200.0f
-#define SEARCH_RUN_V_MAX            200.0f
+#define SEARCH_RUN_VELOCITY         300.0f
+#define SEARCH_RUN_V_CURVE          300.0f
+#define SEARCH_RUN_V_MAX            1200.0f
 
 //#define printf  lg.printf
 
@@ -194,14 +194,14 @@ class SearchRun: TaskBase {
         while (1) {
           const float gain = 0.2f;
           const float satu = 60.0f;
-          const float end = 1.0f;
+          const float end = 2.0f;
           SpeedController::WheelParameter wp;
           wp.wheel[0] = -std::max(std::min(wd.wall_diff.front[0] * gain, satu), -satu);
           wp.wheel[1] = -std::max(std::min(wd.wall_diff.front[1] * gain, satu), -satu);
           wp.wheel2pole();
           if (fabs(wp.wheel[0]) + fabs(wp.wheel[1]) < end) break;
           sc.set_target(wp.trans, wp.rot);
-          xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+          vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         }
         sc.set_target(0, 0);
         printPosition("wall_attach");
@@ -264,11 +264,11 @@ class SearchRun: TaskBase {
         } else {
           sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
         }
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         ms++;
       }
       while (1) {
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         float extra = angle - sc.position.theta;
         if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1) break;
         float target_speed = sqrt(2 * decel * fabs(extra));
@@ -286,8 +286,8 @@ class SearchRun: TaskBase {
       printPosition("Turn End");
     }
     void straight_x(const float distance, const float v_max, const float v_end) {
-      const float accel = 6000;
-      const float decel = 4000;
+      const float accel = 3000;
+      const float decel = 2000;
       int ms = 0;
       float v_start = sc.actual.trans;
       float T = 1.5f * (v_max - v_start) / accel;
@@ -306,7 +306,7 @@ class SearchRun: TaskBase {
         float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
         sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
         wall_avoid(distance);
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         ms++;
       }
       sc.set_target(v_end, 0);
@@ -318,7 +318,7 @@ class SearchRun: TaskBase {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         if (tr.getRemain() < SEARCH_END_REMAIN) break;
-        xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         Position dir = tr.getNextDir(sc.position, velocity);
         sc.set_target(velocity, dir.theta);
       }
@@ -366,7 +366,7 @@ class SearchRun: TaskBase {
           S90 tr;
           portTickType xLastWakeTime = xTaskGetTickCount();
           while (q.empty()) {
-            xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+            vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
             Position cur = sc.position;
             float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
             sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
