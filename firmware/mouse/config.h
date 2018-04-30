@@ -47,7 +47,7 @@
 #define I2C_PORT_NUM_TOF        I2C_NUM_0
 
 /* Machine Size Parameter */
-#define MACHINE_ROTATION_RADIUS 16.75f
+#define MACHINE_ROTATION_RADIUS 15.0f
 #define MACHINE_GEAR_RATIO      (12.0f/37.0f)
 #define MACHINE_WHEEL_DIAMETER  12.8694f
 #define MACHINE_TAIL_LENGTH     18.4f

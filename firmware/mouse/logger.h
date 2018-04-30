@@ -69,7 +69,7 @@ class Logger {
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        vTaskDelayUntil(&xLastWakeTime, 2 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+        vTaskDelayUntil(&xLastWakeTime, 3 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
         if (enabled) {
           printToLog();
         }

@@ -168,8 +168,12 @@ class IMU {
         bus_cfg.max_transfer_sz = 0;    ///< Maximum transfer size, in bytes. Defaults to 4094 if 0.
         ESP_ERROR_CHECK(spi_bus_initialize(spi_host, &bus_cfg, dma_chain));
       }
-      if (!icm[0].begin(spi_host, pins_cs[0]) || !icm[1].begin(spi_host, pins_cs[1])) {
-        log_e("IMU begin failed :(");
+      if (!icm[1].begin(spi_host, pins_cs[1])) {
+        log_e("IMU 1 begin failed :(");
+        return false;
+      }
+      if (!icm[0].begin(spi_host, pins_cs[0])) {
+        log_e("IMU 0 begin failed :(");
         return false;
       }
       xTaskCreate([](void* obj) {

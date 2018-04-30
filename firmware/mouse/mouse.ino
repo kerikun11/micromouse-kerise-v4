@@ -12,15 +12,13 @@
 
 void task(void* arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  //  int prev[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    ref.print(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    printf("%d,%d\n", (enc.getPulses(0) - prev[0]) * 1000, (enc.getPulses(1) - prev[1]) * 1000);  prev[0] = enc.getPulses(0); prev[1] = enc.getPulses(1);
-    //    printf("%ul,%d,%f", millis(), tof.getDistance(), sc.position.x);
+    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
   }
 }
 
@@ -48,6 +46,8 @@ void setup() {
   xTaskCreate(task, "test", 4096, NULL, 1, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL); // debug output
   xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL); // debug output
+
+  //mt.drive(100, 100);
 }
 
 void loop() {}
@@ -229,8 +229,9 @@ void normal_drive() {
       lg.print();
       break;
     case 14:
-      straight_test();
+      //      straight_test();
       //      trapizoid_test();
+      accel_test();
       break;
     //* リセット
     case 15:
@@ -247,6 +248,44 @@ void position_test() {
   sc.set_target(0, 0);
   ui.waitForCover();
   sc.disable();
+}
+
+void accel_test() {
+  if (!ui.waitForCover()) return;
+  delay(500);
+  imu.calibration();
+  fan.drive(0.4);
+  delay(500);
+  lg.start();
+  sc.enable();
+  const float accel = 12000;
+  const float v_max = 1800;
+  AccelDesigner ad(accel, 0, v_max, 0, 900);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    sc.set_target(ad.v(t), 0);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+  }
+  sc.set_target(0, 0);
+  delay(200);
+  bz.play(Buzzer::CANCEL);
+  sc.disable();
+  fan.drive(0);
+  lg.end();
+}
+
+void turn_test() {
+  if (!ui.waitForCover()) return;
+  delay(1000);
+  imu.calibration();
+  bz.play(Buzzer::CONFIRM);
+  lg.start();
+  sc.enable();
+  turn(-10 * 2 * PI);
+  turn(10 * 2 * PI);
+  sc.disable();
+  bz.play(Buzzer::CANCEL);
+  lg.end();
 }
 
 void trapizoid_test() {
@@ -280,20 +319,6 @@ void trapizoid_test() {
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
-  lg.end();
-}
-
-void turn_test() {
-  if (!ui.waitForCover()) return;
-  delay(1000);
-  imu.calibration();
-  bz.play(Buzzer::CONFIRM);
-  lg.start();
-  sc.enable();
-  turn(-10 * 2 * PI);
-  turn(10 * 2 * PI);
-  sc.disable();
-  bz.play(Buzzer::CANCEL);
   lg.end();
 }
 

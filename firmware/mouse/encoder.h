@@ -53,17 +53,17 @@ class Encoder {
     }
     float position(uint8_t ch) {
       float value = ((float)pulses_ovf[ch] * ENCODER_PULSES + pulses[ch]) * MACHINE_WHEEL_DIAMETER * M_PI * MACHINE_GEAR_RATIO / ENCODER_PULSES;
-      if (ch == 0)value = -value;
+      if (ch == 1)value = -value;
       return value;
     }
     int getPulses(uint8_t ch) {
       int value = pulses_ovf[ch] * ENCODER_PULSES + pulses[ch];
-      if (ch == 0)value = -value;
+      if (ch == 1)value = -value;
       return value;
     }
     int getRaw(uint8_t ch) {
       int value = pulses[ch];
-      if (ch == 0)value = -value;
+      if (ch == 1)value = -value;
       return value;
     }
     void print() {
