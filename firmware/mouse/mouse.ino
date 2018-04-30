@@ -16,6 +16,7 @@ void task(void* arg) {
   while (1) {
     xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    ref.csv(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    enc.csv(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    tof.csv(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    ref.print(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     //    wd.print(); xLastWakeTime = xTaskGetTickCount(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
