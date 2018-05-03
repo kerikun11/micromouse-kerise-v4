@@ -74,12 +74,12 @@ class UserInterface {
     bool waitForCover(bool side = false) {
       while (1) {
         delay(1);
-        if (!side && ref.front(0) > 200 && ref.front(1) > 2000) {
+        if (!side && ref.front(0) > 200 && ref.front(1) > 2400) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(front) => true");
           return true;
         }
-        if (side && ref.side(0) > 500 && ref.side(1) > 2000) {
+        if (side && ref.side(0) > 500 && ref.side(1) > 2400) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(side) => true");
           return true;

@@ -17,7 +17,7 @@ extern ToF tof;
 #define WALL_DETECTOR_BACKUP_PATH     "/WallDetector.bin"
 
 #define WALL_DETECTOR_THRESHOLD_FRONT 120
-#define WALL_DETECTOR_THRESHOLD_SIDE  60
+#define WALL_DETECTOR_THRESHOLD_SIDE  300
 
 class WallDetector {
   public:

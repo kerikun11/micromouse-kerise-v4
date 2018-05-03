@@ -33,7 +33,7 @@ extern Logger lg;
 #define FAST_END_REMAIN         6
 #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
 //#define FAST_ST_LOOK_AHEAD(v)   30
-#define FAST_ST_FB_GAIN         10
+#define FAST_ST_FB_GAIN         30
 #define FAST_CURVE_FB_GAIN      3.0f
 
 //#define printf  lg.printf
@@ -307,10 +307,10 @@ class FastRun: TaskBase {
   public:
     RunParameter runParameter;
     bool wallAvoidFlag = true;
-    bool wallAvoid45Flag = true;
-    bool wallCutFlag = true;
+    bool wallAvoid45Flag = false;
+    bool wallCutFlag = false;
     bool V90Enabled = true;
-    float fanDuty = 0.4f;
+    float fanDuty = 0.2f;
 
     void enable() {
       printf("FastRun Enabled\n");
@@ -362,7 +362,7 @@ class FastRun: TaskBase {
     void wallAvoid() {
       // 90 [deg] の倍数
       if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-        const float gain = 0.0003f;
+        const float gain = 0.00003f;
         const float satu = 0.3f;
         if (ref.side(0) > 60) sc.position += Position(0, std::max(std::min(wd.wall_diff.side[0] * gain, satu), -satu), 0).rotate(origin.theta);
         if (ref.side(1) > 60) sc.position -= Position(0, std::max(std::min(wd.wall_diff.side[1] * gain, satu), -satu), 0).rotate(origin.theta);
