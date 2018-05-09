@@ -17,7 +17,7 @@ void task(void* arg) {
     //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    wd.print(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
   }
 }
@@ -229,9 +229,9 @@ void normal_drive() {
       lg.print();
       break;
     case 14:
-      //      straight_test();
+      straight_test();
       //      trapizoid_test();
-      accel_test();
+      //      accel_test();
       break;
     //* リセット
     case 15:
@@ -254,13 +254,13 @@ void accel_test() {
   if (!ui.waitForCover()) return;
   delay(500);
   imu.calibration();
-  fan.drive(0.4);
+  fan.drive(0.2);
   delay(500);
   lg.start();
   sc.enable();
   const float accel = 12000;
   const float v_max = 1800;
-  AccelDesigner ad(accel, 0, v_max, 0, 900);
+  AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
     sc.set_target(ad.v(t), 0);
@@ -328,11 +328,11 @@ void straight_test() {
   bz.play(Buzzer::SELECT);
   imu.calibration();
   sc.enable();
-  fan.drive(0.5);
+  fan.drive(0.2);
   delay(500);
   lg.start();
   sc.position.x = 0;
-  straight_x(12 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
+  straight_x(8 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
   sc.set_target(0, 0);
   delay(100);
   lg.end();
@@ -341,15 +341,15 @@ void straight_test() {
   sc.disable();
 }
 
-#define TEST_END_REMAIN         6
+#define TEST_END_REMAIN         1
 #define TEST_ST_LOOK_AHEAD(v)   (6+v/100)
 #define TEST_ST_FB_GAIN         10
 #define TEST_ST_TR_FB_GAIN      0
 
 void straight_x(const float distance, const float v_max, const float v_end) {
   const float a_max = 9000;
-  const float v_start = sc.actual.trans;
-  AccelDesigner ad(a_max, v_start, v_max, v_end, sc.position.x, distance - TEST_END_REMAIN);
+  const float v_start = std::max(sc.actual.trans, 0.0f);
+  AccelDesigner ad(a_max, 0, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0.0f; true; t += 0.001f) {
     Position cur = sc.position;
