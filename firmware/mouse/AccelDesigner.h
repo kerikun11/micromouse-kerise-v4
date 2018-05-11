@@ -9,6 +9,8 @@
 #include <cmath> //< for std::sqrt, std::cbrt, std::pow
 #include <algorithm> //< for std::max, std::min
 #include <complex> //< for std::complex
+#include <iostream>
+#include <fstream>
 
 /* このファイルに定義されているクラス一覧 */
 class AccelCurve;
@@ -121,11 +123,7 @@ public:
     const float tc = AccelCurve::calcTimeCurve(am);
     am = (vt - vs > 0) ? std::abs(am) : -std::abs(am); //< 最大加速度の符号を決定
     const float tm = (vt - vs) / am - tc; //< 等加速度直線運動の時間を決定
-    std::cout << "tm: " << tm << std::endl;
     float ve;
-    // if (tm > 0) {
-    //   ve = ((am>0?1:-1)*std::sqrt(4*vs*vs - 4*vs*am*tc + am*(tc*tc*am + 8*d)) - am*tc)/2; //< 2次方程式の解
-    // } else {
       const float a = vs;
       const float b = am*d*d/tc;
       const float aaa = a*a*a;
@@ -133,16 +131,13 @@ public:
       const float c1 = 16*aaa + 27*b;
       if(c0 >= 0) {
         // ルートの中が非負のとき
-        const float c2 = std::cbrt(std::sqrt(c0) + c1) / 2;
+        const float c2 = cbrt(std::sqrt(c0) + c1) / 2;
         ve = (c2 + 4*a*a/c2 - a) / 3; //< 3次方程式の解
-        std::cout << "c2-p: " << c2 << std::endl;
       } else {
         // ルートの中が負のとき
         const auto c2 = std::pow(std::complex<float>(c1/2,  std::sqrt(-c0)/2), 1.0f/3);
         ve = (c2.real()*2 - a) / 3; //< 3次方程式の解
-        std::cout << "c2-n: " << c2 << std::endl;
       }
-    // }
     return (vt > vs) ? std::min(vt, ve) : std::max(vt, ve); //< 加速と減速で飽和方向が異なる
   }
   /** @function calcVelocityMax
@@ -204,10 +199,6 @@ public:
     t1 = ac.t_end(); //< 曲線加速終了の時刻
     t2 = ac.t_end() + (distance - ac.x_end() - dc.x_end()) / v_max; //< 等速走行終了の時刻
     t3 = ac.t_end() + (distance - ac.x_end() - dc.x_end()) / v_max + dc.t_end(); //< 曲線減速終了の時刻
-    // 表示
-    std::cout << "a_max: " << a_max << " v_start: " << v_start << " v_max: " << v_max << " v_end: " << v_end << " v_target: " << v_target << " distance: " << distance << std::endl;
-    std::cout << "t1: " << t1 << " t2: " << t2 << " t3: " << t3 << std::endl;
-    std::cout << "ac.x_end: " << ac.x_end() << " dc.x_end: " << dc.x_end() << std::endl;
   }
   /** @function a
   *   @brief 時刻$t$における加速度$a$
