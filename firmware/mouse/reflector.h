@@ -41,16 +41,17 @@ class Reflector {
         log_e("you refered an invalid channel!");
         return 0;
       }
+      //      return 12.9035f * log((float)value[ch]) - 86.7561f;
       return value[ch];
     }
     void csv() const {
       printf("0,1500");
-      for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) printf(",%d", value[i]);
+      for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) printf(",%d", read(i));
       printf("\n");
     }
     void print() const {
       printf("Reflector: ");
-      for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) printf("\t%04d", value[i]);
+      for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) printf("\t%04d", read(i));
       printf("\n");
     }
     void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {

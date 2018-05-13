@@ -3,6 +3,10 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "config.h"
+#include <vector>
+#include <cmath>
+
+#undef log;
 
 /* Hardware */
 #include "reflector.h"
@@ -17,7 +21,7 @@ extern ToF tof;
 #define WALL_DETECTOR_BACKUP_PATH     "/WallDetector.bin"
 
 #define WALL_DETECTOR_THRESHOLD_FRONT 120
-#define WALL_DETECTOR_THRESHOLD_SIDE  300
+#define WALL_DETECTOR_THRESHOLD_SIDE  -10
 
 class WallDetector {
   public:
@@ -61,7 +65,7 @@ class WallDetector {
         log_e("File size is invalid!");
         return false;
       }
-      log_i("WallDetector Restore: %d %d %d %d",
+      log_i("WallDetector Restore:\t%.1f\t%.1f\t%.1f\t%.1f",
             wall_ref.side[0], wall_ref.front[0], wall_ref.front[1], wall_ref.side[1]
            );
       return true;
@@ -77,84 +81,84 @@ class WallDetector {
       xSemaphoreTake(calibrationFrontEndSemaphore, portMAX_DELAY);
     }
     void print() {
-      printf("Wall:\t%d\t%d\t%d\t%d\t[ %c %c %c ]\n",
-             wall_diff.side[0],
-             wall_diff.front[0],
-             wall_diff.front[1],
-             wall_diff.side[1],
+      printf("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]\n",
+             distance.side[0],
+             distance.front[0],
+             distance.front[1],
+             distance.side[1],
              wall[0] ? 'X' : '.',
              wall[2] ? 'X' : '.',
              wall[1] ? 'X' : '.');
     }
     void csv() {
-      printf("%d,%d,%d,%d\n",
-             wall_diff.side[0],
-             wall_diff.front[0],
-             wall_diff.front[1],
-             wall_diff.side[1]
+      printf("%f,%f,%f,%f\n",
+             distance.side[0],
+             distance.front[0],
+             distance.front[1],
+             distance.side[1]
             );
     }
     struct WallValue {
-      int16_t side[2];
-      int16_t front[2];
+      float side[2];
+      float front[2];
     };
-    WallValue wall_ref;
-    WallValue wall_diff;
+    WallValue distance;
     bool wall[3];
+
   private:
     xTaskHandle task_handle;
     SemaphoreHandle_t calibrationStartSemaphore;
     SemaphoreHandle_t calibrationEndSemaphore;
     SemaphoreHandle_t calibrationFrontStartSemaphore;
     SemaphoreHandle_t calibrationFrontEndSemaphore;
-    static const int ave_num = 16;
-    int16_t side_buf[ave_num][2];
+    WallValue wall_ref;
 
+    float ref2dist(const int16_t value) {
+      return 12.9035f * log(value) - 86.7561f;
+    }
     void calibration_side() {
       float sum[2] = {0.0f, 0.0f};
       const int ave_count = 500;
       for (int j = 0; j < ave_count; j++) {
-        for (int i = 0; i < 2; i++) sum[i] += ref.side(i);
+        for (int i = 0; i < 2; i++) sum[i] += ref2dist(ref.side(i));
         delay(1);
       }
       for (int i = 0; i < 2; i++) wall_ref.side[i] = sum[i] / ave_count;
-      printf("Wall Calibration Side:\t%04d\t%04d\n", (int) wall_ref.side[0], (int) wall_ref.side[1]);
+      printf("Wall Calibration Side: %6.1f%6.1f\n", wall_ref.side[0], wall_ref.side[1]);
     }
     void calibration_front() {
       float sum[2] = {0.0f, 0.0f};
       const int ave_count = 500;
       for (int j = 0; j < ave_count; j++) {
-        for (int i = 0; i < 2; i++) sum[i] += ref.front(i);
+        for (int i = 0; i < 2; i++) sum[i] += ref2dist(ref.front(i));
         delay(1);
       }
       for (int i = 0; i < 2; i++) wall_ref.front[i] = sum[i] / ave_count;
-      printf("Wall Calibration Front:\t%04d\t%04d\n", (int) wall_ref.front[0], (int) wall_ref.front[1]);
+      printf("Wall Calibration Front: %6.1f%6.1f\n", wall_ref.front[0], wall_ref.front[1]);
     }
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+        // データの更新
+        for (int i = 0; i < 2; i++) {
+          distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
+          distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
+        }
 
-        // detect front wall
+        // 前壁の更新
         if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f) wall[2] = true;
         else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f) wall[2] = false;
         if (tof.passedTimeMs() > 200) wall[2] = false;
 
-        // detect side wall
+        // 横壁の更新
         for (int i = 0; i < 2; i++) {
-          for (int j = ave_num - 1; j > 0; j--) side_buf[j][i] = side_buf[j - 1][i];
-          side_buf[0][i] = ref.side(i);
-          int sum = 0;
-          for (int j = 0; j < ave_num; j++) sum += side_buf[j][i];
-          sum /= ave_num;
-          if (sum > WALL_DETECTOR_THRESHOLD_SIDE * 1.1f) wall[i] = true;
-          else if (sum < WALL_DETECTOR_THRESHOLD_SIDE * 0.9f) wall[i] = false;
+          const float value = distance.side[i];
+          if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f) wall[i] = true;
+          else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f) wall[i] = false;
         }
 
-        for (int i = 0; i < 2; i++) {
-          wall_diff.side[i] = ref.side(i) - wall_ref.side[i];
-          wall_diff.front[i] = ref.front(i) - wall_ref.front[i];
-        }
+        // キャリブレーションがリクエストされていたらする
         if (xSemaphoreTake(calibrationStartSemaphore, 0) == pdTRUE) {
           calibration_side();
           xSemaphoreGive(calibrationEndSemaphore);

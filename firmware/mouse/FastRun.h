@@ -361,21 +361,21 @@ class FastRun: TaskBase {
 
     void wallAvoid() {
       // 90 [deg] の倍数
-      if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-        const float gain = 0.00003f;
-        const float satu = 0.3f;
-        if (ref.side(0) > 60) sc.position += Position(0, std::max(std::min(wd.wall_diff.side[0] * gain, satu), -satu), 0).rotate(origin.theta);
-        if (ref.side(1) > 60) sc.position -= Position(0, std::max(std::min(wd.wall_diff.side[1] * gain, satu), -satu), 0).rotate(origin.theta);
-        led = 9;
-      }
+      //      if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
+      //        const float gain = 0.00003f;
+      //        const float satu = 0.3f;
+      //        if (ref.side(0) > 60) sc.position += Position(0, std::max(std::min(wd.distanceSide[0] * gain, satu), -satu), 0).rotate(origin.theta);
+      //        if (ref.side(1) > 60) sc.position -= Position(0, std::max(std::min(wd.distanceSide[1] * gain, satu), -satu), 0).rotate(origin.theta);
+      //        led = 9;
+      //      }
       // 45 [deg] の倍数
-      if (wallAvoid45Flag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-        const float gain = 0.001f;
-        const int16_t threashold = 480;
-        if (ref.side(0) > threashold) sc.position += Position(0, (ref.side(0) - threashold) * gain, 0).rotate(origin.theta);
-        if (ref.side(1) > threashold) sc.position -= Position(0, (ref.side(1) - threashold) * gain, 0).rotate(origin.theta);
-        led = 6;
-      }
+      //      if (wallAvoid45Flag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
+      //        const float gain = 0.001f;
+      //        const int16_t threashold = 480;
+      //        if (ref.side(0) > threashold) sc.position += Position(0, (ref.side(0) - threashold) * gain, 0).rotate(origin.theta);
+      //        if (ref.side(1) > threashold) sc.position -= Position(0, (ref.side(1) - threashold) * gain, 0).rotate(origin.theta);
+      //        led = 6;
+      //      }
     }
     void wallCut() {
       if (wallCutFlag) {

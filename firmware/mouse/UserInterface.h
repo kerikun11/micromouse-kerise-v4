@@ -72,14 +72,15 @@ class UserInterface {
       return -1;
     }
     bool waitForCover(bool side = false) {
+      const int thr_ref = 2400;
       while (1) {
         delay(1);
-        if (!side && ref.front(0) > 200 && ref.front(1) > 2400) {
+        if (!side && ref.front(0) > thr_ref && ref.front(1) > thr_ref) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(front) => true");
           return true;
         }
-        if (side && ref.side(0) > 500 && ref.side(1) > 2400) {
+        if (side && ref.side(0) > thr_ref && ref.side(1) > thr_ref) {
           bz.play(Buzzer::CONFIRM);
           log_i("waitForCover(side) => true");
           return true;

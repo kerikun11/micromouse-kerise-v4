@@ -41,7 +41,7 @@ extern Logger lg;
 
 #define SEARCH_END_REMAIN           3
 #define SEARCH_ST_LOOK_AHEAD(v)     (6+2*v/100)
-#define SEARCH_ST_FB_GAIN           30
+#define SEARCH_ST_FB_GAIN           20
 #define SEARCH_CURVE_FB_GAIN        3.0f
 
 #define ahead_length                2
@@ -50,8 +50,8 @@ extern Logger lg;
 #define SEARCH_RUN_STACK_SIZE       8192
 #define SEARCH_RUN_PERIOD           1000
 
-#define SEARCH_RUN_VELOCITY         200.0f
-#define SEARCH_RUN_V_CURVE          200.0f
+#define SEARCH_RUN_VELOCITY         240.0f
+#define SEARCH_RUN_V_CURVE          240.0f
 #define SEARCH_RUN_V_MAX            1200.0f
 
 //#define printf  lg.printf
@@ -192,12 +192,12 @@ class SearchRun: TaskBase {
       if (tof.getDistance() < 90) {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (1) {
-          const float gain = 0.2f;
-          const float satu = 60.0f;
-          const float end = 2.0f;
+          const float gain = 120.0f;
+          const float satu = 180.0f;
+          const float end = 0.6f;
           SpeedController::WheelParameter wp;
-          wp.wheel[0] = -std::max(std::min(wd.wall_diff.front[0] * gain, satu), -satu);
-          wp.wheel[1] = -std::max(std::min(wd.wall_diff.front[1] * gain, satu), -satu);
+          wp.wheel[0] = -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
+          wp.wheel[1] = -std::max(std::min(wd.distance.front[1] * gain, satu), -satu);
           wp.wheel2pole();
           if (fabs(wp.wheel[0]) + fabs(wp.wheel[1]) < end) break;
           sc.set_target(wp.trans, wp.rot);
@@ -214,10 +214,9 @@ class SearchRun: TaskBase {
     void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
       if (fabs(sc.position.theta) < 0.05 * PI) {
-        const float gain = 0.00002f; //< ref * gain [mm]
-        const float satu = 0.2f;    //< [mm]
-        if (ref.side(0) > 60) sc.position.y += std::max(std::min(wd.wall_diff.side[0] * gain, satu), -satu);
-        if (ref.side(1) > 60) sc.position.y -= std::max(std::min(wd.wall_diff.side[1] * gain, satu), -satu);
+        const float gain = 0.0006f;
+        if (wd.wall[0]) sc.position.y += wd.distance.side[0] * gain;
+        if (wd.wall[1]) sc.position.y -= wd.distance.side[1] * gain;
       }
 #endif
 #if SEARCH_WALL_CUT_ENABLED
