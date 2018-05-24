@@ -59,6 +59,7 @@ class ICM20602 {
     }
     bool reset() {
       writeReg(0x6b, 0x01); //< power management 1
+      delay(100);
       writeReg(0x1b, 0x18); //< gyro range
       writeReg(0x1c, 0x18); //< accel range
       return whoami();
@@ -168,12 +169,12 @@ class IMU {
         bus_cfg.max_transfer_sz = 0;    ///< Maximum transfer size, in bytes. Defaults to 4094 if 0.
         ESP_ERROR_CHECK(spi_bus_initialize(spi_host, &bus_cfg, dma_chain));
       }
-      if (!icm[1].begin(spi_host, pins_cs[1])) {
-        log_e("IMU 1 begin failed :(");
-        return false;
-      }
       if (!icm[0].begin(spi_host, pins_cs[0])) {
         log_e("IMU 0 begin failed :(");
+        return false;
+      }
+      if (!icm[1].begin(spi_host, pins_cs[1])) {
+        log_e("IMU 1 begin failed :(");
         return false;
       }
       xTaskCreate([](void* obj) {
@@ -185,6 +186,9 @@ class IMU {
       log_d("Rotation angle:\t%f\taccel:\t%f", angle, angular_accel);
       log_d("Gyro\tx:\t%fy:\t%f\tz:\t%f", gyro.x, gyro.y, gyro.z);
       log_d("Accel\tx:\t%fy:\t%f\tz:\t%f", accel.x, accel.y, accel.z);
+    }
+    void csv() {
+      printf("%.1f,%.1f,%.1f\n", accel.x, accel.y, accel.z);
     }
     void calibration(bool waitForEnd = true) {
       xSemaphoreTake(calibration_end_semaphore, 0); //< 前のフラグが残っていたら回収
@@ -211,6 +215,14 @@ class IMU {
     void update() {
       icm[0].update();
       icm[1].update();
+
+      //      gyro.x = -icm[0].gyro.x;
+      //      gyro.y = -icm[0].gyro.y;
+      //      gyro.z = icm[0].gyro.z;
+      //      accel.x = -icm[0].accel.x;
+      //      accel.y = -icm[0].accel.y;
+      //      accel.z = icm[0].accel.z;
+
       gyro.x = (-icm[0].gyro.x + icm[1].gyro.x) / 2;
       gyro.y = (-icm[0].gyro.y + icm[1].gyro.y) / 2;
       gyro.z = (icm[0].gyro.z + icm[1].gyro.z) / 2;

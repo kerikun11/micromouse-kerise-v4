@@ -192,7 +192,7 @@ class SearchRun: TaskBase {
       if (tof.getDistance() < 90) {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (1) {
-          const float gain = 120.0f;
+          const float gain = 100.0f;
           const float satu = 180.0f;
           const float end = 0.6f;
           SpeedController::WheelParameter wp;

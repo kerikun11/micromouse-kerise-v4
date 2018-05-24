@@ -17,7 +17,9 @@ void task(void* arg) {
     //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
     //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
   }
 }
@@ -59,6 +61,7 @@ void mainTask(void* arg) {
     //  trapizoid_test();
     //  straight_test();
     //  turn_test();
+    delay(1);
   }
 }
 
@@ -222,16 +225,26 @@ void normal_drive() {
       //      sc.enable();
       //      straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
       //      sc.disable();
-      position_test();
+      //      position_test();
+      //      trapizoid_test();
+      //      accel_test();
+      straight_test();
       break;
     //* ログの表示
     case 13:
       lg.print();
       break;
     case 14:
-      straight_test();
-      //      trapizoid_test();
-      //      accel_test();
+      if (!ui.waitForCover()) return;
+      delay(500);
+      //      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+      fr.set_path("ssssssssrlrrlrssssssss");
+      imu.calibration();
+      fr.enable();
+      fr.waitForEnd();
+      fr.disable();
+      break;
       break;
     //* リセット
     case 15:
