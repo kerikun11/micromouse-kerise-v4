@@ -10,19 +10,9 @@
 
 //#define printf lg.printf
 
-void task(void* arg) {
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-  }
-}
+void mainTask(void* arg);
+void printTask(void* arg);
+void timeKeepTask(void* arg);
 
 void setup() {
   WiFi.mode(WIFI_OFF);
@@ -45,23 +35,26 @@ void setup() {
   em.begin();
   ec.begin();
 
-  xTaskCreate(task, "test", 4096, NULL, 1, NULL); // debug output
+  xTaskCreate(printTask, "print", 4096, NULL, 1, NULL); // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL); // debug output
   xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL); // debug output
 
   //mt.drive(100, 100);
 }
 
-void loop() {}
+void loop() { delay(1); }
 
-void mainTask(void* arg) {
+void printTask(void* arg) {
+  portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    normal_drive();
-    //  position_test();
-    //  trapizoid_test();
-    //  straight_test();
-    //  turn_test();
-    delay(1);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
   }
 }
 
@@ -71,6 +64,168 @@ void timeKeepTask(void* arg) {
   bz.play(Buzzer::LOW_BATTERY);
   ms.forceBackToStart();
   while (1) delay(1000);
+}
+
+#define TEST_END_REMAIN         1
+#define TEST_ST_LOOK_AHEAD(v)   (6+v/100)
+#define TEST_ST_FB_GAIN         10
+#define TEST_ST_TR_FB_GAIN      0
+
+void straight_x(const float distance, const float v_max, const float v_end) {
+  const float a_max = 9000;
+  const float v_start = std::max(sc.actual.trans, 0.0f);
+  AccelDesigner ad(a_max, 0, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (float t = 0.0f; true; t += 0.001f) {
+    Position cur = sc.position;
+    //    if (cur.x > distance - TEST_END_REMAIN) break;
+    if (t > ad.t_end()) break;
+    float velocity = ad.v(t) + TEST_ST_TR_FB_GAIN * (ad.x(t) - cur.x);
+    float theta = atan2f(-cur.y, TEST_ST_LOOK_AHEAD(velocity)) - cur.theta;
+    sc.set_target(velocity, TEST_ST_FB_GAIN * theta);
+    //    wallAvoid();
+    //    wallCut();
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+  }
+  sc.set_target(ad.v_end(), 0);
+  //  updateOrigin(Position(distance, 0, 0));
+}
+
+void turn(const float angle) {
+  const float speed = 3.6 * M_PI;
+  const float accel = 36 * M_PI;
+  const float decel = 36 * M_PI;
+  const float back_gain = 1.0f;
+  int ms = 0;
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  while (1) {
+    if (fabs(sc.actual.rot) > speed) break;
+    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
+    if (angle > 0) {
+      sc.set_target(-delta * back_gain, ms / 1000.0f * accel);
+    } else {
+      sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
+    }
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    ms++;
+  }
+  while (1) {
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    float extra = angle - sc.position.theta;
+    if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1) break;
+    float target_speed = sqrt(2 * decel * fabs(extra));
+    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
+    target_speed = (target_speed > speed) ? speed : target_speed;
+    if (extra > 0) {
+      sc.set_target(-delta * back_gain, target_speed);
+    } else {
+      sc.set_target(-delta * back_gain, -target_speed);
+    }
+  }
+  sc.set_target(0, 0);
+  //  updateOrigin(Position(0, 0, angle));
+  //  printPosition("Turn End");
+}
+
+void position_test() {
+  if (!ui.waitForCover()) return;
+  led = 9;
+  delay(1000);
+  sc.enable();
+  sc.set_target(0, 0);
+  ui.waitForCover();
+  sc.disable();
+}
+
+void accel_test() {
+  if (!ui.waitForCover()) return;
+  delay(500);
+  imu.calibration();
+  fan.drive(0.2);
+  delay(500);
+  lg.start();
+  sc.enable();
+  const float accel = 12000;
+  const float v_max = 1800;
+  AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    sc.set_target(ad.v(t), 0);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+  }
+  sc.set_target(0, 0);
+  delay(200);
+  bz.play(Buzzer::CANCEL);
+  sc.disable();
+  fan.drive(0);
+  lg.end();
+}
+
+void turn_test() {
+  if (!ui.waitForCover()) return;
+  delay(1000);
+  imu.calibration();
+  bz.play(Buzzer::CONFIRM);
+  lg.start();
+  sc.enable();
+  turn(-10 * 2 * PI);
+  turn(10 * 2 * PI);
+  sc.disable();
+  bz.play(Buzzer::CANCEL);
+  lg.end();
+}
+
+void trapizoid_test() {
+  if (!ui.waitForCover()) return;
+  delay(1000);
+  imu.calibration();
+  fan.drive(0.5);
+  delay(500);
+  lg.start();
+  sc.enable();
+  const float accel = 15000;
+  const float decel = 12000;
+  const float v_max = 2400;
+  const float v_start = 0;
+  float T = 1.5f * (v_max - v_start) / accel;
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (int ms = 0; ms / 1000.0f < T; ms++) {
+    float velocity_a = v_start + (v_max - v_start) * 6.0f * (-1.0f / 3 * pow(ms / 1000.0f / T, 3) + 1.0f / 2 * pow(ms / 1000.0f / T, 2));
+    sc.set_target(velocity_a, 0);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+  }
+  bz.play(Buzzer::SELECT);
+  delay(150);
+  bz.play(Buzzer::SELECT);
+  for (float v = v_max; v > 0; v -= decel / 1000) {
+    sc.set_target(v, 0);
+    delay(1);
+  }
+  sc.set_target(0, 0);
+  delay(150);
+  bz.play(Buzzer::CANCEL);
+  sc.disable();
+  fan.drive(0);
+  lg.end();
+}
+
+void straight_test() {
+  if (!ui.waitForCover()) return;
+  delay(1000);
+  bz.play(Buzzer::SELECT);
+  imu.calibration();
+  sc.enable();
+  fan.drive(0.2);
+  delay(500);
+  lg.start();
+  sc.position.x = 0;
+  straight_x(8 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
+  sc.set_target(0, 0);
+  delay(100);
+  lg.end();
+  fan.drive(0);
+  delay(500);
+  sc.disable();
 }
 
 void normal_drive() {
@@ -253,164 +408,13 @@ void normal_drive() {
   }
 }
 
-void position_test() {
-  if (!ui.waitForCover()) return;
-  led = 9;
-  delay(1000);
-  sc.enable();
-  sc.set_target(0, 0);
-  ui.waitForCover();
-  sc.disable();
-}
-
-void accel_test() {
-  if (!ui.waitForCover()) return;
-  delay(500);
-  imu.calibration();
-  fan.drive(0.2);
-  delay(500);
-  lg.start();
-  sc.enable();
-  const float accel = 12000;
-  const float v_max = 1800;
-  AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0; t < ad.t_end(); t += 0.001f) {
-    sc.set_target(ad.v(t), 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-  }
-  sc.set_target(0, 0);
-  delay(200);
-  bz.play(Buzzer::CANCEL);
-  sc.disable();
-  fan.drive(0);
-  lg.end();
-}
-
-void turn_test() {
-  if (!ui.waitForCover()) return;
-  delay(1000);
-  imu.calibration();
-  bz.play(Buzzer::CONFIRM);
-  lg.start();
-  sc.enable();
-  turn(-10 * 2 * PI);
-  turn(10 * 2 * PI);
-  sc.disable();
-  bz.play(Buzzer::CANCEL);
-  lg.end();
-}
-
-void trapizoid_test() {
-  if (!ui.waitForCover()) return;
-  delay(1000);
-  imu.calibration();
-  fan.drive(0.5);
-  delay(500);
-  lg.start();
-  sc.enable();
-  const float accel = 15000;
-  const float decel = 12000;
-  const float v_max = 2400;
-  const float v_start = 0;
-  float T = 1.5f * (v_max - v_start) / accel;
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (int ms = 0; ms / 1000.0f < T; ms++) {
-    float velocity_a = v_start + (v_max - v_start) * 6.0f * (-1.0f / 3 * pow(ms / 1000.0f / T, 3) + 1.0f / 2 * pow(ms / 1000.0f / T, 2));
-    sc.set_target(velocity_a, 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-  }
-  bz.play(Buzzer::SELECT);
-  delay(150);
-  bz.play(Buzzer::SELECT);
-  for (float v = v_max; v > 0; v -= decel / 1000) {
-    sc.set_target(v, 0);
+void mainTask(void* arg) {
+  while (1) {
+    normal_drive();
+    //  position_test();
+    //  trapizoid_test();
+    //  straight_test();
+    //  turn_test();
     delay(1);
   }
-  sc.set_target(0, 0);
-  delay(150);
-  bz.play(Buzzer::CANCEL);
-  sc.disable();
-  fan.drive(0);
-  lg.end();
-}
-
-void straight_test() {
-  if (!ui.waitForCover()) return;
-  delay(1000);
-  bz.play(Buzzer::SELECT);
-  imu.calibration();
-  sc.enable();
-  fan.drive(0.2);
-  delay(500);
-  lg.start();
-  sc.position.x = 0;
-  straight_x(8 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
-  sc.set_target(0, 0);
-  delay(100);
-  lg.end();
-  fan.drive(0);
-  delay(500);
-  sc.disable();
-}
-
-#define TEST_END_REMAIN         1
-#define TEST_ST_LOOK_AHEAD(v)   (6+v/100)
-#define TEST_ST_FB_GAIN         10
-#define TEST_ST_TR_FB_GAIN      0
-
-void straight_x(const float distance, const float v_max, const float v_end) {
-  const float a_max = 9000;
-  const float v_start = std::max(sc.actual.trans, 0.0f);
-  AccelDesigner ad(a_max, 0, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0.0f; true; t += 0.001f) {
-    Position cur = sc.position;
-    //    if (cur.x > distance - TEST_END_REMAIN) break;
-    if (t > ad.t_end()) break;
-    float velocity = ad.v(t) + TEST_ST_TR_FB_GAIN * (ad.x(t) - cur.x);
-    float theta = atan2f(-cur.y, TEST_ST_LOOK_AHEAD(velocity)) - cur.theta;
-    sc.set_target(velocity, TEST_ST_FB_GAIN * theta);
-    //    wallAvoid();
-    //    wallCut();
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-  }
-  sc.set_target(ad.v_end(), 0);
-  //  updateOrigin(Position(distance, 0, 0));
-}
-
-void turn(const float angle) {
-  const float speed = 3.6 * M_PI;
-  const float accel = 36 * M_PI;
-  const float decel = 36 * M_PI;
-  const float back_gain = 1.0f;
-  int ms = 0;
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  while (1) {
-    if (fabs(sc.actual.rot) > speed) break;
-    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
-    if (angle > 0) {
-      sc.set_target(-delta * back_gain, ms / 1000.0f * accel);
-    } else {
-      sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
-    }
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    ms++;
-  }
-  while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    float extra = angle - sc.position.theta;
-    if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1) break;
-    float target_speed = sqrt(2 * decel * fabs(extra));
-    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
-    target_speed = (target_speed > speed) ? speed : target_speed;
-    if (extra > 0) {
-      sc.set_target(-delta * back_gain, target_speed);
-    } else {
-      sc.set_target(-delta * back_gain, -target_speed);
-    }
-  }
-  sc.set_target(0, 0);
-  //  updateOrigin(Position(0, 0, angle));
-  //  printPosition("Turn End");
 }
