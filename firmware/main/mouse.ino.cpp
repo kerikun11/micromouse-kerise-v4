@@ -394,7 +394,7 @@ void normal_drive() {
       delay(500);
       //      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
       fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
-      fr.set_path("ssssssssrlrrlrssssssss");
+      // fr.set_path("ssssssssrlrrlrssssssss");
       imu.calibration();
       fr.enable();
       fr.waitForEnd();
@@ -403,6 +403,7 @@ void normal_drive() {
       break;
     //* リセット
     case 15:
+      ms.print();
       ESP.restart();
       break;
   }

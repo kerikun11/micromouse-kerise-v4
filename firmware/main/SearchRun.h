@@ -194,7 +194,7 @@ class SearchRun: TaskBase {
         while (1) {
           const float gain = 100.0f;
           const float satu = 180.0f;
-          const float end = 0.6f;
+          const float end = 1.0f;
           SpeedController::WheelParameter wp;
           wp.wheel[0] = -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
           wp.wheel[1] = -std::max(std::min(wd.distance.front[1] * gain, satu), -satu);

@@ -47,4 +47,3 @@ Logger lg;
 SearchRun sr;
 FastRun fr;
 MazeSolver ms;
-

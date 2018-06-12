@@ -40,7 +40,7 @@ class ICM20602 {
   public:
     bool begin(spi_host_device_t spi_host, int8_t pin_cs) {
       // ESP-IDF SPI device initialization
-      spi_device_interface_config_t dev_cfg = {0};
+      spi_device_interface_config_t dev_cfg;
       dev_cfg.command_bits = 0;         ///< Default amount of bits in command phase (0-16), used when ``SPI_TRANS_VARIABLE_CMD`` is not used, otherwise ignored.
       dev_cfg.address_bits = 8;         ///< Default amount of bits in address phase (0-64), used when ``SPI_TRANS_VARIABLE_ADDR`` is not used, otherwise ignored.
       dev_cfg.dummy_bits = 0;           ///< Amount of dummy bits to insert between address and data phase
@@ -51,7 +51,7 @@ class ICM20602 {
       dev_cfg.clock_speed_hz = 10000000;///< Clock speed, in Hz
       dev_cfg.spics_io_num = pin_cs;    ///< CS GPIO pin for this device, or -1 if not used
       dev_cfg.flags = 0;                ///< Bitwise OR of SPI_DEVICE_* flags
-      dev_cfg.queue_size = 1;           ///< Transaction queue size. This sets how many transactions can be 'in the air' (queued using spi_device_queue_trans but not yet finished using spi_device_get_trans_result) at the same time
+      dev_cfg.queue_size = 2;           ///< Transaction queue size. This sets how many transactions can be 'in the air' (queued using spi_device_queue_trans but not yet finished using spi_device_get_trans_result) at the same time
       dev_cfg.pre_cb = NULL;            ///< Callback to be called before a transmission is started. This callback is called within interrupt context.
       dev_cfg.post_cb = NULL;           ///< Callback to be called after a transmission has completed. This callback is called within interrupt context.
       ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &spi_handle));
@@ -160,7 +160,7 @@ class IMU {
                int dma_chain = 0) {
       if (spi_bus_initializing) {
         // ESP-IDF SPI bus initialization
-        spi_bus_config_t bus_cfg = {0};
+        spi_bus_config_t bus_cfg;
         bus_cfg.mosi_io_num = pin_mosi; ///< GPIO pin for Master Out Slave In (=spi_d) signal, or -1 if not used.
         bus_cfg.miso_io_num = pin_miso; ///< GPIO pin for Master In Slave Out (=spi_q) signal, or -1 if not used.
         bus_cfg.sclk_io_num = pin_sclk; ///< GPIO pin for Spi CLocK signal, or -1 if not used.
@@ -216,12 +216,18 @@ class IMU {
       icm[0].update();
       icm[1].update();
 
-      //      gyro.x = -icm[0].gyro.x;
-      //      gyro.y = -icm[0].gyro.y;
-      //      gyro.z = icm[0].gyro.z;
-      //      accel.x = -icm[0].accel.x;
-      //      accel.y = -icm[0].accel.y;
-      //      accel.z = icm[0].accel.z;
+          //  gyro.x = -icm[0].gyro.x;
+          //  gyro.y = -icm[0].gyro.y;
+          //  gyro.z = icm[0].gyro.z;
+          //  accel.x = -icm[0].accel.x;
+          //  accel.y = -icm[0].accel.y;
+          //  accel.z = icm[0].accel.z;
+          //  gyro.x = icm[1].gyro.x;
+          //  gyro.y = icm[1].gyro.y;
+          //  gyro.z = icm[1].gyro.z;
+          //  accel.x = icm[1].accel.x;
+          //  accel.y = icm[1].accel.y;
+          //  accel.z = icm[1].accel.z;
 
       gyro.x = (-icm[0].gyro.x + icm[1].gyro.x) / 2;
       gyro.y = (-icm[0].gyro.y + icm[1].gyro.y) / 2;
@@ -229,6 +235,7 @@ class IMU {
       accel.x = (-icm[0].accel.x + icm[1].accel.x) / 2;
       accel.y = (-icm[0].accel.y + icm[1].accel.y) / 2;
       accel.z = (icm[0].accel.z + icm[1].accel.z) / 2;
+
       angle += gyro.z * IMU_UPDATE_PERIOD_US / 1000000;
       angular_accel = (icm[0].accel.y + icm[1].accel.y) / 2 / IMU_ROTATION_RADIOUS;
     }

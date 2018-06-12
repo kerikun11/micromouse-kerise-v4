@@ -31,9 +31,9 @@ extern Logger lg;
 #define FAST_RUN_PERIOD         1000
 
 #define FAST_END_REMAIN         6
-#define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-//#define FAST_ST_LOOK_AHEAD(v)   30
-#define FAST_ST_FB_GAIN         20
+// #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
+#define FAST_ST_LOOK_AHEAD(v)   120
+#define FAST_ST_FB_GAIN         10
 #define FAST_CURVE_FB_GAIN      3.0f
 
 //#define printf  lg.printf
@@ -361,13 +361,13 @@ class FastRun: TaskBase {
 
     void wallAvoid() {
       // 90 [deg] の倍数
-      //      if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      //        const float gain = 0.00003f;
-      //        const float satu = 0.3f;
-      //        if (ref.side(0) > 60) sc.position += Position(0, std::max(std::min(wd.distanceSide[0] * gain, satu), -satu), 0).rotate(origin.theta);
-      //        if (ref.side(1) > 60) sc.position -= Position(0, std::max(std::min(wd.distanceSide[1] * gain, satu), -satu), 0).rotate(origin.theta);
-      //        led = 9;
-      //      }
+      if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
+        const float gain = 0.0012f;
+        const float satu = 0.3f;
+        if (wd.wall[0]) sc.position += Position(0, std::max(std::min(wd.distance.side[0] * gain, satu), -satu), 0).rotate(origin.theta);
+        if (wd.wall[1]) sc.position -= Position(0, std::max(std::min(wd.distance.side[1] * gain, satu), -satu), 0).rotate(origin.theta);
+        led = 9;
+      }
       // 45 [deg] の倍数
       //      if (wallAvoid45Flag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
       //        const float gain = 0.001f;

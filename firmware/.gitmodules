@@ -1,0 +1,3 @@
+[submodule "components/mazelib/MazeLib"]
+	path = components/mazelib/MazeLib
+	url = https://github.com/kerikun11/MazeLib.git
