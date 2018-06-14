@@ -77,10 +77,14 @@ class SpeedController {
         float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
       public:
         WheelParameter() {}
-        WheelParameter(const float trans, const float rot) : trans(trans), rot(rot) {}
+        WheelParameter(const float trans, const float rot) : trans(trans), rot(rot) { pole2wheel(); }
         WheelParameter(const WheelParameter& obj) : trans(obj.trans), rot(obj.rot), wheel( {
           obj.wheel[0], obj.wheel[1]
         }) {}
+        // const WheelParameter operator*(auto mul) 
+        // {
+        //   return WheelParameter(mul * this->trans, mul * this->rot);
+        // }
         void pole2wheel() {
           wheel[0] = trans - MACHINE_ROTATION_RADIUS * rot;
           wheel[1] = trans + MACHINE_ROTATION_RADIUS * rot;

@@ -69,7 +69,7 @@ class ToF {
         }
         uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
         sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-        distance = range + 24;
+        distance = range + 20;
         if (range != 255) {
           passed_ms = 0;
         }

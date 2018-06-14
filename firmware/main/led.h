@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
-//#include <Wire.h>
 #include <driver/i2c.h>
 #include "config.h"
 

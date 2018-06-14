@@ -174,8 +174,7 @@ class MazeSolver: TaskBase {
       straight_count = 0;
     }
     bool searchRun(const bool isStartStep = true, const Vector& startVec = Vector(0, 0), const Dir& startDir = Dir::North) {
-      //      if (agent.isComplete()) return true;
-      //      agent.reset();
+      if(!agent.isComplete()) agent.getMaze().resetLastWall(5);
       agent.updateCurVecDir(startVec, startDir);
       auto res = agent.calcNextDirs();
       if (isStartStep) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stdio.h>
 #include "config.h"
 
 /* Hardware */
@@ -28,6 +28,9 @@ class Logger {
     void start(bool clear = true) {
       if (clear) log = "";
       enabled = true;
+    }
+    void clear() {
+      log = "";
     }
     void end() {
       enabled = false;

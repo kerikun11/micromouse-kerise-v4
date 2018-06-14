@@ -35,7 +35,7 @@ extern WallDetector wd;
 extern Logger lg;
 
 #define SEARCH_WALL_ATTACH_ENABLED  true
-#define SEARCH_WALL_CUT_ENABLED     false
+#define SEARCH_WALL_CUT_ENABLED     true
 #define SEARCH_WALL_FRONT_ENABLED   true
 #define SEARCH_WALL_AVOID_ENABLED   true
 
@@ -214,7 +214,7 @@ class SearchRun: TaskBase {
     void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
       if (fabs(sc.position.theta) < 0.05 * PI) {
-        const float gain = 0.0006f;
+        const float gain = 0.0009f;
         if (wd.wall[0]) sc.position.y += wd.distance.side[0] * gain;
         if (wd.wall[1]) sc.position.y -= wd.distance.side[1] * gain;
       }
@@ -224,14 +224,16 @@ class SearchRun: TaskBase {
         if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
           const float prev_x = sc.position.x;
           if (distance > 90 - 1)
-            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 76 - ahead_length;
+            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 42 - ahead_length;
           printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i, distance, prev_x, sc.position.x);
+          bz.play(Buzzer::CANCEL);
         }
         if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
           const float prev_x = sc.position.x;
           if (distance > 90 - 1)
-            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 64 - ahead_length;
+            sc.position.x = sc.position.x - ((int)sc.position.x) % 90 + 36 - ahead_length;
           printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i, distance, prev_x, sc.position.x);
+          bz.play(Buzzer::CONFIRM);
         }
         prev_wall[i] = wd.wall[i];
       }
@@ -240,7 +242,7 @@ class SearchRun: TaskBase {
     void wall_calib(const float velocity) {
 #if SEARCH_WALL_FRONT_ENABLED
       if (wd.wall[2]) {
-        float value = tof.getDistance() - (10 + tof.passedTimeMs()) / 1000.0f * velocity;
+        float value = tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
         float x = sc.position.x;
         if (value > 60 && value < 120) sc.position.x = 90 - value - ahead_length;
         if (sc.position.x > 0.0f) sc.position.x = 0.0f;

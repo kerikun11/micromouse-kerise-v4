@@ -308,7 +308,7 @@ class FastRun: TaskBase {
     RunParameter runParameter;
     bool wallAvoidFlag = true;
     bool wallAvoid45Flag = false;
-    bool wallCutFlag = false;
+    bool wallCutFlag = true;
     bool V90Enabled = true;
     float fanDuty = 0.2f;
 
@@ -362,8 +362,8 @@ class FastRun: TaskBase {
     void wallAvoid() {
       // 90 [deg] の倍数
       if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-        const float gain = 0.0012f;
-        const float satu = 0.3f;
+        const float gain = 0.0024f;
+        const float satu = 0.5f;
         if (wd.wall[0]) sc.position += Position(0, std::max(std::min(wd.distance.side[0] * gain, satu), -satu), 0).rotate(origin.theta);
         if (wd.wall[1]) sc.position -= Position(0, std::max(std::min(wd.distance.side[1] * gain, satu), -satu), 0).rotate(origin.theta);
         led = 9;
@@ -385,20 +385,22 @@ class FastRun: TaskBase {
             if (prev_wall[i] && !wd.wall[i]) {
               Position prev = sc.position;
               Position fix = sc.position.rotate(-origin.theta);
-              fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH - 20;
+              fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH - 36;
               fix = fix.rotate(origin.theta);
               if (fabs(prev.rotate(-origin.theta).x - fix.rotate(-origin.theta).x) < 15.0f)
                 sc.position = fix;
               printf("WallCut[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n", i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x, sc.position.y, sc.position.theta * 180 / PI);
+              bz.play(Buzzer::CANCEL);
             }
             if (!prev_wall[i] && wd.wall[i]) {
               Position prev = sc.position;
               Position fix = sc.position.rotate(-origin.theta);
-              fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH - 30;
+              fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH - 42;
               fix = fix.rotate(origin.theta);
               if (fabs(prev.rotate(-origin.theta).x - fix.rotate(-origin.theta).x) < 15.0f)
                 sc.position = fix;
               printf("WallCut[%d] _X (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n", i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x, sc.position.y, sc.position.theta * 180 / PI);
+              bz.play(Buzzer::SELECT);
             }
             prev_wall[i] = wd.wall[i];
           }

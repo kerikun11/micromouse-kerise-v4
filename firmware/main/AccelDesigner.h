@@ -122,7 +122,7 @@ public:
   static float calcVelocityEnd(float am, const float vs, const float vt, const float d) {
     const float tc = AccelCurve::calcTimeCurve(am);
     am = (vt - vs > 0) ? std::abs(am) : -std::abs(am); //< 最大加速度の符号を決定
-    const float tm = (vt - vs) / am - tc; //< 等加速度直線運動の時間を決定
+    // const float tm = (vt - vs) / am - tc; //< 等加速度直線運動の時間を決定
     float ve;
       const float a = vs;
       const float b = am*d*d/tc;
