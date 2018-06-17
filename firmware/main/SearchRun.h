@@ -52,7 +52,7 @@ extern Logger lg;
 
 #define SEARCH_RUN_VELOCITY         240.0f
 #define SEARCH_RUN_V_CURVE          240.0f
-#define SEARCH_RUN_V_MAX            1200.0f
+#define SEARCH_RUN_V_MAX            240.0f
 
 //#define printf  lg.printf
 
@@ -193,7 +193,7 @@ class SearchRun: TaskBase {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (1) {
           const float gain = 100.0f;
-          const float satu = 180.0f;
+          const float satu = 10.0f;
           const float end = 1.0f;
           SpeedController::WheelParameter wp;
           wp.wheel[0] = -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
@@ -214,7 +214,7 @@ class SearchRun: TaskBase {
     void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
       if (fabs(sc.position.theta) < 0.05 * PI) {
-        const float gain = 0.0009f;
+        const float gain = 0.0006f;
         if (wd.wall[0]) sc.position.y += wd.distance.side[0] * gain;
         if (wd.wall[1]) sc.position.y -= wd.distance.side[1] * gain;
       }
@@ -287,7 +287,7 @@ class SearchRun: TaskBase {
       printPosition("Turn End");
     }
     void straight_x(const float distance, const float v_max, const float v_end) {
-      const float accel = 3000;
+      const float accel = 2000;
       const float decel = 2000;
       int ms = 0;
       float v_start = sc.actual.trans;

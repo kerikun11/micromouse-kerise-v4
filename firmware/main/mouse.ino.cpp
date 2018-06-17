@@ -524,9 +524,9 @@ void normal_drive()
     //      sc.enable();
     //      straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
     //      sc.disable();
-    //      position_test();
+    position_test();
     //      trapizoid_test();
-    accel_test();
+    // accel_test();
     // straight_test();
     break;
   //* ログの表示

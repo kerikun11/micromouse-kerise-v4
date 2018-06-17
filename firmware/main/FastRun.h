@@ -295,7 +295,8 @@ class FastRun: TaskBase {
       FAST_TURN_RIGHT_180 = 'U',
     };
     struct RunParameter {
-      RunParameter(const float curve_gain = 0.7, const float max_speed = 1200, const float accel = 3000, const float decel = 3000): curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel) {}
+      // RunParameter(const float curve_gain = 0.7, const float max_speed = 1200, const float accel = 3000, const float decel = 3000): curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel) {}
+      RunParameter(const float curve_gain = 0.5, const float max_speed = 600, const float accel = 1500, const float decel = 1500): curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel) {}
       float curve_gain;
       float max_speed;
       float accel, decel;
@@ -310,7 +311,7 @@ class FastRun: TaskBase {
     bool wallAvoid45Flag = false;
     bool wallCutFlag = true;
     bool V90Enabled = true;
-    float fanDuty = 0.2f;
+    float fanDuty = 0.0f;
 
     void enable() {
       printf("FastRun Enabled\n");
