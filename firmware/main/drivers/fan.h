@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include "config.h"
 
 #define FAN_FREQUENCY 10000
 #define FAN_BIT_NUM   8
@@ -20,4 +19,3 @@ class Fan {
     int pin;
     uint8_t channel;
 };
-

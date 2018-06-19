@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "Accumulator.h"
 
 #include "motor.h"
@@ -108,11 +107,7 @@ public:
   public:
     WheelParameter() {}
     WheelParameter(const float trans, const float rot) : trans(trans), rot(rot) { pole2wheel(); }
-    WheelParameter(const WheelParameter &obj) : trans(obj.trans), rot(obj.rot), wheel({obj.wheel[0], obj.wheel[1]}) {}
-    // const WheelParameter operator*(auto mul)
-    // {
-    //   return WheelParameter(mul * this->trans, mul * this->rot);
-    // }
+    // const WheelParameter operator*(auto mul) { return WheelParameter(mul * this->trans, mul * this->rot); }
     void pole2wheel()
     {
       wheel[0] = trans - MACHINE_ROTATION_RADIUS * rot;

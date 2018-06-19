@@ -1,8 +1,9 @@
 #pragma once
 
-#include <Arduino.h>
-#include "driver/spi_master.h"
-#include "esp_err.h"
+#include <freertos/task.h>
+#include <driver/spi_master.h>
+#include <esp_err.h>
+#include "../config/machine.h"
 
 #define ENCODER_PULSES      16384
 
@@ -21,7 +22,7 @@ class Encoder {
                int dma_chain = 0) {
       if (spi_bus_initializing) {
         // ESP-IDF SPI bus initialization
-        spi_bus_config_t bus_cfg = {0};
+        static spi_bus_config_t bus_cfg;
         bus_cfg.mosi_io_num = pin_mosi; ///< GPIO pin for Master Out Slave In (=spi_d) signal, or -1 if not used.
         bus_cfg.miso_io_num = pin_miso; ///< GPIO pin for Master In Slave Out (=spi_q) signal, or -1 if not used.
         bus_cfg.sclk_io_num = pin_sclk; ///< GPIO pin for Spi CLocK signal, or -1 if not used.
@@ -31,7 +32,7 @@ class Encoder {
         ESP_ERROR_CHECK(spi_bus_initialize(spi_host, &bus_cfg, dma_chain));
       }
       // ESP-IDF SPI device initialization
-      spi_device_interface_config_t dev_cfg = {0};
+      static spi_device_interface_config_t dev_cfg;
       dev_cfg.command_bits = 1;         ///< Default amount of bits in command phase (0-16), used when ``SPI_TRANS_VARIABLE_CMD`` is not used, otherwise ignored.
       dev_cfg.address_bits = 0;         ///< Default amount of bits in address phase (0-64), used when ``SPI_TRANS_VARIABLE_ADDR`` is not used, otherwise ignored.
       dev_cfg.dummy_bits = 0;           ///< Amount of dummy bits to insert between address and data phase
@@ -87,8 +88,8 @@ class Encoder {
 
     void update() {
       uint8_t rxbuf[4];
-      spi_transaction_t tx = {0};
-      tx.flags |= SPI_TRANS_USE_TXDATA;
+      static spi_transaction_t tx;
+      tx.flags = SPI_TRANS_USE_TXDATA;
       tx.tx_data[0] = 0xFF; tx.tx_data[1] = 0xFF; tx.tx_data[2] = 0xFF; tx.tx_data[3] = 0xFF;
       tx.rx_buffer = rxbuf;
       tx.length = 32;

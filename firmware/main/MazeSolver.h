@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include "TaskBase.h"
-#include "config.h"
 #include "Maze.h"
 #include "Agent.h"
 
@@ -36,8 +35,6 @@ extern UserInterface ui;
 extern SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
-#include "ExternalController.h"
-extern ExternalController ec;
 #include "Logger.h"
 extern Logger lg;
 #include "SearchRun.h"

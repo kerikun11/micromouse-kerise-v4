@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include <driver/spi_master.h>
 #include <esp_err.h>
 #include <array>
@@ -58,7 +57,7 @@ public:
   bool begin(spi_host_device_t spi_host, int8_t pin_cs)
   {
     // ESP-IDF SPI device initialization
-    spi_device_interface_config_t dev_cfg;
+    static spi_device_interface_config_t dev_cfg;
     dev_cfg.command_bits = 0;          ///< Default amount of bits in command phase (0-16), used when ``SPI_TRANS_VARIABLE_CMD`` is not used, otherwise ignored.
     dev_cfg.address_bits = 8;          ///< Default amount of bits in address phase (0-64), used when ``SPI_TRANS_VARIABLE_ADDR`` is not used, otherwise ignored.
     dev_cfg.dummy_bits = 0;            ///< Amount of dummy bits to insert between address and data phase
@@ -153,7 +152,7 @@ private:
   }
   void writeReg(uint8_t reg, uint8_t data)
   {
-    static spi_transaction_t tx = {0};
+    static spi_transaction_t tx;
     tx.flags |= SPI_TRANS_USE_TXDATA;
     tx.addr = reg;
     tx.tx_data[0] = data;
@@ -162,7 +161,7 @@ private:
   }
   uint8_t readReg(const uint8_t reg)
   {
-    static spi_transaction_t tx = {0};
+    static spi_transaction_t tx;
     tx.flags |= SPI_TRANS_USE_RXDATA;
     tx.addr = 0x80 | reg;
     tx.length = 8;
@@ -171,7 +170,7 @@ private:
   }
   void readReg(const uint8_t reg, uint8_t *rx_buffer, size_t length)
   {
-    static spi_transaction_t tx = {0};
+    static spi_transaction_t tx;
     tx.addr = 0x80 | reg;
     tx.tx_buffer = NULL;
     tx.rx_buffer = rx_buffer;
@@ -203,7 +202,7 @@ public:
     if (spi_bus_initializing)
     {
       // ESP-IDF SPI bus initialization
-      spi_bus_config_t bus_cfg;
+      static spi_bus_config_t bus_cfg;
       bus_cfg.mosi_io_num = pin_mosi; ///< GPIO pin for Master Out Slave In (=spi_d) signal, or -1 if not used.
       bus_cfg.miso_io_num = pin_miso; ///< GPIO pin for Master In Slave Out (=spi_q) signal, or -1 if not used.
       bus_cfg.sclk_io_num = pin_sclk; ///< GPIO pin for Spi CLocK signal, or -1 if not used.

@@ -6,15 +6,17 @@
 
 #include <WiFi.h>
 #include <SPIFFS.h>
-#include <stdio.h>
-#include <esp_wifi.h>
+#include <cstdio>
 #include "global.h"
+#include <iostream>
+#include <sstream>
 
 //#define printf lg.printf
 
 void mainTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
+std::stringstream logstream;
 
 void setup()
 {
@@ -28,7 +30,7 @@ void setup()
             << "**************** KERISE ****************" << std::endl;
   if (!bz.begin())
     bz.play(Buzzer::ERROR);
-  if (!led.begin(true))
+  if (!led.begin(LED_SDA_PIN, LED_SCL_PIN))
     bz.play(Buzzer::ERROR);
   ui.batteryCheck();
   bz.play(Buzzer::BOOT);
@@ -46,7 +48,6 @@ void setup()
   if (!wd.begin())
     bz.play(Buzzer::ERROR);
   em.begin();
-  ec.begin();
 
   xTaskCreate(printTask, "print", 4096, NULL, 1, NULL);       // debug output
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL); // debug output
@@ -92,7 +93,7 @@ void straight_x(const float distance, const float v_max, const float v_end)
 {
   const float a_max = 9000;
   const float v_start = std::max(sc.actual.trans, 0.0f);
-  AccelDesigner ad(a_max, 0, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
+  AccelDesigner ad(a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0.0f; true; t += 0.001f)
   {
@@ -529,22 +530,13 @@ void normal_drive()
     // accel_test();
     // straight_test();
     break;
-  //* ログの表示
   case 13:
-    lg.print();
+    logstream << sc.position.x << ",";
     break;
+  //* ログの表示
   case 14:
-    if (!ui.waitForCover())
-      return;
-    delay(500);
-    //      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
-    fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
-    // fr.set_path("ssssssssrlrrlrssssssss");
-    imu.calibration();
-    fr.enable();
-    fr.waitForEnd();
-    fr.disable();
-    break;
+    std::cout << logstream.str();
+    logstream.flush();
     break;
   //* リセット
   case 15:

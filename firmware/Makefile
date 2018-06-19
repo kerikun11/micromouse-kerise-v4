@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := KERISEv4
+PROJECT_NAME := KERISE
 
 include $(IDF_PATH)/make/project.mk
 

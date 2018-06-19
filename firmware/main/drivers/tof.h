@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Arduino.h>
 #include <driver/i2c.h>
-#include "config.h" //< for I2C_PORT_NUM_TOF
+#include "../config/io_definitions.h" //< for I2C_PORT_NUM_TOF deprecated!
 #include "VL6180X.h"
 
 #define TOF_TASK_PRIORITY     1

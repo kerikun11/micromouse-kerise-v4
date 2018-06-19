@@ -6,7 +6,7 @@
 #include <vector>
 #include <cmath>
 
-#undef log;
+// #undef log;
 
 /* Hardware */
 #include "reflector.h"
@@ -114,7 +114,7 @@ class WallDetector {
     WallValue wall_ref;
 
     float ref2dist(const int16_t value) {
-      return 12.9035f * log(value) - 86.7561f;
+      return 12.9035f * std::log(value) - 86.7561f;
     }
     void calibration_side() {
       float sum[2] = {0.0f, 0.0f};

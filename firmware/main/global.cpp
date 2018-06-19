@@ -10,7 +10,7 @@
 #include "motor.h"
 #include "fan.h"
 Buzzer bz(BUZZER_PIN, LEDC_CH_BUZZER);
-LED led(LED_SDA_PIN, LED_SCL_PIN);
+LED led(I2C_PORT_NUM_LED);
 Motor mt;
 Fan fan(FAN_PIN, LEDC_CH_FAN);
 
@@ -31,13 +31,11 @@ ToF tof(TOF_SDA_PIN, TOF_SCL_PIN);
 #include "SpeedController.h"
 #include "WallDetector.h"
 #include "Emergency.h"
-#include "ExternalController.h"
 #include "Logger.h"
 UserInterface ui;
 SpeedController sc;
 WallDetector wd;
 Emergency em;
-ExternalController ec;
 Logger lg;
 
 /* Conductor */

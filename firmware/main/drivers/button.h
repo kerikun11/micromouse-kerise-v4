@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include <driver/gpio.h>
 
 #define BUTTON_SAMPLING_MS        20
 
@@ -14,8 +14,9 @@
 
 class Button {
   public:
-    Button(int pin) : pin(pin) {
-      pinMode(pin, INPUT_PULLUP);
+    Button(gpio_num_t pin) : pin(pin) {
+      gpio_set_direction(pin, GPIO_MODE_INPUT);
+      gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
       flags = 0x00;
       xTaskCreate([](void* obj) {
         static_cast<Button*>(obj)->task();
@@ -35,14 +36,14 @@ class Button {
       };
     };
   private:
-    int pin;
+    gpio_num_t pin;
     int counter;
 
     void task() {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         vTaskDelayUntil(&xLastWakeTime, BUTTON_SAMPLING_MS / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-        if (digitalRead(pin) == LOW) {
+        if (gpio_get_level(pin) == LOW) {
           if (counter < BUTTON_LONG_PRESS_LEVEL_3 + 1)
             counter++;
           if (counter == BUTTON_LONG_PRESS_LEVEL_3)

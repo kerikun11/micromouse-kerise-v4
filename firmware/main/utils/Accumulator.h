@@ -6,12 +6,14 @@ template<typename T, size_t _size>
 class  Accumulator {
   public:
     Accumulator(const T& value = T()) {
-      buffer = (T*)std::malloc(_size * sizeof(T));
+      // buffer = (T*)std::malloc(_size * sizeof(T));
+      buffer = new T[_size];
       head = 0;
       clear(value);
     }
     ~Accumulator() {
-      free(buffer);
+      // free(buffer);
+      delete buffer;
     }
     void clear(const T& value = T()) {
       for (int i = 0; i < _size; i++) buffer[i] = value;

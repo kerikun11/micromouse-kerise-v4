@@ -49,11 +49,6 @@ class Buzzer {
       while (1) {
         Music music;
         xQueueReceive(playList, &music, portMAX_DELAY);
-        //        if (xQueueReceive(playList, &music, (1000 - 100) / portTICK_RATE_MS) == pdFALSE) {
-        //          sound(NOTE_C, 7, 50);
-        //          mute(50);
-        //          continue;
-        //        }
         switch (music) {
           case SELECT:
             sound(NOTE_C, 6, 100);

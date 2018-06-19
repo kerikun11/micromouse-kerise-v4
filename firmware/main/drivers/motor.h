@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
-#include "config.h"
+#include "../config/io_definitions.h"
 
 #define MOTOR_CTRL_FREQUENCY  250000
 #define MOTOR_CTRL_BIT_NUM    10
