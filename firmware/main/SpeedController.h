@@ -243,9 +243,11 @@ private:
       }
       integral.wheel2pole();
       proportional.wheel2pole();
-      differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
-      //        differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
-      differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
+      // differential.trans = (target.trans - target_prev.trans) / SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0];
+      // differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - imu.angular_accel;
+      // differential.rot = (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) / SPEED_CONTROLLER_PERIOD_US * 1000000;
+      differential.trans = 0;
+      differential.rot = 0;
       differential.pole2wheel();
 
       // calculate pwm value
@@ -258,9 +260,10 @@ private:
       if (fabs(pwm_value[0]) > pwm_em || fabs(pwm_value[1]) > pwm_em)
       {
         mt.free();
-        while (1)
+        while (enabled)
           delay(1);
       }
+
       // calculate odometry value
       position.theta += (actual_prev.rot + actual.rot) / 2 * SPEED_CONTROLLER_PERIOD_US / 1000000;
       position.x += (actual_prev.trans + actual.trans) / 2 * cos(position.theta) * SPEED_CONTROLLER_PERIOD_US / 1000000;

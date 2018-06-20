@@ -1,7 +1,7 @@
 /**
-  KERISE v4
-  Author:  kerikun11 (Github: kerikun11)
-  Date:    2017.10.25
+ * @file    mouse.ino.cpp
+ * @author  KERI (Github: kerikun11)
+ * @date    2017.10.25
 */
 
 #include <WiFi.h>
@@ -304,6 +304,34 @@ void straight_test()
   sc.disable();
 }
 
+void log_test()
+{
+  if (!ui.waitForCover())
+    return;
+  delay(1000);
+  auto printLog = []() {
+    logstream << enc.position(0) << ",";
+    logstream << enc.position(1) << ",";
+    logstream << imu.gyro.z << ",";
+    logstream << imu.accel.y << ",";
+    logstream << imu.angular_accel << ",";
+    logstream << std::endl;
+  };
+  bz.play(Buzzer::SELECT);
+  imu.calibration();
+  bz.play(Buzzer::CANCEL);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (int i = 0; i < 100; i++)
+  {
+    mt.drive(i, i);
+    printLog();
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+  }
+  mt.drive(0, 0);
+  vTaskDelay(100 / portTICK_RATE_MS);
+  mt.free();
+}
+
 void normal_drive()
 {
   int mode = ui.waitForSelect(16);
@@ -442,6 +470,10 @@ void normal_drive()
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
+  //* 宴会芸
+  case 5:
+    position_test();
+    break;
   //* 迷路データの復元
   case 7:
     bz.play(Buzzer::MAZE_RESTORE);
@@ -517,21 +549,21 @@ void normal_drive()
   break;
   //* マス直線
   case 12:
-    //      if (!ui.waitForCover(true)) return;
-    //      delay(1000);
-    //      bz.play(Buzzer::CONFIRM);
-    //      imu.calibration();
-    //      bz.play(Buzzer::CANCEL);
-    //      sc.enable();
-    //      straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
-    //      sc.disable();
-    position_test();
-    //      trapizoid_test();
-    // accel_test();
-    // straight_test();
+    if (!ui.waitForCover(true))
+      return;
+    delay(1000);
+    bz.play(Buzzer::CONFIRM);
+    imu.calibration();
+    bz.play(Buzzer::CANCEL);
+    sc.enable();
+    straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
+    sc.disable();
     break;
   case 13:
-    logstream << sc.position.x << ",";
+    log_test();
+    // trapizoid_test();
+    // accel_test();
+    // straight_test();
     break;
   //* ログの表示
   case 14:
@@ -551,10 +583,6 @@ void mainTask(void *arg)
   while (1)
   {
     normal_drive();
-    //  position_test();
-    //  trapizoid_test();
-    //  straight_test();
-    //  turn_test();
     delay(1);
   }
 }
