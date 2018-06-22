@@ -23,9 +23,6 @@ extern SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
 
-#include "Logger.h"
-extern Logger lg;
-
 #define FAST_RUN_TASK_PRIORITY  3
 #define FAST_RUN_STACK_SIZE     8192
 #define FAST_RUN_PERIOD         1000
@@ -35,8 +32,6 @@ extern Logger lg;
 #define FAST_ST_LOOK_AHEAD(v)   120
 #define FAST_ST_FB_GAIN         10
 #define FAST_CURVE_FB_GAIN      3.0f
-
-//#define printf  lg.printf
 
 class FastTrajectory {
   public:

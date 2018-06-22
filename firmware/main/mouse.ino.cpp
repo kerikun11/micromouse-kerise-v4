@@ -11,8 +11,6 @@
 #include <iostream>
 #include <sstream>
 
-//#define printf lg.printf
-
 void mainTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
@@ -181,7 +179,6 @@ void position_test()
 //   delay(500);
 //   imu.calibration();
 //   delay(500);
-//   lg.clear();
 //   const float accel = 9000;
 //   const float v_max = 1200;
 //   AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
@@ -208,7 +205,6 @@ void accel_test()
   imu.calibration();
   fan.drive(0.2);
   delay(500);
-  lg.start();
   sc.enable();
   const float accel = 12000;
   const float v_max = 1800;
@@ -225,7 +221,6 @@ void accel_test()
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
-  lg.end();
 }
 
 void turn_test()
@@ -235,13 +230,11 @@ void turn_test()
   delay(1000);
   imu.calibration();
   bz.play(Buzzer::CONFIRM);
-  lg.start();
   sc.enable();
   turn(-10 * 2 * PI);
   turn(10 * 2 * PI);
   sc.disable();
   bz.play(Buzzer::CANCEL);
-  lg.end();
 }
 
 void trapizoid_test()
@@ -252,7 +245,6 @@ void trapizoid_test()
   imu.calibration();
   fan.drive(0.5);
   delay(500);
-  lg.start();
   sc.enable();
   const float accel = 15000;
   const float decel = 12000;
@@ -280,7 +272,6 @@ void trapizoid_test()
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
-  lg.end();
 }
 
 void straight_test()
@@ -293,12 +284,10 @@ void straight_test()
   sc.enable();
   fan.drive(0.2);
   delay(500);
-  lg.start();
   sc.position.x = 0;
   straight_x(8 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
   sc.set_target(0, 0);
   delay(100);
-  lg.end();
   fan.drive(0);
   delay(500);
   sc.disable();
@@ -309,6 +298,7 @@ void log_test()
   if (!ui.waitForCover())
     return;
   delay(1000);
+  logstream.flush();
   auto printLog = []() {
     logstream << enc.position(0) << ",";
     logstream << enc.position(1) << ",";
@@ -321,14 +311,14 @@ void log_test()
   imu.calibration();
   bz.play(Buzzer::CANCEL);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (int i = 0; i < 100; i++)
+  for (int i = 0; i < 500; i++)
   {
     mt.drive(i, i);
     printLog();
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   mt.drive(0, 0);
-  vTaskDelay(100 / portTICK_RATE_MS);
+  vTaskDelay(500 / portTICK_RATE_MS);
   mt.free();
 }
 
@@ -568,7 +558,6 @@ void normal_drive()
   //* ログの表示
   case 14:
     std::cout << logstream.str();
-    logstream.flush();
     break;
   //* リセット
   case 15:

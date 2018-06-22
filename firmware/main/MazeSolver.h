@@ -35,14 +35,10 @@ extern UserInterface ui;
 extern SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
-#include "Logger.h"
-extern Logger lg;
 #include "SearchRun.h"
 extern SearchRun sr;
 #include "FastRun.h"
 extern FastRun fr;
-
-//#define printf  lg.printf
 
 #define MAZE_SOLVER_TASK_PRIORITY 2
 #define MAZE_SOLVER_STACK_SIZE    8192

@@ -31,12 +31,10 @@ ToF tof(TOF_SDA_PIN, TOF_SCL_PIN);
 #include "SpeedController.h"
 #include "WallDetector.h"
 #include "Emergency.h"
-#include "Logger.h"
 UserInterface ui;
 SpeedController sc;
 WallDetector wd;
 Emergency em;
-Logger lg;
 
 /* Conductor */
 #include "SearchRun.h"
