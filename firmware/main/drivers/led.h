@@ -1,12 +1,19 @@
 #pragma once
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
 #include <driver/i2c.h>
 
 #define PCA9632_DEV_ID 0x62 //全体制御用のI2Cアドレス
+#define LED_STACK_SIZE 2048
+#define LED_TASK_PRIORITY 1
 
 class LED {
   public:
-    LED(const i2c_port_t i2c_port) : i2c_port(i2c_port) {}
+    LED(const i2c_port_t i2c_port) : i2c_port(i2c_port) {
+      playList = xQueueCreate(5, sizeof(uint8_t));
+    }
     bool begin(const int8_t pin_sda, const int8_t pin_scl) {
         i2c_config_t conf;
         conf.mode = I2C_MODE_MASTER;
@@ -20,7 +27,10 @@ class LED {
         return begin();
     }
     bool begin() {
-      writeReg(0x00, B10000001);
+      writeReg(0x00, 0b10000001);
+      xTaskCreate([](void* obj) {
+        static_cast<LED*>(obj)->task();
+      }, "LED", LED_STACK_SIZE, this, LED_TASK_PRIORITY, NULL);
       return true;
     }
     operator uint8_t() const {
@@ -28,17 +38,30 @@ class LED {
     }
     uint8_t operator=(uint8_t new_value) {
       value = new_value;
+      xQueueSendToBack(playList, &value, 0);
+      return value;
+    }
+  private:
+    const i2c_port_t i2c_port;
+    xQueueHandle playList;
+    uint8_t value;
+
+    void task(){
+      while(1){
+        uint8_t value;
+        if(xQueueReceive(playList, &value, portMAX_DELAY) == pdTRUE) {
+          writeValue(value);
+        }
+      }
+    }
+    bool writeValue(const uint8_t value) {
       uint8_t data = 0;
       data |= (value & 1) << 0;
       data |= (value & 2) << 1;
       data |= (value & 4) << 2;
       data |= (value & 8) << 3;
-      writeReg(0x08, data);
-      return value;
+      return writeReg(0x08, data);
     }
-  private:
-    const i2c_port_t i2c_port;
-    uint8_t value;
     bool writeReg(uint8_t reg, uint8_t data) {
       i2c_cmd_handle_t cmd = i2c_cmd_link_create();
       i2c_master_start(cmd);
@@ -51,4 +74,3 @@ class LED {
       return ret == ESP_OK;
     }
 };
-

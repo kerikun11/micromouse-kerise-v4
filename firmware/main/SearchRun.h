@@ -32,10 +32,10 @@ extern SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
 
-#define SEARCH_WALL_ATTACH_ENABLED  true
-#define SEARCH_WALL_CUT_ENABLED     true
-#define SEARCH_WALL_FRONT_ENABLED   true
-#define SEARCH_WALL_AVOID_ENABLED   true
+#define SEARCH_WALL_ATTACH_ENABLED  1
+#define SEARCH_WALL_CUT_ENABLED     1
+#define SEARCH_WALL_FRONT_ENABLED   1
+#define SEARCH_WALL_AVOID_ENABLED   1
 
 #define SEARCH_END_REMAIN           3
 #define SEARCH_ST_LOOK_AHEAD(v)     (6+2*v/100)
@@ -210,7 +210,7 @@ class SearchRun: TaskBase {
     void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
       if (fabs(sc.position.theta) < 0.05 * PI) {
-        const float gain = 0.0006f;
+        const float gain = 0.0001f;
         if (wd.wall[0]) sc.position.y += wd.distance.side[0] * gain;
         if (wd.wall[1]) sc.position.y -= wd.distance.side[1] * gain;
       }

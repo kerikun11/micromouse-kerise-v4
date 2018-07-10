@@ -2,30 +2,29 @@
  * @file    mouse.ino.cpp
  * @author  KERI (Github: kerikun11)
  * @date    2017.10.25
-*/
+ */
 
-#include <WiFi.h>
-#include <SPIFFS.h>
-#include <cstdio>
 #include "global.h"
+#include <SPIFFS.h>
+#include <WiFi.h>
+#include <cstdio>
 #include <iostream>
 #include <sstream>
+#include "esp_wifi.h"
 
 void mainTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
 std::stringstream logstream;
 
-void setup()
-{
+void setup() {
+  WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
-  // Serial.begin(2000000);
-  // esp_wifi_deinit();
   pinMode(AS5048A_CS_PIN, INPUT_PULLUP);
   pinMode(ICM20602_L_CS_PIN, INPUT_PULLUP);
   pinMode(ICM20602_R_CS_PIN, INPUT_PULLUP);
-  std::cout << std::endl
-            << "**************** KERISE ****************" << std::endl;
+  std::cout << std::endl;
+  std::cout << "**************** KERISE ****************" << std::endl;
   if (!bz.begin())
     bz.play(Buzzer::ERROR);
   if (!led.begin(LED_SDA_PIN, LED_SCL_PIN))
@@ -35,9 +34,11 @@ void setup()
 
   if (!SPIFFS.begin(true))
     bz.play(Buzzer::ERROR);
-  if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS, true, ICM20602_SCLK_PIN, ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_SPI_DMA_CHAIN))
+  if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS, true, ICM20602_SCLK_PIN,
+                 ICM20602_MISO_PIN, ICM20602_MOSI_PIN, ICM20602_SPI_DMA_CHAIN))
     bz.play(Buzzer::ERROR);
-  if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN, AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN))
+  if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN, false, AS5048A_SCLK_PIN,
+                 AS5048A_MISO_PIN, AS5048A_MOSI_PIN, AS5048A_SPI_DMA_CHAIN))
     bz.play(Buzzer::ERROR);
   if (!ref.begin())
     bz.play(Buzzer::ERROR);
@@ -47,32 +48,48 @@ void setup()
     bz.play(Buzzer::ERROR);
   em.begin();
 
-  xTaskCreate(printTask, "print", 4096, NULL, 1, NULL);       // debug output
-  xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL); // debug output
-  xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL);         // debug output
+  xTaskCreate(printTask, "print", 4096, NULL, 1, NULL);
+  // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL);
+  xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL);
 }
 
 void loop() { delay(1); }
 
-void printTask(void *arg)
-{
+void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  while (1)
-  {
+  float prev[2] = {0, 0};
+  float pres[2] = {0, 0};
+  while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
-    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    // ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //  tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    wd.print(); vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    imu.print(); vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans, sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans, sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd * sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    // std::cout << "-10,10";
+    // for (int ch = 0; ch < 2; ch++) {
+    //   pres[ch] = enc.position(ch);
+    //   std::cout << "," << (pres[ch] - prev[ch]) / 1e-3;
+    //   prev[ch] = pres[ch];
+    // }
+    // std::cout << std::endl;
+    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    xLastWakeTime = xTaskGetTickCount();
+    // ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    // xLastWakeTime = xTaskGetTickCount();
+    //  tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //  xLastWakeTime = xTaskGetTickCount();
+    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //    xLastWakeTime = xTaskGetTickCount(); wd.print();
+    //    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime
+    //    = xTaskGetTickCount(); imu.print(); vTaskDelayUntil(&xLastWakeTime, 99
+    //    / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans,
+    //    sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans,
+    //    sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp *
+    //    sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd *
+    //    sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 /
+    //    portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
   }
 }
 
-void timeKeepTask(void *arg)
-{
+void timeKeepTask(void *arg) {
   const int searchig_time_ms = 3 * 60 * 1000;
   while (millis() < searchig_time_ms)
     delay(1000);
@@ -87,14 +104,13 @@ void timeKeepTask(void *arg)
 #define TEST_ST_FB_GAIN 10
 #define TEST_ST_TR_FB_GAIN 0
 
-void straight_x(const float distance, const float v_max, const float v_end)
-{
+void straight_x(const float distance, const float v_max, const float v_end) {
   const float a_max = 9000;
   const float v_start = std::max(sc.actual.trans, 0.0f);
-  AccelDesigner ad(a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
+  AccelDesigner ad(a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN,
+                   sc.position.x);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0.0f; true; t += 0.001f)
-  {
+  for (float t = 0.0f; true; t += 0.001f) {
     Position cur = sc.position;
     //    if (cur.x > distance - TEST_END_REMAIN) break;
     if (t > ad.t_end())
@@ -111,47 +127,40 @@ void straight_x(const float distance, const float v_max, const float v_end)
   //  updateOrigin(Position(distance, 0, 0));
 }
 
-void turn(const float angle)
-{
+void turn(const float angle) {
   const float speed = 3.6 * M_PI;
   const float accel = 36 * M_PI;
   const float decel = 36 * M_PI;
   const float back_gain = 1.0f;
   int ms = 0;
   portTickType xLastWakeTime = xTaskGetTickCount();
-  while (1)
-  {
+  while (1) {
     if (fabs(sc.actual.rot) > speed)
       break;
-    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
-    if (angle > 0)
-    {
+    float delta = sc.position.x * cos(-sc.position.theta) -
+                  sc.position.y * sin(-sc.position.theta);
+    if (angle > 0) {
       sc.set_target(-delta * back_gain, ms / 1000.0f * accel);
-    }
-    else
-    {
+    } else {
       sc.set_target(-delta * back_gain, -ms / 1000.0f * accel);
     }
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
     ms++;
   }
-  while (1)
-  {
+  while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
     float extra = angle - sc.position.theta;
     if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1)
       break;
     float target_speed = sqrt(2 * decel * fabs(extra));
-    float delta = sc.position.x * cos(-sc.position.theta) - sc.position.y * sin(-sc.position.theta);
+    float delta = sc.position.x * cos(-sc.position.theta) -
+                  sc.position.y * sin(-sc.position.theta);
     target_speed = (target_speed > speed) ? speed : target_speed;
-    if (extra > 0)
-    {
+    if (extra > 0) {
       sc.set_target(-delta * back_gain, target_speed);
-    }
-    else
-    {
+    } else {
       sc.set_target(-delta * back_gain, -target_speed);
     }
   }
@@ -160,8 +169,7 @@ void turn(const float angle)
   //  printPosition("Turn End");
 }
 
-void position_test()
-{
+void position_test() {
   if (!ui.waitForCover())
     return;
   led = 9;
@@ -185,10 +193,9 @@ void position_test()
 //   portTickType xLastWakeTime = xTaskGetTickCount();
 //   for (float t = 0; t < ad.t_end(); t += 0.001f)
 //   {
-//     SpeedController::WheelParameter a(ad.a(t) - imu.accel.y, 0 - imu.angular_accel);
-//     const float K_a = 0.20f;
-//     mt.drive(K_a*a.wheel[0], K_a*a.wheel[1]);
-//     sc.set_target(ad.v(t), 0);
+//     SpeedController::WheelParameter a(ad.a(t) - imu.accel.y, 0 -
+//     imu.angular_accel); const float K_a = 0.20f; mt.drive(K_a*a.wheel[0],
+//     K_a*a.wheel[1]); sc.set_target(ad.v(t), 0);
 //     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
 //     xLastWakeTime = xTaskGetTickCount();
 //   }
@@ -197,34 +204,45 @@ void position_test()
 //   mt.free();
 // }
 
-void accel_test()
-{
+void accel_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
+  logstream.flush();
+  auto printLog = []() {
+    logstream << "0";
+    logstream << "," << sc.target.trans;
+    logstream << "," << sc.actual.trans;
+    logstream << "," << sc.enconly.trans;
+    logstream << "," << sc.Kp * sc.proportional.trans;
+    logstream << "," << sc.Ki * sc.integral.trans;
+    logstream << "," << sc.Kd * sc.differential.trans;
+    logstream << ","
+              << sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
+                     sc.Kd * sc.differential.trans;
+    logstream << std::endl;
+  };
   imu.calibration();
-  fan.drive(0.2);
+  fan.drive(0.4);
   delay(500);
   sc.enable();
-  const float accel = 12000;
-  const float v_max = 1800;
+  const float accel = 6000;
+  const float v_max = 1200;
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0; t < ad.t_end(); t += 0.001f)
-  {
+  for (float t = 0; t < ad.t_end() + 0.2f; t += 0.001f) {
     sc.set_target(ad.v(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
+    printLog();
   }
   sc.set_target(0, 0);
-  delay(200);
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
 }
 
-void turn_test()
-{
+void turn_test() {
   if (!ui.waitForCover())
     return;
   delay(1000);
@@ -237,13 +255,12 @@ void turn_test()
   bz.play(Buzzer::CANCEL);
 }
 
-void trapizoid_test()
-{
+void trapizoid_test() {
   if (!ui.waitForCover())
     return;
   delay(1000);
   imu.calibration();
-  fan.drive(0.5);
+  fan.drive(0.4);
   delay(500);
   sc.enable();
   const float accel = 15000;
@@ -252,9 +269,10 @@ void trapizoid_test()
   const float v_start = 0;
   float T = 1.5f * (v_max - v_start) / accel;
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (int ms = 0; ms / 1000.0f < T; ms++)
-  {
-    float velocity_a = v_start + (v_max - v_start) * 6.0f * (-1.0f / 3 * pow(ms / 1000.0f / T, 3) + 1.0f / 2 * pow(ms / 1000.0f / T, 2));
+  for (int ms = 0; ms / 1000.0f < T; ms++) {
+    float velocity_a = v_start + (v_max - v_start) * 6.0f *
+                                     (-1.0f / 3 * pow(ms / 1000.0f / T, 3) +
+                                      1.0f / 2 * pow(ms / 1000.0f / T, 2));
     sc.set_target(velocity_a, 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
@@ -262,8 +280,7 @@ void trapizoid_test()
   bz.play(Buzzer::SELECT);
   delay(150);
   bz.play(Buzzer::SELECT);
-  for (float v = v_max; v > 0; v -= decel / 1000)
-  {
+  for (float v = v_max; v > 0; v -= decel / 1000) {
     sc.set_target(v, 0);
     delay(1);
   }
@@ -274,8 +291,7 @@ void trapizoid_test()
   fan.drive(0);
 }
 
-void straight_test()
-{
+void straight_test() {
   if (!ui.waitForCover())
     return;
   delay(1000);
@@ -293,8 +309,7 @@ void straight_test()
   sc.disable();
 }
 
-void log_test()
-{
+void log_test() {
   if (!ui.waitForCover())
     return;
   delay(1000);
@@ -311,8 +326,7 @@ void log_test()
   imu.calibration();
   bz.play(Buzzer::CANCEL);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (int i = 0; i < 500; i++)
-  {
+  for (int i = 0; i < 500; i++) {
     mt.drive(i, i);
     printLog();
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -322,13 +336,13 @@ void log_test()
   mt.free();
 }
 
-void normal_drive()
-{
+void normal_drive() {
   int mode = ui.waitForSelect(16);
-  switch (mode)
-  {
+  switch (mode) {
   //* 走行
   case 0:
+    if (!ms.isComplete())
+      bz.play(Buzzer::CANCEL);
     bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
@@ -343,13 +357,11 @@ void normal_drive()
     ms.terminate();
     break;
   //* 走行パラメータの選択 & 走行
-  case 1:
-  {
+  case 1: {
     int preset = ui.waitForSelect(16);
     if (preset < 0)
       return;
-    switch (preset)
-    {
+    switch (preset) {
     case 0:
       fr.runParameter = FastRun::RunParameter(0.7, 1200, 3000, 3000);
       break;
@@ -406,8 +418,7 @@ void normal_drive()
     bz.play(Buzzer::SUCCESSFUL);
     break;
   //* 速度の設定
-  case 2:
-  {
+  case 2: {
     int value;
     for (int i = 0; i < 1; i++)
       bz.play(Buzzer::SHORT);
@@ -432,8 +443,7 @@ void normal_drive()
     bz.play(Buzzer::SUCCESSFUL);
     break;
   //* 壁制御の設定
-  case 3:
-  {
+  case 3: {
     int value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -445,8 +455,7 @@ void normal_drive()
     bz.play(Buzzer::SUCCESSFUL);
     break;
   //* ファンの設定
-  case 4:
-  {
+  case 4: {
     fan.drive(fr.fanDuty);
     delay(100);
     fan.drive(0);
@@ -467,8 +476,7 @@ void normal_drive()
   //* 迷路データの復元
   case 7:
     bz.play(Buzzer::MAZE_RESTORE);
-    if (!ms.restore())
-    {
+    if (!ms.restore()) {
       bz.play(Buzzer::ERROR);
       return;
     }
@@ -498,27 +506,21 @@ void normal_drive()
   case 10:
     if (!ui.waitForCover())
       return;
-    if (wd.backup())
-    {
+    if (wd.backup()) {
       bz.play(Buzzer::SUCCESSFUL);
-    }
-    else
-    {
+    } else {
       bz.play(Buzzer::ERROR);
     }
     break;
   //* ゴール区画の設定
-  case 11:
-  {
+  case 11: {
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
     int value = ui.waitForSelect(4);
     if (value < 0)
       return;
-    switch (value)
-    {
-    case 0:
-    {
+    switch (value) {
+    case 0: {
       int x = ui.waitForSelect(16);
       int y = ui.waitForSelect(16);
       ms.set_goal({Vector(x, y)});
@@ -535,8 +537,7 @@ void normal_drive()
       break;
     }
     bz.play(Buzzer::SUCCESSFUL);
-  }
-  break;
+  } break;
   //* マス直線
   case 12:
     if (!ui.waitForCover(true))
@@ -550,9 +551,9 @@ void normal_drive()
     sc.disable();
     break;
   case 13:
-    log_test();
+    // log_test();
     // trapizoid_test();
-    // accel_test();
+    accel_test();
     // straight_test();
     break;
   //* ログの表示
@@ -567,10 +568,8 @@ void normal_drive()
   }
 }
 
-void mainTask(void *arg)
-{
-  while (1)
-  {
+void mainTask(void *arg) {
+  while (1) {
     normal_drive();
     delay(1);
   }

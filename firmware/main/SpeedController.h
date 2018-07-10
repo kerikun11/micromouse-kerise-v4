@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include "Accumulator.h"
 
 #include "motor.h"
@@ -36,7 +37,7 @@ public:
   }
   float getNorm() const
   {
-    return sqrt(x * x + y * y);
+    return std::sqrt(x * x + y * y);
   }
   Position mirror_x() const
   {
@@ -256,7 +257,7 @@ private:
         pwm_value[i] = Kp * proportional.wheel[i] + Ki * integral.wheel[i] + Kd * differential.wheel[i];
       mt.drive(pwm_value[0], pwm_value[1]);
       // fail safe
-      const float pwm_em = MOTOR_DUTY_MAX * 10;
+      const float pwm_em = MOTOR_DUTY_MAX * 5;
       if (fabs(pwm_value[0]) > pwm_em || fabs(pwm_value[1]) > pwm_em)
       {
         mt.free();

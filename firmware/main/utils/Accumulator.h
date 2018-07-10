@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdlib>
+#include <new>
 
 template<typename T, size_t _size>
 class  Accumulator {

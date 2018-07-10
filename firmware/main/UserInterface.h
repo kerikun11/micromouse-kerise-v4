@@ -134,16 +134,18 @@ class UserInterface {
       if (voltage < 3.8f) {
         printf("Battery Low!\n");
         bz.play(Buzzer::LOW_BATTERY);
+        // gointToDeepsleep();
         while (!btn.pressed) delay(100);
         btn.flags = 0;
         led = 0;
-        //    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-        //    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
-        //    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
-        //    esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
-        //    esp_deep_sleep_start();
       }
     }
-  private:
-
+    static void gointToDeepsleep(){
+      esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
+      esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
+      esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
+      esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
+      esp_deep_sleep_start();
+      while(1) delay(1000);
+    }
 };

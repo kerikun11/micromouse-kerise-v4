@@ -268,7 +268,7 @@ uint16_t VL6180X::readReg16Bit(uint16_t reg)
   i2c_master_write_byte(cmd, reg & 0xff, true);
   i2c_master_start(cmd);
   i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
-  i2c_master_read(cmd, value, 2, I2C_MASTER_NACK);
+  i2c_master_read(cmd, value, 2, I2C_MASTER_LAST_NACK);
   i2c_master_stop(cmd);
   esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
   i2c_cmd_link_delete(cmd);
@@ -302,7 +302,7 @@ uint32_t VL6180X::readReg32Bit(uint16_t reg)
   i2c_master_write_byte(cmd, reg & 0xff, true);
   i2c_master_start(cmd);
   i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
-  i2c_master_read(cmd, value, 4, I2C_MASTER_NACK);
+  i2c_master_read(cmd, value, 4, I2C_MASTER_LAST_NACK);
   i2c_master_stop(cmd);
   esp_err_t ret = i2c_master_cmd_begin(I2C_PORT_NUM_TOF, cmd, 1 / portTICK_RATE_MS);
   i2c_cmd_link_delete(cmd);

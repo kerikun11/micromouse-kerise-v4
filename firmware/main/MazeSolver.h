@@ -45,9 +45,9 @@ extern FastRun fr;
 
 #define MAZE_GOAL           {Vector(1,0)}
 // #define MAZE_GOAL           {Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10)}
-//#define MAZE_GOAL           {Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4)}
-//#define MAZE_GOAL           {Vector(7,7), Vector(7,8), Vector(8,7), Vector(8,8)}
-//#define MAZE_GOAL           {Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20), Vector(20, 21), Vector(20, 22), Vector(21, 20), Vector(21, 21), Vector(21, 22)}
+// #define MAZE_GOAL           {Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4)}
+// #define MAZE_GOAL           {Vector(7,7), Vector(7,8), Vector(8,7), Vector(8,8)}
+// #define MAZE_GOAL           {Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20), Vector(20, 21), Vector(20, 22), Vector(21, 20), Vector(21, 21), Vector(21, 22)}
 #define MAZE_BACKUP_PATH    "/maze_backup.bin"
 
 class MazeSolver: TaskBase {
@@ -77,6 +77,9 @@ class MazeSolver: TaskBase {
     }
     void set_goal(const std::vector<Vector>& goal) {
       agent.replaceGoals(goal);
+    }
+    bool isComplete() {
+      return agent.isComplete();
     }
     bool backup() {
       {

@@ -121,8 +121,8 @@ public:
   void calibration()
   {
     MotionParameter accel_sum, gyro_sum;
-    const int ave_count = 200;
-    for (int j = 0; j < 5; j++)
+    const int ave_count = 250;
+    for (int j = 0; j < 4; j++)
     {
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (int i = 0; i < ave_count; i++)

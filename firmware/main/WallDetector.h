@@ -6,8 +6,6 @@
 #include <vector>
 #include <cmath>
 
-// #undef log;
-
 /* Hardware */
 #include "reflector.h"
 extern Reflector ref;
