@@ -40,7 +40,7 @@ extern WallDetector wd;
 #define SEARCH_END_REMAIN 3
 #define SEARCH_ST_LOOK_AHEAD(v) (6 + 2 * v / 100)
 #define SEARCH_ST_FB_GAIN 20
-#define SEARCH_CURVE_FB_GAIN 3.0f
+#define SEARCH_CURVE_FB_GAIN 8.0f
 
 #define ahead_length 2
 
@@ -48,9 +48,9 @@ extern WallDetector wd;
 #define SEARCH_RUN_STACK_SIZE 8192
 #define SEARCH_RUN_PERIOD 1000
 
-#define SEARCH_RUN_VELOCITY 240.0f
-#define SEARCH_RUN_V_CURVE 240.0f
-#define SEARCH_RUN_V_MAX 240.0f
+#define SEARCH_RUN_VELOCITY 200.0f
+#define SEARCH_RUN_V_CURVE 200.0f
+#define SEARCH_RUN_V_MAX 200.0f
 
 class SearchTrajectory {
 public:
@@ -260,9 +260,9 @@ private:
     if (tof.getDistance() < 90) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        const float gain = 100.0f;
+        const float gain = 120.0f;
         const float satu = 10.0f;
-        const float end = 1.0f;
+        const float end = 0.75f;
         SpeedController::WheelParameter wp;
         wp.wheel[0] =
             -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
@@ -286,7 +286,7 @@ private:
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
     if (fabs(sc.position.theta) < 0.05 * PI) {
-      const float gain = 0.0001f;
+      const float gain = 0.0004f;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
       if (wd.wall[1])
@@ -332,10 +332,10 @@ private:
 #endif
   }
   void turn(const float angle) {
-    const float speed = 4 * M_PI;
-    const float accel = 48 * M_PI;
+    const float speed = 3 * M_PI;
+    const float accel = 24 * M_PI;
     const float decel = 24 * M_PI;
-    const float back_gain = 2.0f;
+    const float back_gain = 1.0f;
     int ms = 0;
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {

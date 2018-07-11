@@ -43,20 +43,20 @@ extern FastRun fr;
 #define MAZE_SOLVER_TASK_PRIORITY 2
 #define MAZE_SOLVER_STACK_SIZE 8192
 
-#define GOAL 0
+#define GOAL 1
 #if GOAL == 0
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10) }
-#elif GOAL == 1
+#elif GOAL == 2
 #define MAZE_GOAL                                                              \
   { Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4) }
-#elif GOAL == 1
+#elif GOAL == 3
 #define MAZE_GOAL                                                              \
   { Vector(7, 7), Vector(7, 8), Vector(8, 7), Vector(8, 8) }
-#elif GOAL == 1
+#elif GOAL == 4
 #define MAZE_GOAL                                                              \
   {                                                                            \
     Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20),            \
@@ -148,6 +148,7 @@ private:
     sr.waitForEnd();
     sr.disable();
     backup();
+    imu.calibration(true);
     sr.set_action(SearchRun::RETURN);
     sr.set_action(SearchRun::GO_HALF);
     sr.enable();
@@ -329,6 +330,10 @@ private:
       if (!searchRun())
         waitForever();
     }
+    fr.V90Enabled = false;
+    if (!fast_run())
+      waitForever();
+    readyToStartWait();
     while (1) {
       if (!fast_run())
         waitForever();
@@ -336,6 +341,7 @@ private:
       fr.runParameter.max_speed *= 1.21f;
       fr.runParameter.accel *= 1.1f;
       fr.runParameter.decel *= 1.1f;
+      fr.V90Enabled = true;
       readyToStartWait();
     }
   }

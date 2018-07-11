@@ -482,7 +482,7 @@ class C180 : public FastTrajectory {
 public:
   C180(bool mirror = false) : mirror(mirror) {}
   //    const float velocity = 555.4092772151779f;
-  const float velocity = 500.0f;
+  const float velocity = 450.0f;
   const float straight = 26.0f;
 
 private:
@@ -793,7 +793,7 @@ private:
 class FS90 : public FastTrajectory {
 public:
   FS90(bool mirror = false) : mirror(mirror) {}
-  const float velocity = 345.3346843519961;
+  const float velocity = 245.3346843519961;
   const float straight = 5.0f;
 
 private:
