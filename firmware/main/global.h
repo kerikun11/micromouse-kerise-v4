@@ -43,4 +43,3 @@ extern SearchRun sr;
 extern FastRun fr;
 #include "MazeSolver.h"
 extern MazeSolver ms;
-

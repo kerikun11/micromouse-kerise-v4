@@ -2,44 +2,44 @@
    @file  global.cpp
    @brief グローバル変数の実体を定義するC++ファイル．
 */
-#include "config.h"
+#include "../config/io_definitions.h"
 
 /* Driver */
 #include "buzzer.h"
-#include "led.h"
-#include "motor.h"
-#include "fan.h"
 Buzzer bz(BUZZER_PIN, LEDC_CH_BUZZER);
+#include "led.h"
 LED led(I2C_PORT_NUM_LED);
+#include "motor.h"
 Motor mt;
+#include "fan.h"
 Fan fan(FAN_PIN, LEDC_CH_FAN);
 
 /* Sensor */
 #include "button.h"
-#include "imu.h"
-#include "encoder.h"
-#include "reflector.h"
-#include "tof.h"
 Button btn(BUTTON_PIN);
+#include "imu.h"
 IMU imu;
+#include "encoder.h"
 Encoder enc;
+#include "reflector.h"
 Reflector ref(PR_TX_PINS, PR_RX_PINS);
+#include "tof.h"
 ToF tof(TOF_SDA_PIN, TOF_SCL_PIN);
 
 /* Supporter */
 #include "UserInterface.h"
-#include "SpeedController.h"
-#include "WallDetector.h"
-#include "Emergency.h"
 UserInterface ui;
+#include "SpeedController.h"
 SpeedController sc;
+#include "WallDetector.h"
 WallDetector wd;
+#include "Emergency.h"
 Emergency em;
 
 /* Conductor */
 #include "SearchRun.h"
-#include "FastRun.h"
-#include "MazeSolver.h"
 SearchRun sr;
+#include "FastRun.h"
 FastRun fr;
+#include "MazeSolver.h"
 MazeSolver ms;

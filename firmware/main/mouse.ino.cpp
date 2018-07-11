@@ -4,13 +4,13 @@
  * @date    2017.10.25
  */
 
+#include "esp_wifi.h"
 #include "global.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <cstdio>
 #include <iostream>
 #include <sstream>
-#include "esp_wifi.h"
 
 void mainTask(void *arg);
 void printTask(void *arg);
