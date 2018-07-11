@@ -1,4 +1,5 @@
 rawdata = csvread('lamp500.csv');
+% rawdata = csvread('accel.csv');
 rawdata = rawdata';
 dt = 1e-3;
 time = dt * 1:length(rawdata);
