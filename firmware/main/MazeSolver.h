@@ -334,6 +334,7 @@ private:
     if (!fast_run())
       waitForever();
     readyToStartWait();
+    fr.V90Enabled = true;
     while (1) {
       if (!fast_run())
         waitForever();
@@ -341,7 +342,6 @@ private:
       fr.runParameter.max_speed *= 1.21f;
       fr.runParameter.accel *= 1.1f;
       fr.runParameter.decel *= 1.1f;
-      fr.V90Enabled = true;
       readyToStartWait();
     }
   }
