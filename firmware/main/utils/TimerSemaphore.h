@@ -20,9 +20,6 @@ class TimerSemaphore {
     void end() {
       detach();
     }
-    portBASE_TYPE give() {
-      return xSemaphoreGiveFromISR(SemaphoreHandle, NULL);
-    }
     portBASE_TYPE take(portTickType xBlockTime = portMAX_DELAY) {
       return xSemaphoreTake(SemaphoreHandle, xBlockTime);
     }
@@ -31,6 +28,9 @@ class TimerSemaphore {
     esp_timer_handle_t esp_timer_handle;
     volatile SemaphoreHandle_t SemaphoreHandle;
 
+    portBASE_TYPE give() {
+      return xSemaphoreGiveFromISR(SemaphoreHandle, NULL);
+    }
     void attach(uint32_t microseconds, bool repeat, esp_timer_cb_t callback, void* arg) {
       if (esp_timer_handle) {
         esp_timer_stop(esp_timer_handle);
