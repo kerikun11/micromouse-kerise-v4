@@ -4,7 +4,6 @@
  * @date    2017.10.25
  */
 
-#include "esp_wifi.h"
 #include "global.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -18,13 +17,10 @@ void timeKeepTask(void *arg);
 std::stringstream logstream;
 
 void setup() {
-  WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
-  pinMode(AS5048A_CS_PIN, INPUT_PULLUP);
-  pinMode(ICM20602_L_CS_PIN, INPUT_PULLUP);
-  pinMode(ICM20602_R_CS_PIN, INPUT_PULLUP);
-  std::cout << std::endl;
-  std::cout << "**************** KERISE ****************" << std::endl;
+  for (auto p : CONFIG_SPI_CS_PINS)
+    pinMode(p, INPUT_PULLUP);
+  printf("\n**************** KERISE ****************\n");
   if (!bz.begin())
     bz.play(Buzzer::ERROR);
   if (!led.begin(LED_SDA_PIN, LED_SCL_PIN))
@@ -53,39 +49,21 @@ void setup() {
   xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL);
 }
 
-void loop() { delay(1); }
+void loop() { delay(1000); }
 
 void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  float prev[2] = {0, 0};
-  float pres[2] = {0, 0};
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    xLastWakeTime = xTaskGetTickCount();
-    // std::cout << "-10,10";
-    // for (int ch = 0; ch < 2; ch++) {
-    //   pres[ch] = enc.position(ch);
-    //   std::cout << "," << (pres[ch] - prev[ch]) / 1e-3;
-    //   prev[ch] = pres[ch];
-    // }
-    // std::cout << std::endl;
-    //    enc.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    xLastWakeTime = xTaskGetTickCount();
-    // ref.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    // xLastWakeTime = xTaskGetTickCount();
-    //  tof.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //  xLastWakeTime = xTaskGetTickCount();
-    //    imu.csv(); vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //    xLastWakeTime = xTaskGetTickCount(); wd.print();
-    //    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS); xLastWakeTime
-    //    = xTaskGetTickCount(); imu.print(); vTaskDelayUntil(&xLastWakeTime, 99
-    //    / portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
-    //    printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans,
-    //    sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans,
-    //    sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans, sc.Kp *
-    //    sc.proportional.trans + sc.Ki * sc.integral.trans + sc.Kd *
-    //    sc.differential.trans); vTaskDelayUntil(&xLastWakeTime, 1 /
-    //    portTICK_RATE_MS); xLastWakeTime = xTaskGetTickCount();
+    // ref.csv();
+    // tof.csv();
+    // imu.print();
+    // wd.print();
+    // printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans,
+    //        sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans,
+    //        sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans,
+    //        sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
+    //            sc.Kd * sc.differential.trans);
   }
 }
 
@@ -179,30 +157,6 @@ void position_test() {
   ui.waitForCover();
   sc.disable();
 }
-
-// void accel_test()
-// {
-//   if (!ui.waitForCover())
-//     return;
-//   delay(500);
-//   imu.calibration();
-//   delay(500);
-//   const float accel = 9000;
-//   const float v_max = 1200;
-//   AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
-//   portTickType xLastWakeTime = xTaskGetTickCount();
-//   for (float t = 0; t < ad.t_end(); t += 0.001f)
-//   {
-//     SpeedController::WheelParameter a(ad.a(t) - imu.accel.y, 0 -
-//     imu.angular_accel); const float K_a = 0.20f; mt.drive(K_a*a.wheel[0],
-//     K_a*a.wheel[1]); sc.set_target(ad.v(t), 0);
-//     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-//     xLastWakeTime = xTaskGetTickCount();
-//   }
-//   mt.drive(0, 0);
-//   vTaskDelay(100 / portTICK_RATE_MS);
-//   mt.free();
-// }
 
 void accel_test() {
   if (!ui.waitForCover())
@@ -334,6 +288,21 @@ void log_test() {
   mt.drive(0, 0);
   vTaskDelay(500 / portTICK_RATE_MS);
   mt.free();
+}
+
+void petitcon() {
+  if (!ui.waitForCover())
+    return;
+  delay(500);
+  //      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+  fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
+              "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
+              "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+  //      fr.set_path("ssssssssrlrrlrssssssss");
+  imu.calibration();
+  fr.enable();
+  fr.waitForEnd();
+  fr.disable();
 }
 
 void normal_drive() {
@@ -547,11 +516,13 @@ void normal_drive() {
     straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
     sc.disable();
     break;
+    //* テスト
   case 13:
     // log_test();
     // trapizoid_test();
     accel_test();
     // straight_test();
+    // petitcon();
     break;
   //* ログの表示
   case 14:
