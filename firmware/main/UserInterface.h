@@ -23,6 +23,7 @@ private:
   const float thr_accel = 4 * 9807;
   const float thr_gyro = 4 * PI;
   const float wait_ms = 200;
+  const int thr_ref = 2400;
 
 public:
   UserInterface() {}
@@ -30,7 +31,7 @@ public:
     uint8_t value = 0;
     led = value;
     while (1) {
-      delay(1);
+      delay(10);
       if (imu.gyro.y > thr_gyro) {
         value += range - 1;
         value %= range;
@@ -47,55 +48,46 @@ public:
       }
       if (imu.accel.z > thr_accel) {
         bz.play(Buzzer::CONFIRM);
-        // log_i("waitForSelect() => %d", value);
         delay(wait_ms);
         return value;
       }
       if (abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        // log_i("waitForSelect() => -1");
         delay(wait_ms);
         return -1;
       }
       if (btn.pressed) {
         btn.flags = 0;
         bz.play(Buzzer::CONFIRM);
-        // log_i("waitForSelect() => %d", value);
         return value;
       }
       if (btn.long_pressed_1) {
         btn.flags = 0;
         bz.play(Buzzer::CANCEL);
-        // log_i("waitForSelect() => -1");
         return -1;
       }
     }
     return -1;
   }
   bool waitForCover(bool side = false) {
-    const int thr_ref = 2400;
     while (1) {
-      delay(1);
+      delay(10);
       if (!side && ref.front(0) > thr_ref && ref.front(1) > thr_ref) {
         bz.play(Buzzer::CONFIRM);
-        // log_i("waitForCover(front) => true");
         return true;
       }
       if (side && ref.side(0) > thr_ref && ref.side(1) > thr_ref) {
         bz.play(Buzzer::CONFIRM);
-        // log_i("waitForCover(side) => true");
         return true;
       }
       if (abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        // log_i("waitForCover() => false");
         delay(wait_ms);
         return false;
       }
       if (btn.long_pressed_1) {
         btn.flags = 0;
         bz.play(Buzzer::CANCEL);
-        // log_i("waitForCover() => false");
         return false;
       }
     }
@@ -140,7 +132,6 @@ public:
     if (voltage < 3.8f) {
       printf("Battery Low!\n");
       bz.play(Buzzer::LOW_BATTERY);
-      // gointToDeepsleep();
       while (!btn.pressed)
         delay(100);
       btn.flags = 0;
