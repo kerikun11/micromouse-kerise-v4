@@ -2,6 +2,7 @@
 #define VL6180X_h
 
 #include <Arduino.h>
+#include "driver/i2c.h"
 
 class VL6180X
 {
@@ -83,7 +84,7 @@ class VL6180X
 
     uint8_t last_status; // status of last I2C transmission
 
-    VL6180X(void);
+    VL6180X(i2c_port_t i2c_port);
 
     void setAddress(uint8_t new_addr);
 
@@ -119,6 +120,7 @@ class VL6180X
     bool timeoutOccurred(void);
 
   private:
+    i2c_port_t i2c_port;
     uint8_t address;
     uint8_t scaling;
     uint8_t ptp_offset;

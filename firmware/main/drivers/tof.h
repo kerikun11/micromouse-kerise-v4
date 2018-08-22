@@ -1,28 +1,15 @@
 #pragma once
 
-#include "../config/config.h" //< for I2C_PORT_NUM_TOF deprecated!
 #include "VL6180X.h"
-#include <driver/i2c.h>
+#include "i2c.h"
 
 #define TOF_TASK_PRIORITY 1
 #define TOF_TASK_STACK_SIZE 4096
 
 class ToF {
 public:
-  ToF(const int pin_sda, const int pin_scl)
-      : pin_sda(pin_sda), pin_scl(pin_scl) {}
-  bool begin(bool initializeWire = false) {
-    if (initializeWire) {
-      i2c_config_t conf;
-      conf.mode = I2C_MODE_MASTER;
-      conf.sda_io_num = (gpio_num_t)pin_sda;
-      conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-      conf.scl_io_num = (gpio_num_t)pin_scl;
-      conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-      conf.master.clk_speed = 1000000;
-      i2c_param_config(I2C_PORT_NUM_TOF, &conf);
-      i2c_driver_install(I2C_PORT_NUM_TOF, conf.mode, 0, 0, 0);
-    }
+  ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
+  bool begin() {
     sensor.setTimeout(10);
     sensor.init();
     sensor.configureDefault();
@@ -44,7 +31,6 @@ public:
   }
 
 private:
-  const int pin_sda, pin_scl;
   VL6180X sensor;
   uint16_t distance;
   uint16_t passed_ms;

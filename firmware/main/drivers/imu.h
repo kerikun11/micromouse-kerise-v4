@@ -4,6 +4,8 @@
 #include <driver/spi_master.h>
 #include <esp_err.h>
 
+#include "spi.h"
+
 struct MotionParameter {
   float x, y, z;
   MotionParameter(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z) {}
@@ -174,20 +176,7 @@ public:
     calibration_start_semaphore = xSemaphoreCreateBinary();
     calibration_end_semaphore = xSemaphoreCreateBinary();
   }
-  bool begin(spi_host_device_t spi_host, std::array<int8_t, 2> pins_cs,
-             bool spi_bus_initializing, int8_t pin_sclk, int8_t pin_miso,
-             int8_t pin_mosi, int dma_chain = 0) {
-    if (spi_bus_initializing) {
-      // ESP-IDF SPI bus initialization
-      static spi_bus_config_t bus_cfg;
-      bus_cfg.mosi_io_num = pin_mosi;
-      bus_cfg.miso_io_num = pin_miso;
-      bus_cfg.sclk_io_num = pin_sclk;
-      bus_cfg.quadwp_io_num = -1;
-      bus_cfg.quadhd_io_num = -1;
-      bus_cfg.max_transfer_sz = 0;
-      ESP_ERROR_CHECK(spi_bus_initialize(spi_host, &bus_cfg, dma_chain));
-    }
+  bool begin(spi_host_device_t spi_host, std::array<int8_t, 2> pins_cs) {
     if (!icm[0].begin(spi_host, pins_cs[0])) {
       log_e("IMU 0 begin failed :(");
       return false;

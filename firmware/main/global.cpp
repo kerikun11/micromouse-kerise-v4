@@ -24,7 +24,7 @@ Encoder enc;
 #include "reflector.h"
 Reflector ref(PR_TX_PINS, PR_RX_PINS);
 #include "tof.h"
-ToF tof(TOF_SDA_PIN, TOF_SCL_PIN);
+ToF tof(I2C_PORT_NUM_TOF);
 
 /* Supporter */
 #include "UserInterface.h"

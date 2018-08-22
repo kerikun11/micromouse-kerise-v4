@@ -13,20 +13,7 @@
 class Encoder {
 public:
   Encoder() { sampling_end_semaphore = xSemaphoreCreateBinary(); }
-  bool begin(spi_host_device_t spi_host, int8_t pin_cs,
-             bool spi_bus_initializing = false, int8_t pin_sclk = -1,
-             int8_t pin_miso = -1, int8_t pin_mosi = -1, int dma_chain = 0) {
-    if (spi_bus_initializing) {
-      // ESP-IDF SPI bus initialization
-      static spi_bus_config_t bus_cfg;
-      bus_cfg.mosi_io_num = pin_mosi;
-      bus_cfg.miso_io_num = pin_miso;
-      bus_cfg.sclk_io_num = pin_sclk;
-      bus_cfg.quadwp_io_num = -1;
-      bus_cfg.quadhd_io_num = -1;
-      bus_cfg.max_transfer_sz = 0;
-      ESP_ERROR_CHECK(spi_bus_initialize(spi_host, &bus_cfg, dma_chain));
-    }
+  bool begin(spi_host_device_t spi_host, int8_t pin_cs) {
     // ESP-IDF SPI device initialization
     static spi_device_interface_config_t dev_cfg;
     dev_cfg.command_bits = 1;
