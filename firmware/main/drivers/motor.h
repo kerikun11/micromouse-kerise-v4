@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../config/io_definitions.h"
+#include "../config/config.h"
 
 #define MOTOR_CTRL_FREQUENCY 250000
 #define MOTOR_CTRL_BIT_NUM 10

@@ -2,7 +2,7 @@
    @file  global.cpp
    @brief グローバル変数の実体を定義するC++ファイル．
 */
-#include "../config/io_definitions.h"
+#include "../config/config.h"
 
 /* Driver */
 #include "buzzer.h"

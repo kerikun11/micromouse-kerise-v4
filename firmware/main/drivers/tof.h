@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../config/io_definitions.h" //< for I2C_PORT_NUM_TOF deprecated!
+#include "../config/config.h" //< for I2C_PORT_NUM_TOF deprecated!
 #include "VL6180X.h"
 #include <driver/i2c.h>
 

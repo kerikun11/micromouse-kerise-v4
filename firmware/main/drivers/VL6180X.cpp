@@ -1,7 +1,7 @@
 #include "VL6180X.h"
 //#include <Wire.h>
 #include <driver/i2c.h>
-#include "../config/io_definitions.h" //< for I2C_PORT_NUM_TOF
+#include "../config/config.h" //< for I2C_PORT_NUM_TOF
 
 // Defines /////////////////////////////////////////////////////////////////////
 

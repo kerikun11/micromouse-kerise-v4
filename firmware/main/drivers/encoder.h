@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../config/machine.h"
+#include "../config/config.h"
 #include <driver/spi_master.h>
 #include <esp_err.h>
 #include <freertos/task.h>
