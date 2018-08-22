@@ -362,22 +362,54 @@ void normal_drive() {
     if (preset < 0)
       return;
     switch (preset) {
-    case 0: fr.runParameter = FastRun::RunParameter(0.3, 300, 1000, 1000); break;
-    case 1: fr.runParameter = FastRun::RunParameter(0.3, 600, 2000, 2000); break;
-    case 2: fr.runParameter = FastRun::RunParameter(0.3, 900, 3000, 3000); break;
-    case 3: fr.runParameter = FastRun::RunParameter(0.3, 1200, 6000, 6000); break;
-    case 4: fr.runParameter = FastRun::RunParameter(0.4, 300, 1000, 1000); break;
-    case 5: fr.runParameter = FastRun::RunParameter(0.4, 600, 2000, 2000); break;
-    case 6: fr.runParameter = FastRun::RunParameter(0.4, 900, 3000, 3000); break;
-    case 7: fr.runParameter = FastRun::RunParameter(0.4, 1200, 6000, 6000); break;
-    case 8: fr.runParameter = FastRun::RunParameter(0.5, 300, 1000, 1000); break;
-    case 9: fr.runParameter = FastRun::RunParameter(0.5, 600, 2000, 2000); break;
-    case 10: fr.runParameter = FastRun::RunParameter(0.5, 900, 3000, 3000); break;
-    case 11: fr.runParameter = FastRun::RunParameter(0.5, 1200, 6000, 6000); break;
-    case 12: fr.runParameter = FastRun::RunParameter(0.6, 300, 1000, 1000); break;
-    case 13: fr.runParameter = FastRun::RunParameter(0.6, 600, 2000, 2000); break;
-    case 14: fr.runParameter = FastRun::RunParameter(0.6, 900, 3000, 3000); break;
-    case 15: fr.runParameter = FastRun::RunParameter(0.6, 1200, 6000, 6000); break;
+    case 0:
+      fr.runParameter = FastRun::RunParameter(0.3, 300, 1000, 1000);
+      break;
+    case 1:
+      fr.runParameter = FastRun::RunParameter(0.3, 600, 2000, 2000);
+      break;
+    case 2:
+      fr.runParameter = FastRun::RunParameter(0.3, 900, 3000, 3000);
+      break;
+    case 3:
+      fr.runParameter = FastRun::RunParameter(0.3, 1200, 6000, 6000);
+      break;
+    case 4:
+      fr.runParameter = FastRun::RunParameter(0.4, 300, 1000, 1000);
+      break;
+    case 5:
+      fr.runParameter = FastRun::RunParameter(0.4, 600, 2000, 2000);
+      break;
+    case 6:
+      fr.runParameter = FastRun::RunParameter(0.4, 900, 3000, 3000);
+      break;
+    case 7:
+      fr.runParameter = FastRun::RunParameter(0.4, 1200, 6000, 6000);
+      break;
+    case 8:
+      fr.runParameter = FastRun::RunParameter(0.5, 300, 1000, 1000);
+      break;
+    case 9:
+      fr.runParameter = FastRun::RunParameter(0.5, 600, 2000, 2000);
+      break;
+    case 10:
+      fr.runParameter = FastRun::RunParameter(0.5, 900, 3000, 3000);
+      break;
+    case 11:
+      fr.runParameter = FastRun::RunParameter(0.5, 1200, 6000, 6000);
+      break;
+    case 12:
+      fr.runParameter = FastRun::RunParameter(0.6, 300, 1000, 1000);
+      break;
+    case 13:
+      fr.runParameter = FastRun::RunParameter(0.6, 600, 2000, 2000);
+      break;
+    case 14:
+      fr.runParameter = FastRun::RunParameter(0.6, 900, 3000, 3000);
+      break;
+    case 15:
+      fr.runParameter = FastRun::RunParameter(0.6, 1200, 6000, 6000);
+      break;
     }
   }
     bz.play(Buzzer::SUCCESSFUL);
