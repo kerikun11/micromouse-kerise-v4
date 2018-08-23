@@ -16,14 +16,14 @@
 #define CONFIG_SPI_DMA_CHAIN 0
 
 /* SPI Device */
-#define AS5048A_CS_PIN GPIO_NUM_4
 #define AS5048A_SPI_HOST CONFIG_SPI_HOST
+#define AS5048A_CS_PIN GPIO_NUM_4
 
+#define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_L_CS_PIN GPIO_NUM_26
 #define ICM20602_R_CS_PIN GPIO_NUM_27
 #define ICM20602_CS_PINS                                                       \
   { ICM20602_L_CS_PIN, ICM20602_R_CS_PIN }
-#define ICM20602_SPI_HOST CONFIG_SPI_HOST
 
 /* for pull-up*/
 #define CONFIG_SPI_CS_PINS                                                     \

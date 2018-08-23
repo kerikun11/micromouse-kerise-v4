@@ -6,6 +6,8 @@
 #define TOF_TASK_PRIORITY 1
 #define TOF_TASK_STACK_SIZE 4096
 
+#define TOF_DISTANCE_OFFSET (20)
+
 class ToF {
 public:
   ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
@@ -24,11 +26,7 @@ public:
   uint16_t getDistance() { return distance; }
   uint16_t passedTimeMs() { return passed_ms; }
   void print() { log_d("ToF: %d [mm]", getDistance()); }
-  void csv() {
-    printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
-    //      printf("0,90,180,270,360,%d\n", getDistance());
-    //      printf("0,20,40,%d\n", passed_ms);
-  }
+  void csv() { printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms); }
 
 private:
   VL6180X sensor;
@@ -52,7 +50,7 @@ private:
       }
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
       sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-      distance = range + 20;
+      distance = range + TOF_DISTANCE_OFFSET;
       if (range != 255) {
         passed_ms = 0;
       }
