@@ -23,7 +23,8 @@ private:
   const float thr_accel = 4 * 9807;
   const float thr_gyro = 4 * PI;
   const float wait_ms = 200;
-  const int thr_ref = 2400;
+  const int thr_ref_front = 2400;
+  const int thr_ref_side = 2400;
 
 public:
   UserInterface() {}
@@ -72,11 +73,11 @@ public:
   bool waitForCover(bool side = false) {
     while (1) {
       delay(10);
-      if (!side && ref.front(0) > thr_ref && ref.front(1) > thr_ref) {
+      if (!side && ref.front(0) > thr_ref_front && ref.front(1) > thr_ref_front) {
         bz.play(Buzzer::CONFIRM);
         return true;
       }
-      if (side && ref.side(0) > thr_ref && ref.side(1) > thr_ref) {
+      if (side && ref.side(0) > thr_ref_side && ref.side(1) > thr_ref_side) {
         bz.play(Buzzer::CONFIRM);
         return true;
       }
