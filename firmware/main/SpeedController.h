@@ -85,12 +85,6 @@ public:
     float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
   public:
     WheelParameter() {}
-    WheelParameter(const float trans, const float rot)
-        : trans(trans), rot(rot) {
-      pole2wheel();
-    }
-    // const WheelParameter operator*(auto mul) { return WheelParameter(mul *
-    // this->trans, mul * this->rot); }
     void pole2wheel() {
       wheel[0] = trans - MACHINE_ROTATION_RADIUS * rot;
       wheel[1] = trans + MACHINE_ROTATION_RADIUS * rot;
