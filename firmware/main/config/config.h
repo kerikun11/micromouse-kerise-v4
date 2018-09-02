@@ -64,6 +64,6 @@
 #define MACHINE_TAIL_LENGTH 16.4f
 
 /* Field Size Parameter */
-#define SEGMENT_WIDTH 90.0f
+#define SEGMENT_WIDTH 90
 #define SEGMENT_DIAGONAL_WIDTH 127.2792206135786f
 #define WALL_THICKNESS 6.0f

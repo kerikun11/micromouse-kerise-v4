@@ -34,8 +34,8 @@ private:
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
-      if (fabs(imu.accel.y) > 8 * 9807 ||
-          fabs(imu.gyro.z) > 1500 / 180.0f * PI) {
+      if (fabs(imu.accel.y) > 10 * 9807 ||
+          fabs(imu.gyro.z) > 1800 / 180.0f * PI) {
         mt.emergency_stop();
         fan.drive(0);
         bz.play(Buzzer::EMERGENCY);

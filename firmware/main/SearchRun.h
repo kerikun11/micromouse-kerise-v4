@@ -294,21 +294,23 @@ private:
     }
 #endif
 #if SEARCH_WALL_CUT_ENABLED
+#define SEARCH_WALL_CUT_OFFSET_X_ 42
+#define SEARCH_WALL_CUT_OFFSET__X 36
     for (int i = 0; i < 2; i++) {
       if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
         const float prev_x = sc.position.x;
-        if (distance > 90 - 1)
-          sc.position.x =
-              sc.position.x - ((int)sc.position.x) % 90 + 42 - ahead_length;
+        if (distance > SEGMENT_WIDTH - 1)
+          sc.position.x = sc.position.x - ((int)sc.position.x) % SEGMENT_WIDTH +
+                          SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
         printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i, distance,
                prev_x, sc.position.x);
         bz.play(Buzzer::CANCEL);
       }
       if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
         const float prev_x = sc.position.x;
-        if (distance > 90 - 1)
-          sc.position.x =
-              sc.position.x - ((int)sc.position.x) % 90 + 36 - ahead_length;
+        if (distance > SEGMENT_WIDTH - 1)
+          sc.position.x = sc.position.x - ((int)sc.position.x) % SEGMENT_WIDTH +
+                          SEARCH_WALL_CUT_OFFSET__X - ahead_length;
         printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i, distance,
                prev_x, sc.position.x);
         bz.play(Buzzer::CONFIRM);

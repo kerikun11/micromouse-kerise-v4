@@ -913,14 +913,13 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    // RunParameter(const float curve_gain = 0.7, const float max_speed = 1200,
-    // const float accel = 3000, const float decel = 3000):
-    // curve_gain(curve_gain), max_speed(max_speed), accel(accel), decel(decel)
-    // {}
-    RunParameter(const float curve_gain = 0.5, const float max_speed = 600,
-                 const float accel = 1500, const float decel = 1500)
+    RunParameter(const float curve_gain = 0.7, const float max_speed = 1200,
+                 const float accel = 3000, const float decel = 3000)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
+    RunParameter(std::array<float, 4> params)
+        : curve_gain(params[0]), max_speed(params[1]), accel(params[2]),
+          decel(params[3]) {}
     float curve_gain;
     float max_speed;
     float accel, decel;
@@ -939,7 +938,7 @@ public:
   bool wallAvoid45Flag = false;
   bool wallCutFlag = true;
   bool V90Enabled = true;
-  float fanDuty = 0.0f;
+  float fanDuty = 0.2f;
 
   void enable() {
     printf("FastRun Enabled\n");
@@ -1007,17 +1006,22 @@ private:
       led = 9;
     }
     // 45 [deg] の倍数
-    //      if (wallAvoid45Flag && (int)(fabs(origin.theta) * 180.0f / PI + 45 +
-    //      1) % 90 < 2) {
-    //        const float gain = 0.001f;
-    //        const int16_t threashold = 480;
-    //        if (ref.side(0) > threashold) sc.position += Position(0,
-    //        (ref.side(0) - threashold) * gain, 0).rotate(origin.theta); if
-    //        (ref.side(1) > threashold) sc.position -= Position(0, (ref.side(1)
-    //        - threashold) * gain, 0).rotate(origin.theta); led = 6;
-    //      }
+    // if (wallAvoid45Flag &&
+    //     (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
+    //   const float gain = 0.001f;
+    //   const int16_t threashold = 480;
+    //   if (ref.side(0) > threashold)
+    //     sc.position += Position(0, (ref.side(0) - threashold) * gain, 0)
+    //                        .rotate(origin.theta);
+    //   if (ref.side(1) > threashold)
+    //     sc.position -= Position(0, (ref.side(1) - threashold) * gain, 0)
+    //                        .rotate(origin.theta);
+    //   led = 6;
+    // }
   }
   void wallCut() {
+#define WALL_CUT_OFFSET_X_ (-36)
+#define WALL_CUT_OFFSET__X (-42)
     if (wallCutFlag) {
       // 90 [deg] の倍数 かつ，ズレが +/-15度以内
       if ((int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2 &&
@@ -1027,8 +1031,8 @@ private:
             Position prev = sc.position;
             Position fix = sc.position.rotate(-origin.theta);
             fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) *
-                        SEGMENT_WIDTH -
-                    36;
+                        SEGMENT_WIDTH +
+                    WALL_CUT_OFFSET_X_;
             fix = fix.rotate(origin.theta);
             if (fabs(prev.rotate(-origin.theta).x -
                      fix.rotate(-origin.theta).x) < 15.0f)
@@ -1042,8 +1046,8 @@ private:
             Position prev = sc.position;
             Position fix = sc.position.rotate(-origin.theta);
             fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) *
-                        SEGMENT_WIDTH -
-                    42;
+                        SEGMENT_WIDTH +
+                    WALL_CUT_OFFSET__X;
             fix = fix.rotate(origin.theta);
             if (fabs(prev.rotate(-origin.theta).x -
                      fix.rotate(-origin.theta).x) < 15.0f)
@@ -1057,34 +1061,35 @@ private:
         }
       }
       // 45 [deg] の倍数 かつ，ズレが +/-15度以内
-      //        if ((int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2 &&
-      //        fabs(origin.theta - sc.position.theta) < PI / 48) {
-      //          for (int i = 0; i < 2; i++) {
-      //            if (prev_wall[i] && !wd.wall[i]) {
-      //              Position prev = sc.position;
-      //              Position fix = sc.position.rotate(-origin.theta);
-      //              const float extra = 40;
-      //              if (i == 0) {
-      //                fix.x = floor((fix.x + extra) / SEGMENT_DIAGONAL_WIDTH)
-      //                * SEGMENT_DIAGONAL_WIDTH + SEGMENT_DIAGONAL_WIDTH / 2 +
-      //                extra;
-      //              } else {
-      //                fix.x = floor((fix.x + SEGMENT_DIAGONAL_WIDTH / 2 +
-      //                extra) / SEGMENT_DIAGONAL_WIDTH) *
-      //                SEGMENT_DIAGONAL_WIDTH + extra;
-      //              }
-      //              fix = fix.rotate(origin.theta);
-      //              if (fabs(prev.rotate(-origin.theta).x -
-      //              fix.rotate(-origin.theta).x) < 15.0f)
-      //                sc.position = fix;
+      // if ((int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2 &&
+      //     fabs(origin.theta - sc.position.theta) < PI / 48) {
+      //   for (int i = 0; i < 2; i++) {
+      //     if (prev_wall[i] && !wd.wall[i]) {
+      //       Position prev = sc.position;
+      //       Position fix = sc.position.rotate(-origin.theta);
+      //       const float extra = 40;
+      //       if (i == 0) {
+      //         fix.x = floor((fix.x + extra) / SEGMENT_DIAGONAL_WIDTH) *
+      //                     SEGMENT_DIAGONAL_WIDTH +
+      //                 SEGMENT_DIAGONAL_WIDTH / 2 + extra;
+      //       } else {
+      //         fix.x = floor((fix.x + SEGMENT_DIAGONAL_WIDTH / 2 + extra) /
+      //                       SEGMENT_DIAGONAL_WIDTH) *
+      //                     SEGMENT_DIAGONAL_WIDTH +
+      //                 extra;
+      //       }
+      //       fix = fix.rotate(origin.theta);
+      //       if (fabs(prev.rotate(-origin.theta).x -
+      //                fix.rotate(-origin.theta).x) < 15.0f)
+      //         sc.position = fix;
       //              printf("WallCutDiag[%d] X_ (%.1f, %.1f, %.1f) => (%.1f,
       //              %.1f, %.1f)\n", i, prev.x, prev.y, prev.theta * 180.0f /
       //              PI, sc.position.x, sc.position.y, sc.position.theta * 180
       //              / PI);
-      //            }
-      //            prev_wall[i] = wd.wall[i];
-      //          }
-      //        }
+      //     }
+      //     prev_wall[i] = wd.wall[i];
+      //   }
+      // }
     }
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
