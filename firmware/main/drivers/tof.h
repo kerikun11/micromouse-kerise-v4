@@ -12,11 +12,12 @@ class ToF {
 public:
   ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
   bool begin() {
-    sensor.setTimeout(10);
+    sensor.setTimeout(100);
     sensor.init();
     sensor.configureDefault();
     xTaskCreate([](void *obj) { static_cast<ToF *>(obj)->task(); }, "ToF",
                 TOF_TASK_STACK_SIZE, this, TOF_TASK_PRIORITY, NULL);
+    delay(40);
     if (sensor.last_status != 0) {
       log_e("ToF failed :(");
       return false;
