@@ -37,10 +37,10 @@ extern WallDetector wd;
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
 
-#define SEARCH_END_REMAIN 3
+#define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (6 + 2 * v / 100)
 #define SEARCH_ST_FB_GAIN 20
-#define SEARCH_CURVE_FB_GAIN 8.0f
+#define SEARCH_CURVE_FB_GAIN 9.0f
 
 #define ahead_length 2
 

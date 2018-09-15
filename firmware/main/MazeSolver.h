@@ -329,7 +329,7 @@ private:
     if (!agent.calcShortestDirs()) {
       if (!searchRun())
         waitForever();
-      fr.V90Enabled = false;
+      // fr.V90Enabled = false;
       if (!fast_run())
         waitForever();
       readyToStartWait();

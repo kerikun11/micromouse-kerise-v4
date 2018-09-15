@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${IDF_PATH}/**"
+                "${PATH:IDF_PATH}/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -184,15 +184,16 @@ void accel_test() {
   fan.drive(0.4);
   delay(500);
   sc.enable();
-  const float accel = 6000;
-  const float v_max = 1200;
-  AccelDesigner ad(accel, 0, v_max, 0, 90 * 4);
+  const float accel = 9000;
+  const float v_max = 600;
+  AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.2f; t += 0.001f) {
     sc.set_target(ad.v(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
-    printLog();
+    if ((int)(t * 1000) % 2 == 0)
+      printLog();
   }
   sc.set_target(0, 0);
   bz.play(Buzzer::CANCEL);
