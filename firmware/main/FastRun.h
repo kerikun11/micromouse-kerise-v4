@@ -29,9 +29,9 @@ extern WallDetector wd;
 
 #define FAST_END_REMAIN 6
 // #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_LOOK_AHEAD(v) 120
+#define FAST_ST_LOOK_AHEAD(v) 30
 #define FAST_ST_FB_GAIN 10
-#define FAST_CURVE_FB_GAIN 3.0f
+#define FAST_CURVE_FB_GAIN 5.0f
 
 class FastTrajectory {
 public:
@@ -935,7 +935,7 @@ public:
 public:
   RunParameter runParameter;
   bool wallAvoidFlag = true;
-  bool wallAvoid45Flag = false;
+  bool wallAvoid45Flag = true;
   bool wallCutFlag = true;
   bool V90Enabled = true;
   float fanDuty = 0.2f;
@@ -986,38 +986,44 @@ private:
   String path, last_path;
   bool prev_wall[2];
 
-  void wallAvoid() {
+  void wallAvoid(bool diag) {
+    uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.0024f;
+      const float gain = 0.004f;
       const float satu = 0.5f;
-      if (wd.wall[0])
+      if (wd.wall[0]) {
         sc.position +=
             Position(
                 0, std::max(std::min(wd.distance.side[0] * gain, satu), -satu),
                 0)
                 .rotate(origin.theta);
-      if (wd.wall[1])
+        led_flags |= 8;
+      }
+      if (wd.wall[1]) {
         sc.position -=
             Position(
                 0, std::max(std::min(wd.distance.side[1] * gain, satu), -satu),
                 0)
                 .rotate(origin.theta);
-      led = 9;
+        led_flags |= 1;
+      }
     }
     // 45 [deg] の倍数
-    // if (wallAvoid45Flag &&
-    //     (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-    //   const float gain = 0.001f;
-    //   const int16_t threashold = 480;
-    //   if (ref.side(0) > threashold)
-    //     sc.position += Position(0, (ref.side(0) - threashold) * gain, 0)
-    //                        .rotate(origin.theta);
-    //   if (ref.side(1) > threashold)
-    //     sc.position -= Position(0, (ref.side(1) - threashold) * gain, 0)
-    //                        .rotate(origin.theta);
-    //   led = 6;
-    // }
+    if (diag && wallAvoid45Flag &&
+        (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
+      const float satu = 0.1f;
+      const float threashold = -40;
+      if (wd.distance.front[0] > threashold) {
+        sc.position += Position(0, satu, 0).rotate(origin.theta);
+        led_flags |= 4;
+      }
+      if (wd.distance.front[1] > threashold) {
+        sc.position -= Position(0, satu, 0).rotate(origin.theta);
+        led_flags |= 2;
+      }
+    }
+    led = led_flags;
   }
   void wallCut() {
 #define WALL_CUT_OFFSET_X_ (-36)
@@ -1119,7 +1125,7 @@ private:
         velocity = velocity_a;
       float theta = atan2f(-cur.y, FAST_ST_LOOK_AHEAD(velocity)) - cur.theta;
       sc.set_target(velocity, FAST_ST_FB_GAIN * theta);
-      wallAvoid();
+      wallAvoid(true);
       wallCut();
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
@@ -1141,7 +1147,7 @@ private:
       Position dir = tr.getNextDir(getRelativePosition(), velocity);
       sc.set_target(velocity, dir.theta);
       if (fabs(getRelativePosition().theta) < 0.01f * PI) {
-        wallAvoid();
+        wallAvoid(false);
         wallCut();
       }
     }

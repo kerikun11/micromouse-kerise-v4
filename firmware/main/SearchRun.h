@@ -39,7 +39,7 @@ extern WallDetector wd;
 
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (6 + 2 * v / 100)
-#define SEARCH_ST_FB_GAIN 20
+#define SEARCH_ST_FB_GAIN 30
 #define SEARCH_CURVE_FB_GAIN 9.0f
 
 #define ahead_length 2
@@ -50,7 +50,7 @@ extern WallDetector wd;
 
 #define SEARCH_RUN_VELOCITY 200.0f
 #define SEARCH_RUN_V_CURVE 200.0f
-#define SEARCH_RUN_V_MAX 200.0f
+#define SEARCH_RUN_V_MAX 600.0f
 
 class SearchTrajectory {
 public:
@@ -286,7 +286,7 @@ private:
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
     if (fabs(sc.position.theta) < 0.05 * PI) {
-      const float gain = 0.0004f;
+      const float gain = 0.0006f;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
       if (wd.wall[1])
