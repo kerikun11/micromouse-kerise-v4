@@ -260,9 +260,9 @@ private:
     if (tof.getDistance() < 90) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
-        const float gain = 120.0f;
-        const float satu = 10.0f;
-        const float end = 0.75f;
+        const float gain = 200.0f;
+        const float satu = 50.0f;
+        const float end = 0.5f;
         SpeedController::WheelParameter wp;
         wp.wheel[0] =
             -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
@@ -286,7 +286,7 @@ private:
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
     if (fabs(sc.position.theta) < 0.05 * PI) {
-      const float gain = 0.0006f;
+      const float gain = 0.0012f;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
       if (wd.wall[1])

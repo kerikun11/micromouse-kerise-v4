@@ -29,9 +29,9 @@ extern WallDetector wd;
 
 #define FAST_END_REMAIN 6
 // #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_LOOK_AHEAD(v) 30
+#define FAST_ST_LOOK_AHEAD(v) 12
 #define FAST_ST_FB_GAIN 10
-#define FAST_CURVE_FB_GAIN 5.0f
+#define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
 public:
@@ -987,11 +987,14 @@ private:
   bool prev_wall[2];
 
   void wallAvoid(bool diag) {
+    // 一定速より小さかったら行わない
+    if (sc.actual.trans < 100.0f)
+      return;
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.004f;
-      const float satu = 0.5f;
+      const float gain = 0.001f;
+      const float satu = 0.4f;
       if (wd.wall[0]) {
         sc.position +=
             Position(
@@ -1013,7 +1016,7 @@ private:
     if (diag && wallAvoid45Flag &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
       const float satu = 0.1f;
-      const float threashold = -40;
+      const float threashold = -30;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, satu, 0).rotate(origin.theta);
         led_flags |= 4;
