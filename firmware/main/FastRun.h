@@ -28,9 +28,9 @@ extern WallDetector wd;
 #define FAST_RUN_PERIOD 1000
 
 #define FAST_END_REMAIN 6
-// #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_LOOK_AHEAD(v) 20
-#define FAST_ST_FB_GAIN 20
+#define FAST_ST_LOOK_AHEAD(v) (5 + 15 * v / 240)
+// #define FAST_ST_LOOK_AHEAD(v) 20
+#define FAST_ST_FB_GAIN 30
 #define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
@@ -938,7 +938,7 @@ public:
   bool wallAvoid45Flag = true;
   bool wallCutFlag = true;
   bool V90Enabled = true;
-  float fanDuty = 0.2f;
+  float fanDuty = 0.1f;
 
   void enable() {
     printf("FastRun Enabled\n");
@@ -993,7 +993,7 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.002f;
+      const float gain = 0.003f;
       const float satu = 0.2f;
       if (wd.wall[0]) {
         sc.position +=
@@ -1016,7 +1016,7 @@ private:
     if (diag && wallAvoid45Flag &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
       const float satu = 0.1f;
-      const float threashold = -30;
+      const float threashold = -36;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, satu, 0).rotate(origin.theta);
         led_flags |= 4;
@@ -1061,9 +1061,11 @@ private:
           //   if (fabs(prev.rotate(-origin.theta).x -
           //            fix.rotate(-origin.theta).x) < 15.0f)
           //     sc.position = fix;
-          //   printf("WallCut[%d] _X (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
-          //          i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
-          //          sc.position.y, sc.position.theta * 180 / PI);
+          //   printf("WallCut[%d] _X (%.1f, %.1f, %.1f) => (%.1f, %.1f,
+          //   %.1f)\n",
+          //          i, prev.x, prev.y, prev.theta * 180.0f / PI,
+          //          sc.position.x, sc.position.y, sc.position.theta * 180 /
+          //          PI);
           //   bz.play(Buzzer::SELECT);
           // }
           prev_wall[i] = wd.wall[i];

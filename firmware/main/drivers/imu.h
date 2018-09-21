@@ -132,8 +132,9 @@ private:
   MotionParameter accel_offset, gyro_offset;
 
   bool whoami() {
-    if (readReg(117) != 0x12) {
-      log_e("whoami failed:(");
+    uint8_t v = readReg(117);
+    if (v != 0x12) {
+      log_e("whoami failed:( 0x%X", v);
       return false;
     }
     return true;
