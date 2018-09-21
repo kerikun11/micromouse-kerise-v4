@@ -57,7 +57,7 @@ void loop() { delay(1000); }
 void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
     // enc.print();
     // ref.csv();
     // tof.csv(); delay(100);
@@ -501,7 +501,7 @@ void normal_drive() {
       ms.set_goal({Vector(1, 0)});
       break;
     case 2:
-      ms.set_goal({Vector(4, 4), Vector(4, 5), Vector(5, 4), Vector(5, 5)});
+      ms.set_goal({Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10)});
       break;
     case 3:
       ms.set_goal({Vector(15, 15)});

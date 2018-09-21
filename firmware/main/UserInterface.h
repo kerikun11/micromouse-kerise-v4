@@ -25,14 +25,18 @@ private:
   const float wait_ms = 200;
   const int thr_ref_front = 2400;
   const int thr_ref_side = 2400;
+  const float enc_interval = 10.0f;
 
 public:
   UserInterface() {}
   int waitForSelect(int range = 16) {
+    float prev_enc = enc.position(0) + enc.position(1);
     uint8_t value = 0;
     led = value;
     while (1) {
+      float now_enc = enc.position(0) + enc.position(1);
       delay(10);
+      /* SELECT */
       if (imu.gyro.y > thr_gyro) {
         value += range - 1;
         value %= range;
@@ -47,20 +51,36 @@ public:
         bz.play(Buzzer::SELECT);
         delay(wait_ms);
       }
+      if (now_enc > prev_enc + enc_interval) {
+        prev_enc += enc_interval;
+        value += 1;
+        value %= range;
+        led = value;
+        bz.play(Buzzer::SELECT);
+      }
+      if (now_enc < prev_enc - enc_interval) {
+        prev_enc -= enc_interval;
+        value += range - 1;
+        value %= range;
+        led = value;
+        bz.play(Buzzer::SELECT);
+      }
+      /* CONFIRM */
       if (imu.accel.z > thr_accel) {
         bz.play(Buzzer::CONFIRM);
         delay(wait_ms);
         return value;
       }
-      if (abs(imu.accel.x) > thr_accel) {
-        bz.play(Buzzer::CANCEL);
-        delay(wait_ms);
-        return -1;
-      }
       if (btn.pressed) {
         btn.flags = 0;
         bz.play(Buzzer::CONFIRM);
         return value;
+      }
+      /* CANCEL */
+      if (abs(imu.accel.x) > thr_accel) {
+        bz.play(Buzzer::CANCEL);
+        delay(wait_ms);
+        return -1;
       }
       if (btn.long_pressed_1) {
         btn.flags = 0;
@@ -73,7 +93,8 @@ public:
   bool waitForCover(bool side = false) {
     while (1) {
       delay(10);
-      if (!side && ref.front(0) > thr_ref_front && ref.front(1) > thr_ref_front) {
+      if (!side && ref.front(0) > thr_ref_front &&
+          ref.front(1) > thr_ref_front) {
         bz.play(Buzzer::CONFIRM);
         return true;
       }

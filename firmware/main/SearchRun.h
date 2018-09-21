@@ -306,15 +306,17 @@ private:
                prev_x, sc.position.x);
         bz.play(Buzzer::CANCEL);
       }
-      if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
-        const float prev_x = sc.position.x;
-        if (distance > SEGMENT_WIDTH - 1)
-          sc.position.x = sc.position.x - ((int)sc.position.x) % SEGMENT_WIDTH +
-                          SEARCH_WALL_CUT_OFFSET__X - ahead_length;
-        printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i, distance,
-               prev_x, sc.position.x);
-        bz.play(Buzzer::CONFIRM);
-      }
+      // if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
+      //   const float prev_x = sc.position.x;
+      //   if (distance > SEGMENT_WIDTH - 1)
+      //     sc.position.x = sc.position.x - ((int)sc.position.x) %
+      //     SEGMENT_WIDTH +
+      //                     SEARCH_WALL_CUT_OFFSET__X - ahead_length;
+      //   printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i,
+      //   distance,
+      //          prev_x, sc.position.x);
+      //   bz.play(Buzzer::CONFIRM);
+      // }
       prev_wall[i] = wd.wall[i];
     }
 #endif

@@ -29,8 +29,8 @@ extern WallDetector wd;
 
 #define FAST_END_REMAIN 6
 // #define FAST_ST_LOOK_AHEAD(v)   (6+10*v/100)
-#define FAST_ST_LOOK_AHEAD(v) 12
-#define FAST_ST_FB_GAIN 10
+#define FAST_ST_LOOK_AHEAD(v) 20
+#define FAST_ST_FB_GAIN 20
 #define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
@@ -993,8 +993,8 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.001f;
-      const float satu = 0.4f;
+      const float gain = 0.002f;
+      const float satu = 0.2f;
       if (wd.wall[0]) {
         sc.position +=
             Position(
@@ -1051,21 +1051,21 @@ private:
                    sc.position.y, sc.position.theta * 180 / PI);
             bz.play(Buzzer::CANCEL);
           }
-          if (!prev_wall[i] && wd.wall[i]) {
-            Position prev = sc.position;
-            Position fix = sc.position.rotate(-origin.theta);
-            fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) *
-                        SEGMENT_WIDTH +
-                    WALL_CUT_OFFSET__X;
-            fix = fix.rotate(origin.theta);
-            if (fabs(prev.rotate(-origin.theta).x -
-                     fix.rotate(-origin.theta).x) < 15.0f)
-              sc.position = fix;
-            printf("WallCut[%d] _X (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
-                   i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
-                   sc.position.y, sc.position.theta * 180 / PI);
-            bz.play(Buzzer::SELECT);
-          }
+          // if (!prev_wall[i] && wd.wall[i]) {
+          //   Position prev = sc.position;
+          //   Position fix = sc.position.rotate(-origin.theta);
+          //   fix.x = floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) *
+          //               SEGMENT_WIDTH +
+          //           WALL_CUT_OFFSET__X;
+          //   fix = fix.rotate(origin.theta);
+          //   if (fabs(prev.rotate(-origin.theta).x -
+          //            fix.rotate(-origin.theta).x) < 15.0f)
+          //     sc.position = fix;
+          //   printf("WallCut[%d] _X (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
+          //          i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
+          //          sc.position.y, sc.position.theta * 180 / PI);
+          //   bz.play(Buzzer::SELECT);
+          // }
           prev_wall[i] = wd.wall[i];
         }
       }
