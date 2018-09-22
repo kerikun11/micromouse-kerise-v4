@@ -3,6 +3,7 @@
 #include "TaskBase.h"
 #include "config.h"
 #include <Arduino.h>
+#include <cmath>
 #include <queue>
 #include <vector>
 
@@ -258,7 +259,8 @@ private:
 
   void wall_attach() {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if (tof.getDistance() < 90) {
+    if (tof.getDistance() < 90 ||
+        (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       while (1) {
         const float gain = 200.0f;

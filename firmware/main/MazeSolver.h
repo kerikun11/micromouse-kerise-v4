@@ -329,7 +329,7 @@ private:
     if (!agent.calcShortestDirs()) {
       if (!searchRun())
         waitForever();
-      // fr.V90Enabled = false;
+      fr.V90Enabled = false;
       if (!fast_run())
         waitForever();
       readyToStartWait();
@@ -343,6 +343,7 @@ private:
       fr.runParameter.accel *= 1.1f;
       fr.runParameter.decel *= 1.1f;
       readyToStartWait();
+      fr.V90Enabled = true;
     }
   }
 };

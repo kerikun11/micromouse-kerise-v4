@@ -335,33 +335,12 @@ void normal_drive() {
     int preset = ui.waitForSelect(16);
     if (preset < 0)
       return;
-    float gains[4] = {0.4, 0.5, 0.6, 0.7};
-    float vmaxs[4] = {300, 450, 600, 900};
-    float accels[4] = {900, 1200, 1800, 2700};
-    fr.runParameter = FastRun::RunParameter(
-        gains[(preset >> 4) & 3], vmaxs[(preset >> 2) & 3], accels[preset & 3],
-        accels[preset & 3]);
-    // switch (preset) {
-    // case 0: fr.runParameter = FastRun::RunParameter(0.4, 300, 1000, 1000);
-    // break; case 1: fr.runParameter = FastRun::RunParameter(0.4, 600, 2000,
-    // 2000); break; case 2: fr.runParameter = FastRun::RunParameter(0.4, 900,
-    // 3000, 3000); break; case 3: fr.runParameter = FastRun::RunParameter(0.4,
-    // 1200, 6000, 6000); break; case 4: fr.runParameter =
-    // FastRun::RunParameter(0.4, 300, 1000, 1000); break; case 5:
-    // fr.runParameter = FastRun::RunParameter(0.4, 600, 2000, 2000); break;
-    // case 6: fr.runParameter = FastRun::RunParameter(0.4, 900, 3000, 3000);
-    // break; case 7: fr.runParameter = FastRun::RunParameter(0.4, 1200, 6000,
-    // 6000); break; case 8: fr.runParameter = FastRun::RunParameter(0.5, 300,
-    // 1000, 1000); break; case 9: fr.runParameter = FastRun::RunParameter(0.5,
-    // 600, 2000, 2000); break; case 10: fr.runParameter =
-    // FastRun::RunParameter(0.5, 900, 3000, 3000); break; case 11:
-    // fr.runParameter = FastRun::RunParameter(0.5, 1200, 6000, 6000); break;
-    // case 12: fr.runParameter = FastRun::RunParameter(0.6, 300, 1000, 1000);
-    // break; case 13: fr.runParameter = FastRun::RunParameter(0.6, 600, 2000,
-    // 2000); break; case 14: fr.runParameter = FastRun::RunParameter(0.6, 900,
-    // 3000, 3000); break; case 15: fr.runParameter = FastRun::RunParameter(0.6,
-    // 1200, 6000, 6000); break;
-    // }
+    float gains[4] = {0.5, 0.6, 0.7, 0.8};
+    float vmaxs[4] = {1200, 1200, 1200, 1200};
+    float accels[4] = {900, 1200, 1500, 1800};
+    fr.runParameter =
+        FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
+                              accels[preset & 3], accels[preset & 3]);
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;

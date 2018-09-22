@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <driver/spi_master.h>
 #include <esp_err.h>
 

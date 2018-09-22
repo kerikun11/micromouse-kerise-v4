@@ -3,6 +3,8 @@
 #
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
 
+CXXFLAGS += -std=c++14
+
 COMPONENT_ADD_LDFLAGS += -lmazelib
 COMPONENT_ADD_INCLUDEDIRS += mazelib/MazeLib/inc
 
