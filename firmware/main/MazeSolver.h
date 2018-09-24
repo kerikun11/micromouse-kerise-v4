@@ -43,7 +43,7 @@ extern FastRun fr;
 #define MAZE_SOLVER_TASK_PRIORITY 2
 #define MAZE_SOLVER_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 0
 #if GOAL == 0
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -148,7 +148,7 @@ private:
     sr.waitForEnd();
     sr.disable();
     backup();
-    imu.calibration(true);
+    // imu.calibration(true);
     sr.set_action(SearchRun::RETURN);
     sr.set_action(SearchRun::GO_HALF);
     sr.enable();

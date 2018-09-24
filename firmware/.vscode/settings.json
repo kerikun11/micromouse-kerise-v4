@@ -3,6 +3,7 @@
         "unordered_map": "cpp",
         "unordered_set": "cpp",
         "chrono": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "sntp.h": "c"
     }
 }
