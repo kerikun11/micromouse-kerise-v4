@@ -4,6 +4,10 @@
 
 ## classes
 
+- Competition
+
+- Machine
+
 - Driver
 	- Buzzer
 	- LED
