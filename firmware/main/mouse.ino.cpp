@@ -14,7 +14,6 @@
 void mainTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
-std::stringstream logstream;
 
 void setup() {
   WiFi.mode(WIFI_OFF);
@@ -166,19 +165,20 @@ void accel_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
-  logstream.flush();
+  lgr.reset(8);
   auto printLog = []() {
-    logstream << "0";
-    logstream << "," << sc.target.trans;
-    logstream << "," << sc.actual.trans;
-    logstream << "," << sc.enconly.trans;
-    logstream << "," << sc.Kp * sc.proportional.trans;
-    logstream << "," << sc.Ki * sc.integral.trans;
-    logstream << "," << sc.Kd * sc.differential.trans;
-    logstream << ","
-              << sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
-                     sc.Kd * sc.differential.trans;
-    logstream << std::endl;
+    float data[8] = {
+        0,
+        sc.target.trans,
+        sc.actual.rot,
+        sc.enconly.trans,
+        sc.Kp * sc.proportional.trans,
+        sc.Ki * sc.integral.trans,
+        sc.Kd * sc.differential.trans,
+        sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
+            sc.Kd * sc.differential.trans,
+    };
+    lgr.push(data);
   };
   imu.calibration();
   fan.drive(0.4);
@@ -192,8 +192,7 @@ void accel_test() {
     sc.set_target(ad.v(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
-    if ((int)(t * 1000) % 2 == 0)
-      printLog();
+    printLog();
   }
   sc.set_target(0, 0);
   bz.play(Buzzer::CANCEL);
@@ -269,29 +268,37 @@ void straight_test() {
 }
 
 void log_test() {
+  int gain = ui.waitForSelect();
+  if (gain < 0)
+    return;
   if (!ui.waitForCover())
     return;
   delay(1000);
-  logstream.flush();
+  lgr.reset(6);
   auto printLog = []() {
-    logstream << enc.position(0) << ",";
-    logstream << enc.position(1) << ",";
-    logstream << imu.gyro.z << ",";
-    logstream << imu.accel.y << ",";
-    logstream << imu.angular_accel << ",";
-    logstream << std::endl;
+    float data[] = {
+        enc.position(0), enc.position(1),   imu.gyro.z,
+        imu.accel.y,     imu.angular_accel, ui.getBatteryVoltage(),
+    };
+    lgr.push(data);
   };
   bz.play(Buzzer::SELECT);
   imu.calibration();
   bz.play(Buzzer::CANCEL);
+  fan.drive(0.33f);
+  delay(500);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (int i = 0; i < 500; i++) {
-    mt.drive(i, i);
+  mt.drive(gain * 50, gain * 50);
+  for (int i = 0; i < 1600; i++) {
     printLog();
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   mt.drive(0, 0);
-  vTaskDelay(500 / portTICK_RATE_MS);
+  for (int i = 0; i < 200; i++) {
+    printLog();
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+  }
+  fan.drive(0);
   mt.free();
 }
 
@@ -460,6 +467,9 @@ void normal_drive() {
       ms.set_goal({Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10)});
       break;
     case 3:
+      ms.set_goal({Vector(3, 3)});
+      break;
+    case 4:
       ms.set_goal({Vector(15, 15)});
       break;
     }
@@ -479,15 +489,15 @@ void normal_drive() {
     break;
     //* テスト
   case 13:
-    // log_test();
+    log_test();
     // trapizoid_test();
-    accel_test();
+    // accel_test();
     // straight_test();
     // petitcon();
     break;
   //* ログの表示
   case 14:
-    std::cout << logstream.str();
+    lgr.print();
     break;
   //* リセット
   case 15:

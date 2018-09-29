@@ -51,14 +51,6 @@ private:
     return writeReg(0x08, data);
   }
   bool writeReg(uint8_t reg, uint8_t data) {
-    // i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    // i2c_master_start(cmd);
-    // i2c_master_write_byte(cmd, (PCA9632_DEV_ID << 1) | I2C_MASTER_WRITE,
-    // true); i2c_master_write_byte(cmd, reg, true); i2c_master_write_byte(cmd,
-    // data, true); i2c_master_stop(cmd); esp_err_t ret =
-    // i2c_master_cmd_begin(i2c_port, cmd, 1 / portTICK_RATE_MS);
-    // i2c_cmd_link_delete(cmd);
-    // return ret == ESP_OK;
     return I2C::writeReg8(i2c_port, PCA9632_DEV_ID, reg, &data, 1);
   }
 };

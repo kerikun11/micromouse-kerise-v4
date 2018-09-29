@@ -1,9 +1,13 @@
 {
-    "files.associations": {
-        "unordered_map": "cpp",
-        "unordered_set": "cpp",
-        "chrono": "cpp",
-        "cmath": "cpp",
-        "sntp.h": "c"
-    }
+	"files.associations": {
+		"unordered_map": "cpp",
+		"unordered_set": "cpp",
+		"chrono": "cpp",
+		"cmath": "cpp",
+		"sntp.h": "c",
+		"array": "cpp",
+		"deque": "cpp",
+		"vector": "cpp",
+		"initializer_list": "cpp"
+	}
 }

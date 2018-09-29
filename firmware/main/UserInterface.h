@@ -138,6 +138,9 @@ public:
   //        }
   //      }
   //    }
+	static float getBatteryVoltage(){
+    return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+	}
   static void batteryLedIndicate(const float voltage) {
     led = 0;
     if (voltage < 4.0f)
@@ -150,7 +153,7 @@ public:
       led = 0x0F;
   }
   static void batteryCheck() {
-    float voltage = 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
     printf("Battery Voltage: %.3f\n", voltage);
     if (voltage < 3.8f) {

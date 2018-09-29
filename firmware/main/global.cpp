@@ -37,6 +37,8 @@ WallDetector wd;
 Emergency em;
 
 /* Conductor */
+#include "Logger.h"
+Logger lgr;
 #include "SearchRun.h"
 SearchRun sr;
 #include "FastRun.h"

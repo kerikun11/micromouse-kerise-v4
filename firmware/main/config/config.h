@@ -45,8 +45,10 @@
 #define MOTOR_R_CTRL2_PIN 19
 
 #define FAN_PIN 23
+// #define FAN_PIN 25
 
 #define BUZZER_PIN 25
+// #define BUZZER_PIN 23
 
 #define LEDC_CH_MOTOR_L_CTRL1 0
 #define LEDC_CH_MOTOR_L_CTRL2 1

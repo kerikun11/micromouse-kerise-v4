@@ -37,6 +37,8 @@ extern WallDetector wd;
 extern Emergency em;
 
 /* Conductor */
+#include "Logger.h"
+extern Logger lgr;
 #include "SearchRun.h"
 extern SearchRun sr;
 #include "FastRun.h"
