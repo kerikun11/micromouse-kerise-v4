@@ -329,11 +329,11 @@ private:
     if (!agent.calcShortestDirs()) {
       if (!searchRun())
         waitForever();
-      fr.V90Enabled = false;
+      //   fr.V90Enabled = false;
       if (!fast_run())
         waitForever();
       readyToStartWait();
-      fr.V90Enabled = true;
+      //   fr.V90Enabled = true;
     }
     while (1) {
       if (!fast_run())

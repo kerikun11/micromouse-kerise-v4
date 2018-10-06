@@ -29,10 +29,10 @@ extern WallDetector wd;
 #define FAST_RUN_PERIOD 1000
 
 #define FAST_END_REMAIN 6
-#define FAST_ST_LOOK_AHEAD(v) (5 + 15 * v / 240)
+#define FAST_ST_LOOK_AHEAD(v) (5 + 10 * v / 240)
 // #define FAST_ST_LOOK_AHEAD(v) 20
-#define FAST_ST_FB_GAIN 30
-#define FAST_CURVE_FB_GAIN 15.0f
+#define FAST_ST_FB_GAIN 10
+#define FAST_CURVE_FB_GAIN 6.0f
 
 class FastTrajectory {
 public:
@@ -324,7 +324,8 @@ private:
 class F135 : public FastTrajectory {
 public:
   F135(bool mirror = false) : mirror(mirror) {}
-  const float velocity = 499.1078324588942f;
+//   const float velocity = 499.1078324588942f;
+  const float velocity = 450.0f;
   const float straight1 = 20.0f;
   const float straight2 = 12.279220607467037f;
 
@@ -1003,18 +1004,14 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.003f;
-      const float satu = 0.2f;
+      const float gain = 0.004f;
+      const float satu = 0.01f;
       if (wd.wall[0]) {
-        sc.position +=
-            Position(0, saturate(wd.distance.side[0] * gain, satu), 0)
-                .rotate(origin.theta);
+        sc.position += Position(0, saturate(wd.distance.side[0] * gain, satu), 0).rotate(origin.theta);
         led_flags |= 8;
       }
       if (wd.wall[1]) {
-        sc.position -=
-            Position(0, saturate(wd.distance.side[1] * gain, satu), 0)
-                .rotate(origin.theta);
+        sc.position -= Position(0, saturate(wd.distance.side[1] * gain, satu), 0).rotate(origin.theta);
         led_flags |= 1;
       }
     }
