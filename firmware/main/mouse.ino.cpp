@@ -267,6 +267,21 @@ void straight_test() {
   sc.disable();
 }
 
+void gyro_test() {
+  if (!ui.waitForCover())
+    return;
+  bz.play(Buzzer::CONFIRM);
+  imu.calibration();
+  bz.play(Buzzer::CANCEL);
+  auto start = imu.angle;
+  if (!ui.waitForCover())
+    return;
+  auto end = imu.angle;
+  float diff = end - start;
+  lgr.reset(1);
+  lgr.push(&diff);
+}
+
 void log_test() {
   int gain = ui.waitForSelect();
   if (gain < 0)
@@ -343,8 +358,8 @@ void normal_drive() {
     if (preset < 0)
       return;
     float gains[4] = {0.5, 0.6, 0.7, 0.8};
-    float vmaxs[4] = {1200, 1200, 1200, 1200};
-    float accels[4] = {900, 1200, 1500, 1800};
+    float vmaxs[4] = {900, 900, 900, 900};
+    float accels[4] = {1200, 2400, 3600, 7200};
     fr.runParameter =
         FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
                               accels[preset & 3], accels[preset & 3]);
@@ -489,11 +504,12 @@ void normal_drive() {
     break;
     //* テスト
   case 13:
-    log_test();
+    // log_test();
     // trapizoid_test();
     // accel_test();
     // straight_test();
     // petitcon();
+    gyro_test();
     break;
   //* ログの表示
   case 14:

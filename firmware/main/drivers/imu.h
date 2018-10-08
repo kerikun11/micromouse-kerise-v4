@@ -192,8 +192,8 @@ public:
   }
   void print() {
     log_d("Rotation angle:\t%f\taccel:\t%f", angle, angular_accel);
-    log_d("Gyro\tx:\t%fy:\t%f\tz:\t%f", gyro.x, gyro.y, gyro.z);
-    log_d("Accel\tx:\t%fy:\t%f\tz:\t%f", accel.x, accel.y, accel.z);
+    log_d("Gyro\tx:\t%f\ty:\t%f\tz:\t%f", gyro.x, gyro.y, gyro.z);
+    log_d("Accel\tx:\t%f\ty:\t%f\tz:\t%f", accel.x, accel.y, accel.z);
   }
   void csv() { printf("%.1f,%.1f,%.1f\n", accel.x, accel.y, accel.z); }
   void calibration(bool waitForEnd = true) {

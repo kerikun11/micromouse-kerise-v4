@@ -29,7 +29,7 @@ extern WallDetector wd;
 #define FAST_RUN_PERIOD 1000
 
 #define FAST_END_REMAIN 6
-#define FAST_ST_LOOK_AHEAD(v) (5 + 10 * v / 240)
+#define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define FAST_ST_LOOK_AHEAD(v) 20
 #define FAST_ST_FB_GAIN 10
 #define FAST_CURVE_FB_GAIN 6.0f
@@ -324,7 +324,7 @@ private:
 class F135 : public FastTrajectory {
 public:
   F135(bool mirror = false) : mirror(mirror) {}
-//   const float velocity = 499.1078324588942f;
+  //   const float velocity = 499.1078324588942f;
   const float velocity = 450.0f;
   const float straight1 = 20.0f;
   const float straight2 = 12.279220607467037f;
@@ -918,7 +918,7 @@ public:
   };
   struct RunParameter {
     RunParameter(const float curve_gain = 0.6, const float max_speed = 900,
-                 const float accel = 1200, const float decel = 1200)
+                 const float accel = 2400, const float decel = 2400)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
     RunParameter(std::array<float, 4> params)
@@ -1004,14 +1004,20 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.004f;
-      const float satu = 0.01f;
+      const float gain = 0.0032f;
+      const float satu = 0.02f;
       if (wd.wall[0]) {
-        sc.position += Position(0, saturate(wd.distance.side[0] * gain, satu), 0).rotate(origin.theta);
+        // sc.position += Position(0, saturate(wd.distance.side[0] * gain,
+        // satu), 0).rotate(origin.theta);
+        sc.position +=
+            Position(0, wd.distance.side[0] * gain, 0).rotate(origin.theta);
         led_flags |= 8;
       }
       if (wd.wall[1]) {
-        sc.position -= Position(0, saturate(wd.distance.side[1] * gain, satu), 0).rotate(origin.theta);
+        // sc.position -= Position(0, saturate(wd.distance.side[1] * gain,
+        // satu), 0) .rotate(origin.theta);
+        sc.position -=
+            Position(0, wd.distance.side[1] * gain, 0).rotate(origin.theta);
         led_flags |= 1;
       }
     }
@@ -1206,6 +1212,7 @@ private:
     printf("Running Path: %s\n", path.c_str());
 
     // キャリブレーション
+    delay(500);
     bz.play(Buzzer::CONFIRM);
     imu.calibration();
     bz.play(Buzzer::CANCEL);
