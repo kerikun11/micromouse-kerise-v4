@@ -279,7 +279,6 @@ private:
       printPosition("wall_attach");
       sc.position.x = 0;     //< 直進方向の補正
       sc.position.theta = 0; //< 回転方向の補正
-      bz.play(Buzzer::SHORT);
     }
 #endif
   }

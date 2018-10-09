@@ -95,12 +95,8 @@ public:
       if (backupCounter < file.size() / sizeof(WallLog)) {
         file.close();
         SPIFFS.remove(MAZE_BACKUP_PATH);
-        bz.play(Buzzer::MAZE_BACKUP);
       }
     }
-    // for (int i = 0; i < 400; i++)
-    // maze.getWallLogs().push_back(WallLog(Vector(0, 0), Dir::North, false));
-    // // for debug
     File file = SPIFFS.open(MAZE_BACKUP_PATH, FILE_APPEND);
     if (!file) {
       log_e("Can't open file!");
@@ -113,7 +109,7 @@ public:
       file.write((uint8_t *)&wl, sizeof(wl));
       backupCounter++;
     }
-    bz.play(Buzzer::MAZE_BACKUP);
+    // bz.play(Buzzer::MAZE_BACKUP);
     return true;
   }
   bool restore() {
@@ -171,6 +167,7 @@ private:
     right = wd.wall[1];
     front = wd.wall[2];
     back = false;
+    bz.play(Buzzer::SHORT);
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override {
@@ -188,18 +185,18 @@ private:
                                 SearchAlgorithm::State newState) override {
     if (newState != prevState &&
         newState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
-      bz.play(Buzzer::CONFIRM);
+      bz.play(Buzzer::SUCCESSFUL);
     }
     if (newState != prevState &&
         newState == SearchAlgorithm::BACKING_TO_START) {
-      bz.play(Buzzer::CONFIRM);
+      bz.play(Buzzer::COMPLETE);
     }
     if (newState != prevState && newState == SearchAlgorithm::IMPOSSIBLE) {
       bz.play(Buzzer::ERROR);
     }
     if (newState != prevState &&
         prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
-      bz.play(Buzzer::CONFIRM);
+      bz.play(Buzzer::COMPLETE);
     }
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
@@ -263,16 +260,19 @@ private:
     if (!calcShortestDirs()) {
       if (!searchRun())
         waitForever();
+      bz.play(Buzzer::COMPLETE);
       //   fr.V90Enabled = false;
       log_i("fastRun()");
       if (!fastRun())
         waitForever();
+      bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       //   fr.V90Enabled = true;
     }
     while (1) {
       if (!fastRun())
         waitForever();
+      bz.play(Buzzer::COMPLETE);
       fr.runParameter.curve_gain *= 1.1f;
       fr.runParameter.max_speed *= 1.21f;
       fr.runParameter.accel *= 1.1f;

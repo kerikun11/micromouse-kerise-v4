@@ -1218,6 +1218,7 @@ private:
     mt.drive(-200, -200);
     delay(200);
     mt.free();
+    imu.angle = 0;
     // 走行開始
     fan.drive(fanDuty);
     delay(500); //< ファンの回転数が一定なるのを待つ
