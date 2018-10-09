@@ -2,6 +2,7 @@
    @file  global.cpp
    @brief グローバル変数の実体を定義するC++ファイル．
 */
+#include "global.h"
 #include "config/config.h"
 
 /* Driver */
@@ -45,3 +46,6 @@ SearchRun sr;
 FastRun fr;
 #include "MazeSolver.h"
 MazeSolver ms;
+#include "MazeRobot.h"
+MazeRobot mr(goals);
+Vectors goals;

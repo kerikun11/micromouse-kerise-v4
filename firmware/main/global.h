@@ -45,3 +45,6 @@ extern SearchRun sr;
 extern FastRun fr;
 #include "MazeSolver.h"
 extern MazeSolver ms;
+#include "MazeRobot.h"
+extern MazeRobot mr;
+extern Vectors goals;

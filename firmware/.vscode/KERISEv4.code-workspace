@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "C:\\Users\\kerikun11\\OneDrive\\Projects\\KERISE\\KERISEv4\\firmware"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"unordered_map": "cpp",
+			"unordered_set": "cpp",
+			"chrono": "cpp",
+			"cmath": "cpp",
+			"sntp.h": "c",
+			"array": "cpp",
+			"deque": "cpp",
+			"vector": "cpp",
+			"initializer_list": "cpp",
+			"sstream": "cpp"
+		}
+	}
+}

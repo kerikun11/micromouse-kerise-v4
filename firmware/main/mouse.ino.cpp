@@ -75,7 +75,7 @@ void timeKeepTask(void *arg) {
   while (millis() < searchig_time_ms)
     delay(1000);
   bz.play(Buzzer::LOW_BATTERY);
-  ms.forceBackToStart();
+  mr.forceBackToStart();
   while (1)
     delay(1000);
 }
@@ -337,20 +337,20 @@ void normal_drive() {
   switch (mode) {
   //* 走行
   case 0:
-    if (!ms.isComplete())
+    if (!mr.isComplete())
       bz.play(Buzzer::CANCEL);
     bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
     led = 9;
-    ms.start();
+    mr.start();
     btn.flags = 0;
-    while (ms.isRunning() && !btn.pressed)
+    while (mr.isRunning() && !btn.pressed)
       delay(100);
     delay(1000);
     bz.play(Buzzer::CANCEL);
     btn.flags = 0;
-    ms.terminate();
+    mr.terminate();
     break;
   //* 走行パラメータの選択 & 走行
   case 1: {
@@ -422,10 +422,17 @@ void normal_drive() {
   case 5:
     position_test();
     break;
+  //* 宴会芸
+  case 6:
+    if (ui.waitForCover()) {
+      mr.forceGoingToGoal();
+      mr.positionIdentifyRun(Dir::North);
+    }
+    break;
   //* 迷路データの復元
   case 7:
     bz.play(Buzzer::MAZE_RESTORE);
-    if (!ms.restore()) {
+    if (!mr.restore()) {
       bz.play(Buzzer::ERROR);
       return;
     }
@@ -472,20 +479,20 @@ void normal_drive() {
     case 0: {
       int x = ui.waitForSelect(16);
       int y = ui.waitForSelect(16);
-      ms.set_goal({Vector(x, y)});
+      mr.set_goal({Vector(x, y)});
       break;
     }
     case 1:
-      ms.set_goal({Vector(1, 0)});
+      mr.set_goal({Vector(1, 0)});
       break;
     case 2:
-      ms.set_goal({Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10)});
+      mr.set_goal({Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10)});
       break;
     case 3:
-      ms.set_goal({Vector(3, 3)});
+      mr.set_goal({Vector(3, 3)});
       break;
     case 4:
-      ms.set_goal({Vector(15, 15)});
+      mr.set_goal({Vector(15, 15)});
       break;
     }
     bz.play(Buzzer::SUCCESSFUL);
@@ -517,7 +524,7 @@ void normal_drive() {
     break;
   //* リセット
   case 15:
-    ms.print();
+    mr.print();
     ESP.restart();
     break;
   }

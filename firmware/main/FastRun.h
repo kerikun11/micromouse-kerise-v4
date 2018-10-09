@@ -942,7 +942,7 @@ public:
   bool wallAvoid45Flag = true;
   bool wallCutFlag = true;
   bool V90Enabled = true;
-  float fanDuty = 0.1f;
+  float fanDuty = 0.2f;
 
   void enable() {
     printf("FastRun Enabled\n");
@@ -1005,17 +1005,12 @@ private:
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
       const float gain = 0.0032f;
-      const float satu = 0.02f;
       if (wd.wall[0]) {
-        // sc.position += Position(0, saturate(wd.distance.side[0] * gain,
-        // satu), 0).rotate(origin.theta);
         sc.position +=
             Position(0, wd.distance.side[0] * gain, 0).rotate(origin.theta);
         led_flags |= 8;
       }
       if (wd.wall[1]) {
-        // sc.position -= Position(0, saturate(wd.distance.side[1] * gain,
-        // satu), 0) .rotate(origin.theta);
         sc.position -=
             Position(0, wd.distance.side[1] * gain, 0).rotate(origin.theta);
         led_flags |= 1;

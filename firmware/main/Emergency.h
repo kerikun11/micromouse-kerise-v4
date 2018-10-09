@@ -15,6 +15,8 @@ extern Fan fan;
 extern IMU imu;
 #include "MazeSolver.h"
 extern MazeSolver ms;
+#include "MazeRobot.h"
+extern MazeRobot mr;
 
 #define EMERGENCY_TASK_PRIORITY 4
 #define EMERGENCY_STACK_SIZE 2048
@@ -39,7 +41,7 @@ private:
         mt.emergency_stop();
         fan.drive(0);
         bz.play(Buzzer::EMERGENCY);
-        ms.terminate();
+        mr.terminate();
         delay(500);
         mt.emergency_release();
         xLastWakeTime = xTaskGetTickCount();

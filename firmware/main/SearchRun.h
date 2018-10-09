@@ -42,7 +42,7 @@ extern WallDetector wd;
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define SEARCH_ST_LOOK_AHEAD(v) 20
 #define SEARCH_ST_FB_GAIN 30
-#define SEARCH_CURVE_FB_GAIN 9.0f
+#define SEARCH_CURVE_FB_GAIN 12.0f
 
 #define ahead_length 2
 
@@ -50,8 +50,8 @@ extern WallDetector wd;
 #define SEARCH_RUN_STACK_SIZE 8192
 #define SEARCH_RUN_PERIOD 1000
 
-#define SEARCH_RUN_VELOCITY 210.0f
-#define SEARCH_RUN_V_CURVE 210.0f
+#define SEARCH_RUN_VELOCITY 240.0f
+#define SEARCH_RUN_V_CURVE 240.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchTrajectory {
@@ -176,7 +176,7 @@ private:
         {43.9955596346, 41.3372593492, 1.5642656230},
         {43.9993074321, 42.3372513328, 1.5691436188},
         {43.9999823853, 43.3372510052, 1.5706894826},
-        {44.0000000000, 43.9999999950, 1.5707963268},
+        {44.0000000000, 44.0000000000, 1.5707963268},
     };
     Position ret;
     if (index < 0) {
@@ -196,7 +196,7 @@ private:
 
 class SearchRun : TaskBase {
 public:
-  SearchRun() {}
+  SearchRun() { wait = xSemaphoreCreateBinary(); }
   virtual ~SearchRun() {}
   enum ACTION {
     START_STEP,
@@ -242,11 +242,7 @@ public:
     q.push(operation);
   }
   int actions() const { return q.size(); }
-  void waitForEnd() const {
-    while (actions()) {
-      delay(1);
-    }
-  }
+  void waitForEnd() const { xSemaphoreTake(wait, portMAX_DELAY); }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%.1f, %.1f, %.1f)\n", name, sc.position.x, sc.position.y,
            sc.position.theta * 180 / PI);
@@ -255,6 +251,7 @@ public:
 private:
   Position origin;
   std::queue<struct Operation> q;
+  SemaphoreHandle_t wait;
   bool prev_wall[2];
 
   void wall_attach() {
@@ -396,6 +393,8 @@ private:
       if (v_end < 1.0f && cur.x > distance - 1.0f)
         break;
       float extra = distance - cur.x - SEARCH_END_REMAIN;
+      if (tof.getDistance() < SEGMENT_WIDTH && tof.getDistance() < extra)
+        stop();
       float velocity_a = v_start + (v_max - v_start) * 6.0f *
                                        (-1.0f / 3 * pow(ms / 1000.0f / T, 3) +
                                         1.0f / 2 * pow(ms / 1000.0f / T, 2));
@@ -444,6 +443,8 @@ private:
     sc.disable();
     mt.drive(-100, -100);
     delay(200);
+    mt.drive(-200, -200);
+    delay(200);
     sc.enable(true);
   }
   void uturn() {
@@ -459,6 +460,17 @@ private:
       turn(M_PI / 2);
     }
   }
+  void stop() {
+    bz.play(Buzzer::EMERGENCY);
+    float v = sc.actual.trans;
+    while (v > 0) {
+      sc.set_target(v, 0);
+      v -= 9;
+      delay(1);
+    }
+    sc.disable();
+    vTaskDelay(portMAX_DELAY);
+  }
   virtual void task() {
     const float velocity = SEARCH_RUN_VELOCITY;
     const float v_max = SEARCH_RUN_V_MAX;
@@ -466,8 +478,9 @@ private:
     sc.enable();
     while (1) {
       //** SearchActionがキューされるまで直進で待つ
+      if (q.empty())
+        xSemaphoreGive(wait);
       {
-        S90 tr;
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (q.empty()) {
           vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -480,6 +493,14 @@ private:
         }
       }
       struct Operation operation = q.front();
+      q.pop();
+      while (!q.empty()) {
+        auto next = q.front();
+        if (operation.action != next.action)
+          break;
+        operation.num += next.num;
+        q.pop();
+      }
       enum ACTION action = operation.action;
       int num = operation.num;
       printf("Action: %d %s\n", num, action_string(action));
@@ -487,6 +508,7 @@ private:
       switch (action) {
       case START_STEP:
         sc.position.reset();
+        imu.angle = 0;
         straight_x(SEGMENT_WIDTH - MACHINE_TAIL_LENGTH - WALL_THICKNESS / 2 +
                        ahead_length,
                    velocity, velocity);
@@ -499,10 +521,8 @@ private:
         turn(M_PI / 2);
         put_back();
         mt.free();
-        while (!q.empty())
-          q.pop();
-        while (1)
-          delay(1000);
+        xSemaphoreGive(wait);
+        vTaskDelay(portMAX_DELAY);
       case GO_STRAIGHT:
         straight_x(SEGMENT_WIDTH * num, v_max, velocity);
         break;
@@ -511,6 +531,8 @@ private:
         break;
       case TURN_LEFT_90:
         for (int i = 0; i < num; i++) {
+          if (wd.wall[0])
+            stop();
           S90 tr(false);
           wall_calib(velocity);
           straight_x(tr.straight - ahead_length, velocity, tr.velocity);
@@ -520,6 +542,8 @@ private:
         break;
       case TURN_RIGHT_90:
         for (int i = 0; i < num; i++) {
+          if (wd.wall[1])
+            stop();
           S90 tr(true);
           wall_calib(velocity);
           straight_x(tr.straight - ahead_length, velocity, tr.velocity);
@@ -539,16 +563,12 @@ private:
         straight_x(SEGMENT_WIDTH / 2 - ahead_length, velocity, 0);
         wall_attach();
         sc.disable();
-        while (!q.empty())
-          q.pop();
-        while (1)
-          delay(1000);
+        xSemaphoreGive(wait);
+        vTaskDelay(portMAX_DELAY);
         break;
       }
-      q.pop();
       printPosition("End");
     }
-    while (1)
-      delay(1000);
+    vTaskDelay(portMAX_DELAY);
   }
 };
