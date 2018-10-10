@@ -69,7 +69,7 @@ extern FastRun fr;
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
-  MazeRobot(const Vectors &goal) : RobotBase(goal) { replaceGoals(MAZE_GOAL); }
+  MazeRobot() { replaceGoals(MAZE_GOAL); }
 
   void start(bool isForceSearch = false) {
     this->isForceSearch = isForceSearch;
@@ -80,7 +80,6 @@ public:
   void terminate() {
     deleteTask();
     sr.disable();
-    fr.disable();
     isRunningFlag = false;
   }
   void print() {
@@ -228,11 +227,7 @@ private:
       }
       d = nextDir;
     }
-    // start drive
-    fr.enable();
-    fr.waitForEnd();
-    fr.disable();
-    // end drive
+    fr.run();
 
     // 回収されるか待つ
     readyToStartWait();

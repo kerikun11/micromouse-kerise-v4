@@ -44,8 +44,5 @@ Logger lgr;
 SearchRun sr;
 #include "FastRun.h"
 FastRun fr;
-#include "MazeSolver.h"
-MazeSolver ms;
 #include "MazeRobot.h"
-MazeRobot mr(goals);
-Vectors goals;
+MazeRobot mr;

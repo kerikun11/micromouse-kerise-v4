@@ -13,8 +13,6 @@ extern Motor mt;
 extern Fan fan;
 #include "imu.h"
 extern IMU imu;
-#include "MazeSolver.h"
-extern MazeSolver ms;
 #include "MazeRobot.h"
 extern MazeRobot mr;
 
@@ -40,8 +38,8 @@ private:
           fabs(imu.gyro.z) > 1800 / 180.0f * PI) {
         mt.emergency_stop();
         fan.drive(0);
-        bz.play(Buzzer::EMERGENCY);
         mr.terminate();
+        bz.play(Buzzer::EMERGENCY);
         delay(500);
         mt.emergency_release();
         xLastWakeTime = xTaskGetTickCount();

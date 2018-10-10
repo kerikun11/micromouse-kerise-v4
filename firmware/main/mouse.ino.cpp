@@ -321,15 +321,10 @@ void petitcon() {
   if (!ui.waitForCover())
     return;
   delay(500);
-  //      fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrlrlrlrlrsssssssssssssssslrlrlrlrlsssssssslrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
   fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
               "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
               "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
-  //      fr.set_path("ssssssssrlrrlrssssssss");
-  imu.calibration();
-  fr.enable();
-  fr.waitForEnd();
-  fr.disable();
+  fr.run();
 }
 
 void normal_drive() {
@@ -386,7 +381,7 @@ void normal_drive() {
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
-    const float accel = 1000.0f * value;
+    const float accel = 600.0f * value;
     fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel, accel);
   }
     bz.play(Buzzer::SUCCESSFUL);
@@ -422,7 +417,7 @@ void normal_drive() {
   case 5:
     position_test();
     break;
-  //* 宴会芸
+  //* 自己位置同定
   case 6:
     if (ui.waitForCover()) {
       mr.forceGoingToGoal();

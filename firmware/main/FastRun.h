@@ -3,9 +3,10 @@
 #include "AccelDesigner.h"
 #include "TaskBase.h"
 #include "config.h"
-#include <Arduino.h>
+#include <algorithm> //< std::replace
 #include <cmath>
 #include <queue>
+#include <string>
 #include <vector>
 
 #include "motor.h"
@@ -891,7 +892,7 @@ private:
   }
 };
 
-class FastRun : TaskBase {
+class FastRun {
 public:
   FastRun() {}
   enum FAST_ACTION : char {
@@ -944,28 +945,10 @@ public:
   bool V90Enabled = true;
   float fanDuty = 0.2f;
 
-  void enable() {
-    printf("FastRun Enabled\n");
-    deleteTask();
-    createTask("FastRun", FAST_RUN_TASK_PRIORITY, FAST_RUN_STACK_SIZE);
-  }
-  void disable() {
-    deleteTask();
-    sc.disable();
-    path = "";
-    printf("FastRun Disabled\n");
-  }
+  void set_path(std::string path) { this->path = path; }
   void set_action(FAST_ACTION action, const int num = 1) {
     for (int i = 0; i < num; i++)
       path += (char)action;
-  }
-  void set_path(String path) { this->path = path; }
-  String get_last_path() { return last_path; }
-  int actions() const { return path.length(); }
-  void waitForEnd() const {
-    while (actions()) {
-      delay(1);
-    }
   }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%06.1f, %06.1f, %06.3f)\t", name, getRelativePosition().x,
@@ -987,7 +970,7 @@ public:
 
 private:
   Position origin;
-  String path, last_path;
+  std::string path;
   bool prev_wall[2];
 
   static auto round2(auto value, auto div) {
@@ -1161,59 +1144,76 @@ private:
     updateOrigin(tr.getEndPosition());
     printPosition("Trace End");
   }
-  virtual void task() {
+  std::string replace(std::string &src, std::string from, std::string to) {
+    if (from.empty())
+      return src;
+    auto pos = src.find(from);
+    auto toLen = to.length();
+    while ((pos = src.find(from, pos)) != std::string::npos) {
+      src.replace(pos, from.length(), to);
+      pos += toLen;
+    }
+    return src;
+  }
+  std::string pathConvertSearchToFast(std::string src, bool diag) {
     // スタートとゴールの半区画分を追加
-    if (path[0] != 'x' && path[0] != 'c' && path[0] != 'z') {
-      path = "x" + path + "x";
+    if (src[0] != 'x' && src[0] != 'c' && src[0] != 'z') {
+      src = "x" + src + "x";
     }
-    printf("Input Path: %s\n", path.c_str());
-    if (V90Enabled) {
-      path.replace("s", "xx");
-      path.replace("l", "LL");
-      path.replace("r", "RR");
+    // 最短走行用にパターンを置換
+    printf("Input Path: %s\n", src.c_str());
+    if (diag) {
+      replace(src, "s", "xx");
+      replace(src, "l", "LL");
+      replace(src, "r", "RR");
 
-      path.replace("RLLLLR", "RLpLR");
-      path.replace("LRRRRL", "LRPRL");
+      replace(src, "RLLLLR", "RLpLR");
+      replace(src, "LRRRRL", "LRPRL");
 
-      path.replace("xLLR", "zLR");
-      path.replace("xRRL", "cRL");
-      path.replace("LRRx", "LRC");
-      path.replace("RLLx", "RLZ");
+      replace(src, "xLLR", "zLR");
+      replace(src, "xRRL", "cRL");
+      replace(src, "LRRx", "LRC");
+      replace(src, "RLLx", "RLZ");
 
-      path.replace("xLLLLR", "aLR");
-      path.replace("xRRRRL", "dRL");
-      path.replace("RLLLLx", "RLA");
-      path.replace("LRRRRx", "LRD");
+      replace(src, "xLLLLR", "aLR");
+      replace(src, "xRRRRL", "dRL");
+      replace(src, "RLLLLx", "RLA");
+      replace(src, "LRRRRx", "LRD");
 
-      path.replace("xLLLLx", "u");
-      path.replace("xRRRRx", "U");
+      replace(src, "xLLLLx", "u");
+      replace(src, "xRRRRx", "U");
 
-      path.replace("RLLR", "RLwLR");
-      path.replace("LRRL", "LRWRL");
+      replace(src, "RLLR", "RLwLR");
+      replace(src, "LRRL", "LRWRL");
 
-      path.replace("RL", "");
-      path.replace("LR", "");
-      path.replace("xRRx", "r");
-      path.replace("xLLx", "l");
+      replace(src, "RL", "");
+      replace(src, "LR", "");
+      replace(src, "xRRx", "r");
+      replace(src, "xLLx", "l");
     } else {
-      path.replace("s", "xx");
+      replace(src, "s", "xx");
 
-      path.replace("xllx", "u");
-      path.replace("xrrx", "U");
+      replace(src, "xllx", "u");
+      replace(src, "xrrx", "U");
 
-      path.replace("l", "q");
-      path.replace("r", "Q");
+      replace(src, "l", "q");
+      replace(src, "r", "Q");
     }
-    printf("Running Path: %s\n", path.c_str());
+    printf("Running Path: %s\n", src.c_str());
+    return src;
+  }
 
+public:
+  bool run() {
+    // 最短走行用にパターンを置換
+    path = pathConvertSearchToFast(path, V90Enabled);
+    const float v_max = runParameter.max_speed;
+    const float curve_gain = runParameter.curve_gain;
     // キャリブレーション
     delay(500);
     bz.play(Buzzer::CONFIRM);
     imu.calibration();
     bz.play(Buzzer::CANCEL);
-
-    const float v_max = runParameter.max_speed;
-    const float curve_gain = runParameter.curve_gain;
     // 壁に背中を確実につける
     mt.drive(-200, -200);
     delay(200);
@@ -1222,13 +1222,11 @@ private:
     // 走行開始
     fan.drive(fanDuty);
     delay(500); //< ファンの回転数が一定なるのを待つ
-    //      lg.start();
     setPosition();
     sc.enable(false); //< 速度コントローラ始動
     float straight =
         SEGMENT_WIDTH / 2 - MACHINE_TAIL_LENGTH - WALL_THICKNESS / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {
-      //        printPosition(String(path[path_index]).c_str());
       printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
       switch (path[path_index]) {
       case FAST_TURN_LEFT_45: {
@@ -1413,13 +1411,9 @@ private:
     sc.set_target(0, 0);
     fan.drive(0);
     delay(100);
-    //      lg.end();
     sc.disable();
     bz.play(Buzzer::COMPLETE);
-    last_path = path;
     path = "";
-    while (1) {
-      delay(1000);
-    }
+    return true;
   }
 };
