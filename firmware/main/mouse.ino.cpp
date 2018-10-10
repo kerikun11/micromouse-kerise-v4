@@ -4,12 +4,13 @@
  * @date    2017.10.25
  */
 
-#include "global.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <cstdio>
 #include <iostream>
 #include <sstream>
+
+#include "global.h"
 
 void mainTask(void *arg);
 void printTask(void *arg);
@@ -44,11 +45,11 @@ void setup() {
     bz.play(Buzzer::ERROR);
   if (!wd.begin())
     bz.play(Buzzer::ERROR);
-  em.begin();
+  //   em.begin();
 
-  xTaskCreate(printTask, "print", 4096, NULL, 1, NULL);
-  // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 1, NULL);
-  xTaskCreate(mainTask, "main", 4096, NULL, 1, NULL);
+  xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
+  // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
+  xTaskCreate(mainTask, "main", 4096, NULL, 2, NULL);
 }
 
 void loop() { delay(1000); }
@@ -324,7 +325,9 @@ void petitcon() {
   fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
               "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
               "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
-  fr.run();
+  fr.start();
+  while (fr.isRunning())
+    delay(1000);
 }
 
 void normal_drive() {
@@ -332,19 +335,17 @@ void normal_drive() {
   switch (mode) {
   //* 走行
   case 0:
-    if (!mr.isComplete())
-      bz.play(Buzzer::CANCEL);
+    if (mr.isComplete() && !mr.calcShortestDirs()) {
+      bz.play(Buzzer::ERROR);
+      return;
+    }
     bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
     led = 9;
     mr.start();
-    btn.flags = 0;
-    while (mr.isRunning() && !btn.pressed)
+    while (mr.isRunning())
       delay(100);
-    delay(1000);
-    bz.play(Buzzer::CANCEL);
-    btn.flags = 0;
     mr.terminate();
     break;
   //* 走行パラメータの選択 & 走行
@@ -420,8 +421,9 @@ void normal_drive() {
   //* 自己位置同定
   case 6:
     if (ui.waitForCover()) {
+      Dir d = sr.positionRecovery();
       mr.forceGoingToGoal();
-      mr.positionIdentifyRun(Dir::North);
+      mr.positionIdentifyRun(d);
     }
     break;
   //* 迷路データの復元

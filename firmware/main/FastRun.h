@@ -892,7 +892,7 @@ private:
   }
 };
 
-class FastRun {
+class FastRun : TaskBase {
 public:
   FastRun() {}
   enum FAST_ACTION : char {
@@ -945,6 +945,14 @@ public:
   bool V90Enabled = true;
   float fanDuty = 0.2f;
 
+  void start() {
+    createTask("FastRun", FAST_RUN_TASK_PRIORITY, FAST_RUN_STACK_SIZE);
+  }
+  void terminate() {
+    deleteTask();
+    sc.disable();
+  }
+  bool isRunning() { return path != ""; }
   void set_path(std::string path) { this->path = path; }
   void set_action(FAST_ACTION action, const int num = 1) {
     for (int i = 0; i < num; i++)
@@ -1002,7 +1010,7 @@ private:
     // 45 [deg] の倍数
     if (diag && wallAvoid45Flag &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-      const float shift = 0.1f;
+      const float shift = 0.2f;
       const float threashold = -30;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, shift, 0).rotate(origin.theta);
@@ -1204,7 +1212,7 @@ private:
   }
 
 public:
-  bool run() {
+  void task() override {
     // 最短走行用にパターンを置換
     path = pathConvertSearchToFast(path, V90Enabled);
     const float v_max = runParameter.max_speed;
@@ -1414,6 +1422,6 @@ public:
     sc.disable();
     bz.play(Buzzer::COMPLETE);
     path = "";
-    return true;
+    vTaskDelay(portMAX_DELAY);
   }
 };

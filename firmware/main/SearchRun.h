@@ -2,7 +2,6 @@
 
 #include "TaskBase.h"
 #include "config.h"
-#include <Arduino.h>
 #include <cmath>
 #include <queue>
 #include <vector>
@@ -247,6 +246,25 @@ public:
     printf("%s\tRel:(%.1f, %.1f, %.1f)\n", name, sc.position.x, sc.position.y,
            sc.position.theta * 180 / PI);
   }
+  Dir positionRecovery() {
+    sc.enable();
+    turn(imu.angle - std::round(imu.angle / (PI / 2)) * PI / 2);
+    wall_attach(true);
+    turn(PI / 2);
+    wall_attach(true);
+    turn(PI / 2);
+    wall_attach(true);
+    float angle = imu.angle + PI / 2; //< 東が0なのでPI/2を足す
+    Dir d = static_cast<int>(std::round(angle / (PI / 2))) & 3;
+    while (1) {
+      if (!wd.wall[2])
+        break;
+      turn(-PI / 2);
+      d = Dir(d - 1);
+    }
+    sc.disable();
+    return d;
+  }
 
 private:
   Position origin;
@@ -254,12 +272,12 @@ private:
   SemaphoreHandle_t wait;
   bool prev_wall[2];
 
-  void wall_attach() {
+  void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if (tof.getDistance() < 90 ||
+    if (force || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
-      while (1) {
+      for (int i = 0; i < 4000; i++) {
         const float gain = 200.0f;
         const float satu = 50.0f;
         const float end = 0.5f;

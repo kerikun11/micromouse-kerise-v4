@@ -44,7 +44,7 @@ extern FastRun fr;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 0
 #if GOAL == 0
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -227,7 +227,19 @@ private:
       }
       d = nextDir;
     }
-    fr.run();
+    // FastRun
+    fr.start();
+    while (fr.isRunning()) {
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        fr.terminate();
+        delay(1000);
+        mt.emergency_release();
+        return false;
+      }
+      delay(100);
+    }
+    fr.terminate();
 
     // 回収されるか待つ
     readyToStartWait();
@@ -252,27 +264,29 @@ private:
       delay(1000);
   }
   void task() override {
-    if (!calcShortestDirs()) {
+    if (isForceSearch || !calcShortestDirs()) {
+      getMaze().resetLastWall(5);
       if (!searchRun())
         waitForever();
       bz.play(Buzzer::COMPLETE);
-      //   fr.V90Enabled = false;
-      log_i("fastRun()");
-      if (!fastRun())
-        waitForever();
-      bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      //   fr.V90Enabled = true;
     }
     while (1) {
-      if (!fastRun())
-        waitForever();
+      if (!fastRun()) {
+        readyToStartWait();
+        Dir d = sr.positionRecovery();
+        // forceGoingToGoal();
+        if (!positionIdentifyRun(d)) {
+          bz.play(Buzzer::ERROR);
+          waitForever();
+        }
+      }
       bz.play(Buzzer::COMPLETE);
+      readyToStartWait();
       fr.runParameter.curve_gain *= 1.1f;
       fr.runParameter.max_speed *= 1.21f;
       fr.runParameter.accel *= 1.1f;
       fr.runParameter.decel *= 1.1f;
-      readyToStartWait();
       fr.V90Enabled = true;
     }
   }
