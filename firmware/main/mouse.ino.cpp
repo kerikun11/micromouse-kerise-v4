@@ -477,7 +477,7 @@ void normal_drive() {
   case 11: {
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
-    int value = ui.waitForSelect(4);
+    int value = ui.waitForSelect(5);
     if (value < 0)
       return;
     switch (value) {

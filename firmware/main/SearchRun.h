@@ -347,8 +347,9 @@ private:
       float x = sc.position.x;
       if (value > 60 && value < 120)
         sc.position.x = 90 - value - ahead_length;
-      if (sc.position.x > 0.0f)
-        sc.position.x = 0.0f;
+      //   if (sc.position.x > 5.0f)
+      //     sc.position.x = 5.0f;
+      sc.position.x = std::min(sc.position.x, 0.0f);
       printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
     }
 #endif
@@ -487,6 +488,8 @@ private:
       delay(1);
     }
     sc.disable();
+    // mt.emergency_stop();
+    isRunningFlag = false;
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
