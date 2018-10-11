@@ -81,6 +81,7 @@ public:
   void terminate() {
     deleteTask();
     sr.disable();
+    fr.terminate();
     isRunningFlag = false;
   }
   void print() {
@@ -283,8 +284,10 @@ private:
       Dir d = sr.positionRecovery();
       readyToStartWait();
       forceGoingToGoal();
-      if (!positionIdentifyRun(d))
+      if (!positionIdentifyRun(d)) {
+        bz.play(Buzzer::ERROR);
         waitForever();
+      }
       bz.play(Buzzer::COMPLETE);
     }
     // 探索
@@ -294,8 +297,8 @@ private:
         waitForever();
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
+      fr.V90Enabled = false;
     }
-    fr.V90Enabled = false;
     // 最短
     while (1) {
       if (!fastRun())

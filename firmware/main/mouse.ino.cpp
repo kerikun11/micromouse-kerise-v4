@@ -348,7 +348,7 @@ void normal_drive() {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
         mr.terminate();
-        delay(200);
+        delay(1000);
         mt.emergency_release();
         mr.start(false, true);
       }
