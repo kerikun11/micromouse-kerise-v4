@@ -344,8 +344,16 @@ void normal_drive() {
       return;
     led = 9;
     mr.start();
-    while (mr.isRunning())
+    while (mr.isRunning()) {
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        mr.terminate();
+        delay(200);
+        mt.emergency_release();
+        mr.start(false, true);
+      }
       delay(100);
+    }
     mr.terminate();
     break;
   //* 走行パラメータの選択 & 走行

@@ -195,7 +195,7 @@ private:
 
 class SearchRun : TaskBase {
 public:
-  SearchRun() { wait = xSemaphoreCreateBinary(); }
+  SearchRun() {}
   virtual ~SearchRun() {}
   enum ACTION {
     START_STEP,
@@ -223,10 +223,8 @@ public:
     printf("SearchRun Enabled\n");
     deleteTask();
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
-    //      lg.start();
   }
   void disable() {
-    //      lg.end();
     deleteTask();
     sc.disable();
     while (q.size()) {
@@ -239,16 +237,18 @@ public:
     operation.action = action;
     operation.num = num;
     q.push(operation);
+    isRunningFlag = true;
   }
-  int actions() const { return q.size(); }
-  void waitForEnd() const { xSemaphoreTake(wait, portMAX_DELAY); }
+  bool isRunning() { return isRunningFlag; }
+  //   int actions() const { return q.size(); }
+  //   void waitForEnd() const { xSemaphoreTake(wait, portMAX_DELAY); }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%.1f, %.1f, %.1f)\n", name, sc.position.x, sc.position.y,
            sc.position.theta * 180 / PI);
   }
   Dir positionRecovery() {
     sc.enable();
-    turn(imu.angle - std::round(imu.angle / (PI / 2)) * PI / 2);
+    // turn(imu.angle - std::round(imu.angle / (PI / 2)) * PI / 2);
     wall_attach(true);
     turn(PI / 2);
     wall_attach(true);
@@ -260,6 +260,7 @@ public:
       if (!wd.wall[2])
         break;
       turn(-PI / 2);
+      wall_attach();
       d = Dir(d - 1);
     }
     sc.disable();
@@ -269,7 +270,7 @@ public:
 private:
   Position origin;
   std::queue<struct Operation> q;
-  SemaphoreHandle_t wait;
+  volatile bool isRunningFlag = false;
   bool prev_wall[2];
 
   void wall_attach(bool force = false) {
@@ -277,7 +278,7 @@ private:
     if (force || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
-      for (int i = 0; i < 4000; i++) {
+      for (int i = 0; i < 6000; i++) {
         const float gain = 200.0f;
         const float satu = 50.0f;
         const float end = 0.5f;
@@ -488,7 +489,7 @@ private:
     sc.disable();
     vTaskDelay(portMAX_DELAY);
   }
-  virtual void task() {
+  void task() override {
     const float velocity = SEARCH_RUN_VELOCITY;
     const float v_max = SEARCH_RUN_V_MAX;
     // スタート
@@ -496,7 +497,7 @@ private:
     while (1) {
       //** SearchActionがキューされるまで直進で待つ
       if (q.empty())
-        xSemaphoreGive(wait);
+        isRunningFlag = false;
       {
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (q.empty()) {
@@ -538,7 +539,7 @@ private:
         turn(M_PI / 2);
         put_back();
         mt.free();
-        xSemaphoreGive(wait);
+        isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
       case GO_STRAIGHT:
         straight_x(SEGMENT_WIDTH * num, v_max, velocity);
@@ -580,7 +581,7 @@ private:
         straight_x(SEGMENT_WIDTH / 2 - ahead_length, velocity, 0);
         wall_attach();
         sc.disable();
-        xSemaphoreGive(wait);
+        isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
         break;
       }

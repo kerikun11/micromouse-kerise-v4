@@ -951,6 +951,7 @@ public:
   void terminate() {
     deleteTask();
     sc.disable();
+    path = "";
   }
   bool isRunning() { return path != ""; }
   void set_path(std::string path) { this->path = path; }

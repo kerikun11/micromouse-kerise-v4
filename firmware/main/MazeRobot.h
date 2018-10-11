@@ -71,8 +71,9 @@ class MazeRobot : public RobotBase, private TaskBase {
 public:
   MazeRobot() { replaceGoals(MAZE_GOAL); }
 
-  void start(bool isForceSearch = false) {
+  void start(bool isForceSearch = false, bool isPositionIdentifying = false) {
     this->isForceSearch = isForceSearch;
+    this->isPositionIdentifying = isPositionIdentifying;
     terminate();
     isRunningFlag = true;
     createTask("MazeRobot", MAZE_ROBOT_TASK_PRIORITY, MAZE_ROBOT_STACK_SIZE);
@@ -134,9 +135,21 @@ public:
 private:
   bool isForceSearch = false;
   bool isRunningFlag = false;
+  bool isPositionIdentifying = false;
   int backupCounter = 0;
 
-  void waitForEndAction() override { sr.waitForEnd(); }
+  void waitForEndAction() override {
+    while (sr.isRunning()) {
+      //   if (mt.isEmergency()) {
+      //     bz.play(Buzzer::EMERGENCY);
+      //     sr.disable();
+      //     delay(1000);
+      //     mt.emergency_release();
+      //     return false;
+      //   }
+      delay(1);
+    }
+  }
   void queueAction(const Action action) override {
     switch (action) {
     case RobotBase::START_STEP:
@@ -230,13 +243,13 @@ private:
     // FastRun
     fr.start();
     while (fr.isRunning()) {
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
-        fr.terminate();
-        delay(1000);
-        mt.emergency_release();
-        return false;
-      }
+      //   if (mt.isEmergency()) {
+      //     bz.play(Buzzer::EMERGENCY);
+      //     fr.terminate();
+      //     delay(1000);
+      //     mt.emergency_release();
+      //     return false;
+      //   }
       delay(100);
     }
     fr.terminate();
@@ -248,6 +261,7 @@ private:
     return endFastRunBackingToStartRun();
   }
   void readyToStartWait(const int wait_ms = 2000) {
+    led = 0xf;
     delay(200);
     for (int ms = 0; ms < wait_ms; ms++) {
       delay(1);
@@ -260,10 +274,20 @@ private:
   void waitForever() {
     delay(100);
     isRunningFlag = false;
-    while (1)
-      delay(1000);
+    vTaskDelay(portMAX_DELAY);
   }
   void task() override {
+    // 自己位置同定
+    if (isPositionIdentifying) {
+      isPositionIdentifying = false;
+      Dir d = sr.positionRecovery();
+      readyToStartWait();
+      forceGoingToGoal();
+      if (!positionIdentifyRun(d))
+        waitForever();
+      bz.play(Buzzer::COMPLETE);
+    }
+    // 探索
     if (isForceSearch || !calcShortestDirs()) {
       getMaze().resetLastWall(5);
       if (!searchRun())
@@ -271,16 +295,11 @@ private:
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
     }
+    fr.V90Enabled = false;
+    // 最短
     while (1) {
-      if (!fastRun()) {
-        readyToStartWait();
-        Dir d = sr.positionRecovery();
-        // forceGoingToGoal();
-        if (!positionIdentifyRun(d)) {
-          bz.play(Buzzer::ERROR);
-          waitForever();
-        }
-      }
+      if (!fastRun())
+        waitForever();
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       fr.runParameter.curve_gain *= 1.1f;
