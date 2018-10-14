@@ -242,13 +242,6 @@ private:
     // FastRun
     fr.start();
     while (fr.isRunning()) {
-      //   if (mt.isEmergency()) {
-      //     bz.play(Buzzer::EMERGENCY);
-      //     fr.terminate();
-      //     delay(1000);
-      //     mt.emergency_release();
-      //     return false;
-      //   }
       delay(100);
     }
     fr.terminate();
@@ -264,7 +257,7 @@ private:
     delay(200);
     for (int ms = 0; ms < wait_ms; ms++) {
       delay(1);
-      if (fabs(imu.accel.z) > 9800 * 2) {
+      if (fabs(imu.gyro.y) > PI) {
         bz.play(Buzzer::CANCEL);
         waitForever();
       }
@@ -277,6 +270,7 @@ private:
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
+    readyToStartWait();
     // 自己位置同定
     if (isPositionIdentifying) {
       isPositionIdentifying = false;

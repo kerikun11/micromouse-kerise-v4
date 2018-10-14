@@ -1080,7 +1080,7 @@ private:
     if (wd.wall[2]) {
       float dist =
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-      float pos = 90 - dist - FS90::straight;
+      float pos = 90 - dist - FS90::straight + FAST_END_REMAIN;
       Position prev = sc.position;
       Position fix = sc.position.rotate(-origin.theta);
       fix.x =
