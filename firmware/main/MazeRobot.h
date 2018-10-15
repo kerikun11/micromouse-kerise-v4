@@ -141,14 +141,8 @@ private:
   int backupCounter = 0;
 
   void waitForEndAction() override {
+    // delay(200); // for debug
     while (sr.isRunning()) {
-      //   if (mt.isEmergency()) {
-      //     bz.play(Buzzer::EMERGENCY);
-      //     sr.disable();
-      //     delay(1000);
-      //     mt.emergency_release();
-      //     return false;
-      //   }
       delay(1);
     }
   }

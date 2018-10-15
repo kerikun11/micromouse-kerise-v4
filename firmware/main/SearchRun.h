@@ -41,7 +41,7 @@ extern WallDetector wd;
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define SEARCH_ST_LOOK_AHEAD(v) 20
 #define SEARCH_ST_FB_GAIN 30
-#define SEARCH_CURVE_FB_GAIN 12.0f
+#define SEARCH_CURVE_FB_GAIN 9.0f
 
 #define ahead_length 2
 
@@ -502,6 +502,7 @@ private:
       if (q.empty())
         isRunningFlag = false;
       {
+        float v = velocity;
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (q.empty()) {
           vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -509,7 +510,8 @@ private:
           Position cur = sc.position;
           float theta =
               atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
-          sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
+          v = std::max(0.0f, v - 9);
+          sc.set_target(v, SEARCH_ST_FB_GAIN * theta);
           wall_avoid(0);
         }
       }

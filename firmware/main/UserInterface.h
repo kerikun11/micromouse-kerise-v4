@@ -20,7 +20,7 @@ extern ToF tof;
 
 class UserInterface {
 private:
-  const float thr_accel = 4 * 9807;
+  const float thr_accel = 3 * 9807;
   const float thr_gyro = 4 * PI;
   const float wait_ms = 200;
   const int thr_ref_front = 2400;
@@ -136,9 +136,9 @@ public:
   //        }
   //      }
   //    }
-	static float getBatteryVoltage(){
+  static float getBatteryVoltage() {
     return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
-	}
+  }
   static void batteryLedIndicate(const float voltage) {
     led = 0;
     if (voltage < 4.0f)
