@@ -40,7 +40,7 @@ extern WallDetector wd;
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define SEARCH_ST_LOOK_AHEAD(v) 20
-#define SEARCH_ST_FB_GAIN 30
+#define SEARCH_ST_FB_GAIN 20
 #define SEARCH_CURVE_FB_GAIN 9.0f
 
 #define ahead_length 2
@@ -49,8 +49,8 @@ extern WallDetector wd;
 #define SEARCH_RUN_STACK_SIZE 8192
 #define SEARCH_RUN_PERIOD 1000
 
-#define SEARCH_RUN_VELOCITY 240.0f
-#define SEARCH_RUN_V_CURVE 240.0f
+#define SEARCH_RUN_VELOCITY 270.0f
+#define SEARCH_RUN_V_CURVE 270.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchTrajectory {
@@ -246,39 +246,35 @@ public:
     printf("%s\tRel:(%.1f, %.1f, %.1f)\n", name, sc.position.x, sc.position.y,
            sc.position.theta * 180 / PI);
   }
-  Dir positionRecovery() {
+  bool positionRecovery() {
     sc.enable();
-    // turn(imu.angle - std::round(imu.angle / (PI / 2)) * PI / 2);
-    wall_attach(true);
-    turn(PI / 2);
-    wall_attach(true);
-    turn(PI / 2);
-    wall_attach(true);
-    float angle = imu.angle + PI / 2; //< 東が0なのでPI/2を足す
-    Dir d = static_cast<int>(std::round(angle / (PI / 2))) & 3;
+    for (int i = 0; i < 4; ++i) {
+      if (wd.wall[2])
+        wall_attach(true);
+      turn(PI / 2);
+    }
     while (1) {
       if (!wd.wall[2])
         break;
       turn(-PI / 2);
       wall_attach();
-      d = Dir(d - 1);
     }
     sc.disable();
-    return d;
+    return true;
   }
 
 private:
-  Position origin;
+  // Position origin;
   std::queue<struct Operation> q;
   volatile bool isRunningFlag = false;
   bool prev_wall[2];
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if (force || tof.getDistance() < 90 ||
+    if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
-      for (int i = 0; i < 6000; i++) {
+      for (int i = 0; i < 3000; i++) {
         const float gain = 200.0f;
         const float satu = 50.0f;
         const float end = 0.5f;
@@ -397,8 +393,8 @@ private:
     printPosition("Turn End");
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
-    const float accel = 2000;
-    const float decel = 2000;
+    const float accel = 3000;
+    const float decel = 3000;
     int ms = 0;
     float v_start = sc.actual.trans;
     float T = 1.5f * (v_max - v_start) / accel;
@@ -424,6 +420,8 @@ private:
       if (ms / 1000.0f < T && velocity > velocity_a)
         velocity = velocity_a;
       float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
+      if (velocity < 100)
+        theta = 0;
       sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
       wall_avoid(distance);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -488,8 +486,8 @@ private:
       delay(1);
     }
     sc.disable();
-    // mt.emergency_stop();
-    isRunningFlag = false;
+    mt.emergency_stop();
+    // isRunningFlag = false;
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
@@ -510,7 +508,7 @@ private:
           Position cur = sc.position;
           float theta =
               atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
-          v = std::max(0.0f, v - 9);
+          v = std::max(0.0f, v - 12);
           sc.set_target(v, SEARCH_ST_FB_GAIN * theta);
           wall_avoid(0);
         }
@@ -547,7 +545,7 @@ private:
         isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
       case GO_STRAIGHT:
-        straight_x(SEGMENT_WIDTH * num, v_max, velocity);
+        straight_x(SEGMENT_WIDTH * num, num > 1 ? v_max : velocity, velocity);
         break;
       case GO_HALF:
         straight_x(SEGMENT_WIDTH / 2 * num, velocity, velocity);

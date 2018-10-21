@@ -141,7 +141,7 @@ private:
   int backupCounter = 0;
 
   void waitForEndAction() override {
-    // delay(200); // for debug
+    // delay(400); // for debug
     while (sr.isRunning()) {
       delay(1);
     }
@@ -264,16 +264,17 @@ private:
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
-    readyToStartWait();
     // 自己位置同定
     if (isPositionIdentifying) {
+      readyToStartWait();
       isPositionIdentifying = false;
-      Dir d = sr.positionRecovery();
-      for (int i = 0; i < d + 1; i++)
-        bz.play(Buzzer::SHORT);
+      if (!sr.positionRecovery()) {
+        bz.play(Buzzer::ERROR);
+        waitForever();
+      }
       readyToStartWait();
       forceGoingToGoal();
-      if (!positionIdentifyRun(d)) {
+      if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }

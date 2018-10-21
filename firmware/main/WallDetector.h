@@ -103,6 +103,7 @@ private:
   SemaphoreHandle_t calibrationFrontStartSemaphore;
   SemaphoreHandle_t calibrationFrontEndSemaphore;
   WallValue wall_ref;
+  Accumulator<WallValue, 16> buffer;
 
   float ref2dist(const int16_t value) {
     return 12.9035f * std::log(value) - 86.7561f;

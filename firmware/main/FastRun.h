@@ -32,8 +32,8 @@ extern WallDetector wd;
 #define FAST_END_REMAIN 6
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define FAST_ST_LOOK_AHEAD(v) 20
-#define FAST_ST_FB_GAIN 10
-#define FAST_CURVE_FB_GAIN 6.0f
+#define FAST_ST_FB_GAIN 20
+#define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
 public:
@@ -918,7 +918,7 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    RunParameter(const float curve_gain = 0.6, const float max_speed = 900,
+    RunParameter(const float curve_gain = 0.6, const float max_speed = 600,
                  const float accel = 2400, const float decel = 2400)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
@@ -989,7 +989,7 @@ private:
     return std::max(std::min(src, sat), -sat);
   }
 
-  void wallAvoid(bool diag) {
+  void wallAvoid(bool diag, float remain) {
     // 一定速より小さかったら行わない
     if (sc.actual.trans < 100.0f)
       return;
@@ -1009,10 +1009,10 @@ private:
       }
     }
     // 45 [deg] の倍数
-    if (diag && wallAvoid45Flag &&
+    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 2 &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-      const float shift = 0.2f;
-      const float threashold = -30;
+      const float shift = 0.02f;
+      const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, shift, 0).rotate(origin.theta);
         led_flags |= 4;
@@ -1025,8 +1025,8 @@ private:
     led = led_flags;
   }
   void wallCut(bool diag) {
-#define WALL_CUT_OFFSET_X_ (-36)
-#define WALL_CUT_OFFSET__X (-42)
+#define WALL_CUT_OFFSET_X_ (-40)
+    // #define WALL_CUT_OFFSET__X (-42)
     if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
       for (int i = 0; i < 2; i++) {
         // 45 [deg] + 90 [deg] の倍数
@@ -1102,6 +1102,7 @@ private:
     int ms = 0;
     const float v_start = sc.actual.trans;
     const float T = 1.5f * (v_max - v_start) / accel;
+    float int_y = 0;
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
@@ -1123,11 +1124,13 @@ private:
         velocity = velocity_a;
       float theta = atan2f(-cur.y, FAST_ST_LOOK_AHEAD(velocity)) - cur.theta;
       sc.set_target(velocity, FAST_ST_FB_GAIN * theta);
-      wallAvoid(true);
+      wallAvoid(true, extra);
       wallCut(true);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       ms++;
+      int_y += getRelativePosition().y;
+      sc.position.theta += int_y * 0.00000002f;
     }
     sc.set_target(v_end, 0);
     updateOrigin(Position(distance, 0, 0));
@@ -1145,7 +1148,7 @@ private:
       Position dir = tr.getNextDir(getRelativePosition(), velocity);
       sc.set_target(velocity, dir.theta);
       if (fabs(getRelativePosition().theta) < 0.01f * PI) {
-        wallAvoid(false);
+        wallAvoid(false, 0);
         wallCut(false);
       }
     }
@@ -1230,9 +1233,9 @@ public:
     imu.angle = 0;
     // 走行開始
     fan.drive(fanDuty);
-    delay(500); //< ファンの回転数が一定なるのを待つ
+    delay(500);  //< ファンの回転数が一定なるのを待つ
+    sc.enable(); //< 速度コントローラ始動
     setPosition();
-    sc.enable(false); //< 速度コントローラ始動
     float straight =
         SEGMENT_WIDTH / 2 - MACHINE_TAIL_LENGTH - WALL_THICKNESS / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {

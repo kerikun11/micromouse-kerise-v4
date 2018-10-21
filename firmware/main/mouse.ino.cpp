@@ -305,7 +305,7 @@ void log_test() {
   delay(500);
   portTickType xLastWakeTime = xTaskGetTickCount();
   mt.drive(gain * 50, gain * 50);
-  for (int i = 0; i < 1600; i++) {
+  for (int i = 0; i < 2000; i++) {
     printLog();
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
@@ -362,7 +362,7 @@ void normal_drive() {
     if (preset < 0)
       return;
     float gains[4] = {0.5, 0.6, 0.7, 0.8};
-    float vmaxs[4] = {900, 900, 900, 900};
+    float vmaxs[4] = {600, 600, 600, 600};
     float accels[4] = {1200, 2400, 3600, 7200};
     fr.runParameter =
         FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
@@ -429,9 +429,9 @@ void normal_drive() {
   //* 自己位置同定
   case 6:
     if (ui.waitForCover()) {
-      Dir d = sr.positionRecovery();
+      sr.positionRecovery();
       mr.forceGoingToGoal();
-      mr.positionIdentifyRun(d);
+      mr.positionIdentifyRun();
     }
     break;
   //* 迷路データの復元
@@ -516,12 +516,12 @@ void normal_drive() {
     break;
     //* テスト
   case 13:
-    // log_test();
+    log_test();
     // trapizoid_test();
     // accel_test();
     // straight_test();
     // petitcon();
-    gyro_test();
+    // gyro_test();
     break;
   //* ログの表示
   case 14:
