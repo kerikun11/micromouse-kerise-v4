@@ -337,6 +337,7 @@ void normal_drive() {
   case 0:
     if (mr.isComplete() && !mr.calcShortestDirs()) {
       bz.play(Buzzer::ERROR);
+      mr.resetLastWall(4);
       return;
     }
     bz.play(Buzzer::SUCCESSFUL);

@@ -308,8 +308,8 @@ private:
     }
 #endif
 #if SEARCH_WALL_CUT_ENABLED
-#define SEARCH_WALL_CUT_OFFSET_X_ 42
-#define SEARCH_WALL_CUT_OFFSET__X 36
+#define SEARCH_WALL_CUT_OFFSET_X_ 46
+    // #define SEARCH_WALL_CUT_OFFSET__X 36
     for (int i = 0; i < 2; i++) {
       if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
         const float prev_x = sc.position.x;
@@ -343,8 +343,8 @@ private:
       float x = sc.position.x;
       if (value > 60 && value < 120)
         sc.position.x = 90 - value - ahead_length;
-      //   if (sc.position.x > 5.0f)
-      //     sc.position.x = 5.0f;
+      if (sc.position.x > 5.0f)
+        sc.position.x = 5.0f;
       sc.position.x = std::min(sc.position.x, 0.0f);
       printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
     }
@@ -398,6 +398,7 @@ private:
     int ms = 0;
     float v_start = sc.actual.trans;
     float T = 1.5f * (v_max - v_start) / accel;
+    float int_y = 0;
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
@@ -427,6 +428,8 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       ms++;
+      int_y += sc.position.y;
+      sc.position.theta += int_y * 0.00000002f;
     }
     sc.set_target(v_end, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
