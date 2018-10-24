@@ -283,8 +283,10 @@ private:
     // 探索
     if (isForceSearch || !calcShortestDirs()) {
       getMaze().resetLastWall(5);
-      if (!searchRun())
+      if (!searchRun()) {
+        bz.play(Buzzer::ERROR);
         waitForever();
+      }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       fr.V90Enabled = false;

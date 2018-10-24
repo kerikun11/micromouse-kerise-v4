@@ -350,7 +350,7 @@ private:
     }
 #endif
   }
-  void turn(const float angle) {
+  void turn(const float angle, bool fix = false) {
     const float speed = 3 * M_PI;
     const float accel = 24 * M_PI;
     const float decel = 24 * M_PI;
@@ -358,6 +358,8 @@ private:
     int ms = 0;
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
+      if (fix)
+        break;
       if (fabs(sc.actual.rot) > speed)
         break;
       float delta = sc.position.x * cos(-sc.position.theta) -
@@ -468,7 +470,8 @@ private:
     sc.enable(true);
   }
   void uturn() {
-    if (imu.angle > 0) {
+    // if (imu.angle > 0) {
+    if (wd.distance.side[0] < wd.distance.side[1]) {
       wall_attach();
       turn(-M_PI / 2);
       wall_attach();
@@ -586,6 +589,7 @@ private:
       case STOP:
         straight_x(SEGMENT_WIDTH / 2 - ahead_length, velocity, 0);
         wall_attach();
+        turn(0, true);
         sc.disable();
         isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
