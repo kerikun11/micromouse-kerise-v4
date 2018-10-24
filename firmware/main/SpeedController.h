@@ -237,14 +237,21 @@ private:
       }
 
       // calculate odometry value
-      position.theta += (actual_prev.rot + actual.rot) / 2 *
-                        SPEED_CONTROLLER_PERIOD_US / 1000000;
-      position.x += (actual_prev.trans + actual.trans) / 2 *
-                    cos(position.theta) * SPEED_CONTROLLER_PERIOD_US / 1000000;
-      position.y += (actual_prev.trans + actual.trans) / 2 *
-                    sin(position.theta) * SPEED_CONTROLLER_PERIOD_US / 1000000;
-      actual_prev = actual;
-      target_prev = target;
+      position.theta += imu.gyro.z * SPEED_CONTROLLER_PERIOD_US / 1000000;
+      position.x += enconly.trans * cos(position.theta) *
+                    SPEED_CONTROLLER_PERIOD_US / 1000000;
+      position.y += enconly.trans * sin(position.theta) *
+                    SPEED_CONTROLLER_PERIOD_US / 1000000;
+      // position.theta += (actual_prev.rot + actual.rot) / 2 *
+      //                   SPEED_CONTROLLER_PERIOD_US / 1000000;
+      // position.x += (actual_prev.trans + actual.trans) / 2 *
+      //               cos(position.theta) * SPEED_CONTROLLER_PERIOD_US /
+      //               1000000;
+      // position.y += (actual_prev.trans + actual.trans) / 2 *
+      //               sin(position.theta) * SPEED_CONTROLLER_PERIOD_US /
+      //               1000000;
+      // actual_prev = actual;
+      // target_prev = target;
     }
   }
 };

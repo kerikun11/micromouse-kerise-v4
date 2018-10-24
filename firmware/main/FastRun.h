@@ -1009,7 +1009,7 @@ private:
       }
     }
     // 45 [deg] の倍数
-    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 4 &&
+    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
       const float shift = 0.02f;
       const float threashold = -50;
