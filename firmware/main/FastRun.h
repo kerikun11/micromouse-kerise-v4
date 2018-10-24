@@ -29,10 +29,10 @@ extern WallDetector wd;
 #define FAST_RUN_STACK_SIZE 8192
 #define FAST_RUN_PERIOD 1000
 
-#define FAST_END_REMAIN 6
+#define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define FAST_ST_LOOK_AHEAD(v) 20
-#define FAST_ST_FB_GAIN 20
+#define FAST_ST_FB_GAIN 30
 #define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
@@ -1009,7 +1009,7 @@ private:
       }
     }
     // 45 [deg] の倍数
-    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 2 &&
+    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 4 &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
       const float shift = 0.02f;
       const float threashold = -50;

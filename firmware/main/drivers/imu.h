@@ -112,10 +112,10 @@ public:
     gyro.z = bond.i / ICM20602_GYRO_FACTOR * PI / 180 - gyro_offset.z;
   }
   void calibration() {
-    MotionParameter accel_sum, gyro_sum;
     const int ave_count = 250;
-    for (int j = 0; j < 2; j++) {
+    for (int j = 0; j < 4; j++) {
       portTickType xLastWakeTime = xTaskGetTickCount();
+      MotionParameter accel_sum, gyro_sum;
       for (int i = 0; i < ave_count; i++) {
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         update();
@@ -320,7 +320,8 @@ private:
 //   SemaphoreHandle_t
 //       sampling_end_semaphore; //< サンプリング終了を知らせるセマフォ
 //   SemaphoreHandle_t
-//       calibration_start_semaphore; //< キャリブレーション要求を知らせるセマフォ
+//       calibration_start_semaphore; //<
+//       キャリブレーション要求を知らせるセマフォ
 //   SemaphoreHandle_t
 //       calibration_end_semaphore; //< キャリブレーション終了を知らせるセマフォ
 //   ICM20602 icm[2];

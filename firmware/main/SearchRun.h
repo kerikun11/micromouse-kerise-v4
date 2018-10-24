@@ -49,8 +49,8 @@ extern WallDetector wd;
 #define SEARCH_RUN_STACK_SIZE 8192
 #define SEARCH_RUN_PERIOD 1000
 
-#define SEARCH_RUN_VELOCITY 270.0f
-#define SEARCH_RUN_V_CURVE 270.0f
+#define SEARCH_RUN_VELOCITY 240.0f
+#define SEARCH_RUN_V_CURVE 240.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchTrajectory {
@@ -429,7 +429,7 @@ private:
       xLastWakeTime = xTaskGetTickCount();
       ms++;
       int_y += sc.position.y;
-      sc.position.theta += int_y * 0.00000002f;
+      sc.position.theta += int_y * 0.00000001f;
     }
     sc.set_target(v_end, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
