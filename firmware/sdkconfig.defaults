@@ -31,10 +31,25 @@ CONFIG_CXX_EXCEPTIONS=y
 #
 
 #
+# Bluetooth
+#
+CONFIG_BT_ENABLED=y
+
+#
+# MODEM SLEEP Options
+#
+CONFIG_BTC_TASK_STACK_SIZE=8192
+
+#
 # ESP32-specific
 #
 CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y
 CONFIG_CONSOLE_UART_BAUDRATE=2000000
+
+#
+# Power Management
+#
+CONFIG_PM_ENABLE=y
 
 #
 # FAT Filesystem support

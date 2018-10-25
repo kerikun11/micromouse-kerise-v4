@@ -363,11 +363,11 @@ void normal_drive() {
     if (preset < 0)
       return;
     float gains[4] = {0.5, 0.6, 0.7, 0.8};
-    float vmaxs[4] = {600, 600, 600, 600};
+    float vmaxs[4] = {600, 600, 720, 720};
     float accels[4] = {1200, 2400, 3600, 7200};
     fr.runParameter =
         FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
-                              accels[preset & 3], accels[preset & 3]);
+                              accels[preset & 3], accels[preset & 3] / 2);
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
@@ -427,13 +427,11 @@ void normal_drive() {
   case 5:
     position_test();
     break;
-  //* 自己位置同定
+  //* データ消去
   case 6:
-    if (ui.waitForCover()) {
-      sr.positionRecovery();
-      mr.forceGoingToGoal();
-      mr.positionIdentifyRun();
-    }
+    bz.play(Buzzer::MAZE_BACKUP);
+    mr.resetLastWall(10);
+    return;
     break;
   //* 迷路データの復元
   case 7:

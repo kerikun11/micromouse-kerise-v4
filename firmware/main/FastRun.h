@@ -919,7 +919,7 @@ public:
   };
   struct RunParameter {
     RunParameter(const float curve_gain = 0.6, const float max_speed = 600,
-                 const float accel = 2400, const float decel = 2400)
+                 const float accel = 2400, const float decel = 1200)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
     RunParameter(std::array<float, 4> params)
@@ -1130,7 +1130,7 @@ private:
       xLastWakeTime = xTaskGetTickCount();
       ms++;
       int_y += getRelativePosition().y;
-      sc.position.theta += int_y * 0.00000002f;
+      sc.position.theta += int_y * 0.00000001f;
     }
     sc.set_target(v_end, 0);
     updateOrigin(Position(distance, 0, 0));

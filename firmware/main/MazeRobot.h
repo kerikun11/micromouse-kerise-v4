@@ -283,6 +283,9 @@ private:
     // 探索
     if (isForceSearch || !calcShortestDirs()) {
       getMaze().resetLastWall(5);
+      mt.drive(-200, -200);
+      delay(500);
+      mt.free();
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -298,7 +301,7 @@ private:
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       fr.runParameter.curve_gain *= 1.1f;
-      fr.runParameter.max_speed *= 1.21f;
+      fr.runParameter.max_speed *= 1.1f;
       fr.runParameter.accel *= 1.1f;
       fr.runParameter.decel *= 1.1f;
       fr.V90Enabled = true;
