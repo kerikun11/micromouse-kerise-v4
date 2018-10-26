@@ -32,8 +32,8 @@ extern WallDetector wd;
 #define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define FAST_ST_LOOK_AHEAD(v) 20
-#define FAST_ST_FB_GAIN 30
-#define FAST_CURVE_FB_GAIN 9.0f
+#define FAST_ST_FB_GAIN 20
+#define FAST_CURVE_FB_GAIN 6.0f
 
 class FastTrajectory {
 public:

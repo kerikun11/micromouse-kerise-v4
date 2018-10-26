@@ -113,6 +113,7 @@ public:
   }
   void calibration() {
     reset();
+    delay(100);
     const int ave_count = 250;
     for (int j = 0; j < 4; j++) {
       portTickType xLastWakeTime = xTaskGetTickCount();
