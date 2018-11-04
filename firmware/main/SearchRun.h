@@ -40,8 +40,8 @@ extern WallDetector wd;
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 // #define SEARCH_ST_LOOK_AHEAD(v) 20
-#define SEARCH_ST_FB_GAIN 20
-#define SEARCH_CURVE_FB_GAIN 9.0f
+#define SEARCH_ST_FB_GAIN 30
+#define SEARCH_CURVE_FB_GAIN 6.0f
 
 #define ahead_length 2
 
@@ -49,8 +49,8 @@ extern WallDetector wd;
 #define SEARCH_RUN_STACK_SIZE 8192
 #define SEARCH_RUN_PERIOD 1000
 
-#define SEARCH_RUN_VELOCITY 240.0f
-#define SEARCH_RUN_V_CURVE 240.0f
+#define SEARCH_RUN_VELOCITY 270.0f
+#define SEARCH_RUN_V_CURVE 270.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchTrajectory {
@@ -256,8 +256,8 @@ public:
     while (1) {
       if (!wd.wall[2])
         break;
-      turn(-PI / 2);
       wall_attach();
+      turn(-PI / 2);
     }
     sc.disable();
     return true;
@@ -313,12 +313,14 @@ private:
     for (int i = 0; i < 2; i++) {
       if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
         const float prev_x = sc.position.x;
-        if (distance > SEGMENT_WIDTH - 1)
-          sc.position.x = sc.position.x - ((int)sc.position.x) % SEGMENT_WIDTH +
-                          SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
-        printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i, distance,
-               prev_x, sc.position.x);
-        bz.play(Buzzer::CANCEL);
+        float fix = -((int)sc.position.x) % SEGMENT_WIDTH +
+                    SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
+        if (distance > SEGMENT_WIDTH - 1 && fix < 0.0f) {
+          sc.position.x = sc.position.x + fix;
+          printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i,
+                 distance, prev_x, sc.position.x);
+          bz.play(Buzzer::CANCEL);
+        }
       }
       // if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
       //   const float prev_x = sc.position.x;
@@ -342,9 +344,7 @@ private:
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
       float x = sc.position.x;
       if (value > 60 && value < 120)
-        sc.position.x = 90 - value - ahead_length;
-      if (sc.position.x > 5.0f)
-        sc.position.x = 5.0f;
+        sc.position.x = 90 - value - ahead_length + SEARCH_END_REMAIN;
       sc.position.x = std::min(sc.position.x, 0.0f);
       printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
     }
@@ -514,7 +514,7 @@ private:
           Position cur = sc.position;
           float theta =
               atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
-          v = std::max(0.0f, v - 12);
+          // v = std::max(0.0f, v - 12);
           sc.set_target(v, SEARCH_ST_FB_GAIN * theta);
           wall_avoid(0);
         }

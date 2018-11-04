@@ -51,7 +51,7 @@ extern FastRun fr;
   { Vector(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
-  { Vector(9, 9), Vector(9, 10), Vector(10, 9), Vector(10, 10) }
+  { Vector(8, 8) }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
   { Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4) }
