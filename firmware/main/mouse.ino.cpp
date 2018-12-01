@@ -45,7 +45,6 @@ void setup() {
     bz.play(Buzzer::ERROR);
   if (!wd.begin())
     bz.play(Buzzer::ERROR);
-  //   em.begin();
 
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
@@ -58,6 +57,9 @@ void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
+    // float v = ui.getBatteryVoltage();
+    // if (v > 1.0f)
+    //   printf("%f\n", v);
     // enc.print();
     // ref.csv();
     // tof.csv(); delay(100);
@@ -166,9 +168,9 @@ void accel_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
-  lgr.reset(8);
+  lgr.reset(9);
   auto printLog = []() {
-    float data[8] = {
+    float data[9] = {
         0,
         sc.target.trans,
         sc.actual.rot,
@@ -178,6 +180,7 @@ void accel_test() {
         sc.Kd * sc.differential.trans,
         sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
             sc.Kd * sc.differential.trans,
+        ui.getBatteryVoltage(),
     };
     lgr.push(data);
   };
@@ -515,9 +518,9 @@ void normal_drive() {
     break;
     //* テスト
   case 13:
-    log_test();
+    // log_test();
     // trapizoid_test();
-    // accel_test();
+    accel_test();
     // straight_test();
     // petitcon();
     // gyro_test();

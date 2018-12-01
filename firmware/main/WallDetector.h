@@ -103,7 +103,8 @@ private:
   SemaphoreHandle_t calibrationFrontStartSemaphore;
   SemaphoreHandle_t calibrationFrontEndSemaphore;
   WallValue wall_ref;
-  Accumulator<WallValue, 16> buffer;
+  static const int ave_num = 16;
+  Accumulator<WallValue, ave_num> buffer;
 
   float ref2dist(const int16_t value) {
     return 12.9035f * std::log(value) - 86.7561f;
@@ -134,33 +135,38 @@ private:
     printf("Wall Calibration Front: %6.1f%6.1f\n", wall_ref.front[0],
            wall_ref.front[1]);
   }
+  void update() {
+    // データの更新
+    for (int i = 0; i < 2; i++) {
+      distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
+      distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
+    }
+    buffer.push(distance);
+
+    // 前壁の更新
+    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
+      wall[2] = true;
+    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
+      wall[2] = false;
+    if (tof.passedTimeMs() > 200)
+      wall[2] = false;
+
+    // 横壁の更新
+    for (int i = 0; i < 2; i++) {
+      const float value = distance.side[i];
+      if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
+        wall[i] = true;
+      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
+        wall[i] = false;
+    }
+  }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       // データの更新
-      for (int i = 0; i < 2; i++) {
-        distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
-        distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
-      }
-
-      // 前壁の更新
-      if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
-        wall[2] = true;
-      else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
-        wall[2] = false;
-      if (tof.passedTimeMs() > 200)
-        wall[2] = false;
-
-      // 横壁の更新
-      for (int i = 0; i < 2; i++) {
-        const float value = distance.side[i];
-        if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
-          wall[i] = true;
-        else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
-          wall[i] = false;
-      }
+      update();
 
       // キャリブレーションがリクエストされていたらする
       if (xSemaphoreTake(calibrationStartSemaphore, 0) == pdTRUE) {
