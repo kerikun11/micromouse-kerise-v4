@@ -1,9 +1,0 @@
-[submodule "firmware/components/arduino"]
-	path = firmware/components/arduino
-	url = https://github.com/espressif/arduino-esp32
-[submodule "firmware/components/mazelib/MazeLib"]
-	path = firmware/components/mazelib/MazeLib
-	url = https://github.com/kerikun11/MazeLib.git
-[submodule "firmware/components/esp32-snippets"]
-	path = firmware/components/esp32-snippets
-	url = https://github.com/nkolban/esp32-snippets

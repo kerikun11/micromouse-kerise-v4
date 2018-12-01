@@ -1,14 +1,6 @@
 {
-	"files.associations": {
-		"unordered_map": "cpp",
-		"unordered_set": "cpp",
-		"chrono": "cpp",
-		"cmath": "cpp",
-		"sntp.h": "c",
-		"array": "cpp",
-		"deque": "cpp",
-		"vector": "cpp",
-		"initializer_list": "cpp",
-		"sstream": "cpp"
-	}
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\Users\\kerikun11\\.platformio\\penv\\Scripts;C:\\Users\\kerikun11\\.platformio\\penv;C:\\Python27\\;C:\\Python27\\Scripts;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\MATLAB\\R2018b\\runtime\\win64;C:\\Program Files\\MATLAB\\R2018b\\bin;C:\\Program Files (x86)\\Nordic Semiconductor\\nrf5x\\bin\\;C:\\texlive\\2018\\bin\\win32;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files (x86)\\GNU Tools Arm Embedded\\7 2018-q2-update\\bin;C:\\Users\\kerikun11\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\kerikun11\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\texlive\\2018\\bin;C:\\Program Files (x86)\\GnuWin32\\bin;C:\\ProgramData\\chocolatey\\lib\\msys2;C:\\tools\\msys64;C:\\Python27\\;C:\\Python27\\Scripts;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\MATLAB\\R2018b\\runtime\\win64;C:\\Program Files\\MATLAB\\R2018b\\bin;C:\\Program Files (x86)\\Nordic Semiconductor\\nrf5x\\bin\\;C:\\texlive\\2018\\bin\\win32;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files (x86)\\GNU Tools Arm Embedded\\7 2018-q2-update\\bin;C:\\Users\\kerikun11\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\kerikun11\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\texlive\\2018\\bin;C:\\Program Files (x86)\\GnuWin32\\bin;C:\\ProgramData\\chocolatey\\lib\\msys2;C:\\tools\\msys64",
+        "PLATFORMIO_CALLER": "vscode"
+    }
 }
