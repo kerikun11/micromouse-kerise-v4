@@ -44,7 +44,7 @@ extern FastRun fr;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 3
 #if GOAL == 0
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
@@ -54,7 +54,7 @@ extern FastRun fr;
   { Vector(8, 8) }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
-  { Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4) }
+  { Vector(4, 4), Vector(5, 5), Vector(5, 4), Vector(4, 5) }
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
   { Vector(15, 15) }
