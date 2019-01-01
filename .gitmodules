@@ -1,0 +1,3 @@
+[submodule "firmware/lib/mazelib/MazeLib"]
+	path = firmware/lib/mazelib/MazeLib
+	url = https://github.com/kerikun11/MazeLib
