@@ -1,36 +1,12 @@
 #pragma once
 
+#include "config/config.h"
+#include "global.h"
+
 #include "TaskBase.h"
-#include "config.h"
 #include <cmath>
 #include <queue>
 #include <vector>
-
-/* Hardware */
-#include "buzzer.h"
-extern Buzzer bz;
-#include "button.h"
-extern Button btn;
-#include "led.h"
-extern LED led;
-#include "motor.h"
-extern Motor mt;
-#include "fan.h"
-extern Fan fan;
-#include "imu.h"
-extern IMU imu;
-#include "encoder.h"
-extern Encoder enc;
-#include "reflector.h"
-extern Reflector ref;
-#include "tof.h"
-extern ToF tof;
-
-/* Software */
-#include "SpeedController.h"
-extern SpeedController sc;
-#include "WallDetector.h"
-extern WallDetector wd;
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
 #define SEARCH_WALL_CUT_ENABLED 1

@@ -1,29 +1,15 @@
 #pragma once
 
+#include "config/config.h"
+#include "global.h"
+
 #include "AccelDesigner.h"
 #include "TaskBase.h"
-#include "config.h"
 #include <algorithm> //< std::replace
 #include <cmath>
 #include <queue>
 #include <string>
 #include <vector>
-
-#include "motor.h"
-extern Motor mt;
-#include "fan.h"
-extern Fan fan;
-#include "imu.h"
-extern IMU imu;
-#include "encoder.h"
-extern Encoder enc;
-#include "reflector.h"
-extern Reflector ref;
-
-#include "SpeedController.h"
-extern SpeedController sc;
-#include "WallDetector.h"
-extern WallDetector wd;
 
 #define FAST_RUN_TASK_PRIORITY 3
 #define FAST_RUN_STACK_SIZE 8192

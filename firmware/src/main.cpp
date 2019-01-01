@@ -349,7 +349,7 @@ void normal_drive() {
         mr.terminate();
         delay(1000);
         mt.emergency_release();
-        // mr.start(false, true);
+        mr.start(false, true);
         break;
       }
       delay(100);

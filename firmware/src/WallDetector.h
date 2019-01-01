@@ -1,16 +1,11 @@
 #pragma once
 
-#include "config.h"
+#include "global.h"
+
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <cmath>
 #include <vector>
-
-/* Hardware */
-#include "reflector.h"
-extern Reflector ref;
-#include "tof.h"
-extern ToF tof;
 
 #define WALL_DETECTOR_TASK_PRIORITY 4
 #define WALL_DETECTOR_STACK_SIZE 4096

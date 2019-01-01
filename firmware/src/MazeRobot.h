@@ -1,5 +1,8 @@
 #pragma once
 
+#include "config/config.h"
+#include "global.h"
+
 #include "Agent.h"
 #include "Maze.h"
 #include "RobotBase.h"
@@ -9,42 +12,10 @@
 
 using namespace MazeLib;
 
-/* Hardware */
-#include "buzzer.h"
-extern Buzzer bz;
-#include "button.h"
-extern Button btn;
-#include "led.h"
-extern LED led;
-#include "motor.h"
-extern Motor mt;
-#include "fan.h"
-extern Fan fan;
-#include "imu.h"
-extern IMU imu;
-#include "encoder.h"
-extern Encoder enc;
-#include "reflector.h"
-extern Reflector ref;
-#include "tof.h"
-extern ToF tof;
-
-/* Software */
-#include "UserInterface.h"
-extern UserInterface ui;
-#include "SpeedController.h"
-extern SpeedController sc;
-#include "WallDetector.h"
-extern WallDetector wd;
-#include "SearchRun.h"
-extern SearchRun sr;
-#include "FastRun.h"
-extern FastRun fr;
-
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 3
+#define GOAL 1
 #if GOAL == 0
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \

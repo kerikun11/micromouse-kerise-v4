@@ -1,22 +1,7 @@
 #pragma once
 
-/* Hardware */
-#include "buzzer.h"
-extern Buzzer bz;
-#include "button.h"
-extern Button btn;
-#include "led.h"
-extern LED led;
-#include "imu.h"
-extern IMU imu;
-#include "encoder.h"
-extern Encoder enc;
-#include "reflector.h"
-extern Reflector ref;
-#include "tof.h"
-extern ToF tof;
-
 #include "config/config.h"
+#include "global.h"
 
 #include <Arduino.h>
 

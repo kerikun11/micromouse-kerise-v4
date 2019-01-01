@@ -5,25 +5,25 @@
 #pragma once
 
 /* Driver */
-#include "buzzer.h"
+#include "hardware/buzzer.h"
 extern Buzzer bz;
-#include "led.h"
+#include "hardware/led.h"
 extern LED led;
-#include "motor.h"
+#include "hardware/motor.h"
 extern Motor mt;
-#include "fan.h"
+#include "hardware/fan.h"
 extern Fan fan;
 
 /* Sensor */
-#include "button.h"
+#include "hardware/button.h"
 extern Button btn;
-#include "imu.h"
+#include "hardware/imu.h"
 extern IMU imu;
-#include "encoder.h"
+#include "hardware/encoder.h"
 extern Encoder enc;
-#include "reflector.h"
+#include "hardware/reflector.h"
 extern Reflector ref;
-#include "tof.h"
+#include "hardware/tof.h"
 extern ToF tof;
 
 /* Supporter */
@@ -33,8 +33,6 @@ extern UserInterface ui;
 extern SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
-#include "Emergency.h"
-extern Emergency em;
 
 /* Conductor */
 #include "Logger.h"
