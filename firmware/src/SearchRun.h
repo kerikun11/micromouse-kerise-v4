@@ -195,8 +195,6 @@ private:
 
 class SearchRun : TaskBase {
 public:
-  SearchRun() {}
-  virtual ~SearchRun() {}
   enum ACTION {
     START_STEP,
     START_INIT,
@@ -208,10 +206,6 @@ public:
     RETURN,
     STOP,
   };
-  struct Operation {
-    enum ACTION action;
-    int num;
-  };
   const char *action_string(enum ACTION action) {
     static const char name[][32] = {
         "start_step",    "start_init", "go_straight", "go_half", "turn_left_90",
@@ -219,6 +213,17 @@ public:
     };
     return name[action];
   }
+  struct Operation {
+    enum ACTION action;
+    int num;
+  };
+#ifndef M_PI
+  static constexpr float M_PI = 3.14159265358979323846f;
+#endif
+
+public:
+  SearchRun() {}
+  virtual ~SearchRun() {}
   void enable() {
     printf("SearchRun Enabled\n");
     deleteTask();

@@ -2,10 +2,11 @@
 
 #include <Arduino.h>
 
-#define FAN_FREQUENCY 10000
-#define FAN_BIT_NUM 8
-
 class Fan {
+public:
+  static constexpr int FAN_FREQUENCY = 10000;
+  static constexpr int FAN_BIT_NUM = 8;
+
 public:
   Fan(int pin, uint8_t channel) : pin(pin), channel(channel) {
     ledcSetup(channel, FAN_FREQUENCY, FAN_BIT_NUM);

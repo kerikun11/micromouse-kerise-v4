@@ -4,14 +4,21 @@
 #include <driver/spi_master.h>
 #include <esp_err.h>
 
-#define ENCODER_PULSES 16384
-
 #define ENCODER_STACK_SIZE 4096
 #define ENCODER_PRIORITY 5
 
 class Encoder {
 public:
-  Encoder() { sampling_end_semaphore = xSemaphoreCreateBinary(); }
+  static constexpr int ENCODER_PULSES = 16384;
+#ifndef M_PI
+  static constexpr float M_PI = 3.14159265358979323846f;
+#endif
+
+public:
+  Encoder(float gear_ratio, float wheel_diameter)
+      : gear_ratio(gear_ratio), wheel_diameter(wheel_diameter) {
+    sampling_end_semaphore = xSemaphoreCreateBinary();
+  }
   bool begin(spi_host_device_t spi_host, int8_t pin_cs) {
     // ESP-IDF SPI device initialization
     static spi_device_interface_config_t dev_cfg;
@@ -35,8 +42,7 @@ public:
   }
   float position(uint8_t ch) {
     float value = ((float)pulses_ovf[ch] * ENCODER_PULSES + pulses[ch]) *
-                  MACHINE_WHEEL_DIAMETER * M_PI * MACHINE_GEAR_RATIO /
-                  ENCODER_PULSES;
+                  wheel_diameter * M_PI * gear_ratio / ENCODER_PULSES;
     if (ch == 1)
       value = -value;
     return value;
@@ -67,6 +73,8 @@ public:
 private:
   spi_device_handle_t encoder_spi;
   SemaphoreHandle_t sampling_end_semaphore;
+  const float gear_ratio;
+  const float wheel_diameter;
   int pulses[2];
   int pulses_prev[2];
   int pulses_ovf[2];

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
-
 /* Hardware */
 #include "buzzer.h"
 extern Buzzer bz;
@@ -17,6 +15,10 @@ extern Encoder enc;
 extern Reflector ref;
 #include "tof.h"
 extern ToF tof;
+
+#include "config/config.h"
+
+#include <Arduino.h>
 
 class UserInterface {
 private:

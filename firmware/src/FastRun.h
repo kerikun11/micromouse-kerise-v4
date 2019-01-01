@@ -894,7 +894,6 @@ private:
 
 class FastRun : TaskBase {
 public:
-  FastRun() {}
   enum FAST_ACTION : char {
     FAST_GO_STRAIGHT = 's',
     FAST_GO_HALF = 'x',
@@ -936,8 +935,12 @@ public:
       return *this;
     }
   };
+#ifndef M_PI
+  static constexpr float M_PI = 3.14159265358979323846f;
+#endif
 
 public:
+  FastRun() {}
   RunParameter runParameter;
   bool wallAvoidFlag = true;
   bool wallAvoid45Flag = true;
