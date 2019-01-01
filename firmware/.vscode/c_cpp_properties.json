@@ -47,7 +47,7 @@
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/tools/sdk/include/wpa_supplicant",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/variants/esp32",
-                "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/lib/mazelib",
+                "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/lib/mazelib",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -73,8 +73,8 @@
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "C:/Users/kerikun11/.platformio/packages/tool-unity",
-                "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/include",
-                "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/src",
+                "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/include",
+                "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/src",
                 ""
             ],
             "browse": {
@@ -124,7 +124,7 @@
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/tools/sdk/include/wpa_supplicant",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/variants/esp32",
-                    "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/lib/mazelib",
+                    "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/lib/mazelib",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -150,13 +150,13 @@
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/kerikun11/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "C:/Users/kerikun11/.platformio/packages/tool-unity",
-                    "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/include",
-                    "c:/Users/kerikun11/Documents/PlatformIO/Projects/KERISE/src",
+                    "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/include",
+                    "c:/Users/kerikun11/OneDrive/Projects/KERISE/KERISEv4/firmware/src",
                     ""
                 ]
             },
             "defines": [
-                "PLATFORMIO=30602",
+                "PLATFORMIO=30603",
                 "ARDUINO_ESP32_DEV",
                 "CORE_DEBUG_LEVEL=ARDUHAL_LOG_LEVEL_DEBUG",
                 "ESP32",
@@ -173,7 +173,7 @@
             "intelliSenseMode": "clang-x64",
             "cStandard": "c99",
             "cppStandard": "c++11",
-            "compilerPath": "C:/Users/kerikun11/.platformio/packages/toolchain-xtensa32/bin/xtensa-esp32-elf-gcc.exe  -Wno-old-style-declaration -Os -Wall -nostdlib -Wpointer-arith -Wno-error=unused-but-set-variable -Wno-error=unused-variable -mlongcalls -ffunction-sections -fdata-sections -fstrict-volatile-bitfields -Wno-error=deprecated-declarations -Wno-error=unused-function -Wno-unused-parameter -Wno-sign-compare -fstack-protector -fexceptions"
+            "compilerPath": "C:/Users/kerikun11/.platformio/packages/toolchain-xtensa32/bin/xtensa-esp32-elf-gcc.exe -mlongcalls"
         }
     ],
     "version": 4
