@@ -12,7 +12,6 @@ void printTask(void *arg);
 void timeKeepTask(void *arg);
 
 void setup() {
-  WiFi.mode(WIFI_OFF);
   for (auto p : CONFIG_SPI_CS_PINS)
     pinMode(p, INPUT_PULLUP);
   printf("\n**************** KERISE ****************\n");
@@ -39,6 +38,8 @@ void setup() {
   if (!tof.begin())
     bz.play(Buzzer::ERROR);
   if (!wd.begin())
+    bz.play(Buzzer::ERROR);
+  if (!ble.begin())
     bz.play(Buzzer::ERROR);
 
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);

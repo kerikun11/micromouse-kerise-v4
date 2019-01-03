@@ -31,3 +31,4 @@ Logger lgr;
 SearchRun sr;
 FastRun fr;
 MazeRobot mr;
+BLEMouse ble;

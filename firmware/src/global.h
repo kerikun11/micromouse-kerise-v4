@@ -43,3 +43,5 @@ extern SearchRun sr;
 extern FastRun fr;
 #include "MazeRobot.h"
 extern MazeRobot mr;
+#include "BLEMouse.h"
+extern BLEMouse ble;
