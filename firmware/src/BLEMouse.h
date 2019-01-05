@@ -1,11 +1,19 @@
 #pragma once
 
 #include <BLEDevice.h>
+#include <functional>
+
+#include "app_log.h"
+#include "ble_callback_utils.h"
+#include "ble_kerise_service.h"
 
 #define BLE_STACK_SIZE 4096
 #define BLE_TASK_PRIORITY 1
 
 class BLEMouse {
+public:
+  static const BLEUUID ServiceUUID;
+
 public:
   BLEMouse() {}
   bool begin() {

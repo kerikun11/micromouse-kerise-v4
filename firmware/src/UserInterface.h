@@ -124,7 +124,8 @@ public:
   //      }
   //    }
   static float getBatteryVoltage() {
-    return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    // return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    return 2 * 1.0f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
   }
   static void batteryLedIndicate(const float voltage) {
     led = 0;
