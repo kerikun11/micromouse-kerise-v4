@@ -40,8 +40,6 @@ void setup() {
     bz.play(Buzzer::ERROR);
   if (!wd.begin())
     bz.play(Buzzer::ERROR);
-  // if (!ble.begin())
-  //   bz.play(Buzzer::ERROR);
 
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
