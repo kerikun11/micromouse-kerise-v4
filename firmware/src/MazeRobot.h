@@ -41,7 +41,7 @@ using namespace MazeLib;
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
-  MazeRobot() { replaceGoals(MAZE_GOAL); }
+  MazeRobot() : RobotBase(maze) { replaceGoals(MAZE_GOAL); }
 
   void start(bool isForceSearch = false, bool isPositionIdentifying = false) {
     this->isForceSearch = isForceSearch;
@@ -106,6 +106,7 @@ public:
   }
 
 private:
+  Maze maze;
   bool isForceSearch = false;
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
