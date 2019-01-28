@@ -91,8 +91,8 @@ private:
     tx.length = 32;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
 
-    pulses[1] = ((uint16_t)(0x3F & (rxbuf[0])) << 8) | rxbuf[1];
-    pulses[0] = ((uint16_t)(0x3F & (rxbuf[2])) << 8) | rxbuf[3];
+    pulses[0] = ((uint16_t)(0x3F & (rxbuf[0])) << 8) | rxbuf[1];
+    pulses[1] = ((uint16_t)(0x3F & (rxbuf[2])) << 8) | rxbuf[3];
     for (int i = 0; i < 2; i++) {
       if (pulses[i] > pulses_prev[i] + ENCODER_PULSES / 2) {
         pulses_ovf[i]--;

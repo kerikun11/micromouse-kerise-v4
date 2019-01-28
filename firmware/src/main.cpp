@@ -184,16 +184,17 @@ void accel_test() {
   delay(500);
   sc.enable();
   const float accel = 9000;
-  const float v_max = 600;
+  const float v_max = 300;
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0; t < ad.t_end() + 0.2f; t += 0.001f) {
+  for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
     printLog();
   }
   sc.set_target(0, 0);
+  delay(200);
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
@@ -220,9 +221,9 @@ void trapizoid_test() {
   fan.drive(0.4);
   delay(500);
   sc.enable();
-  const float accel = 15000;
-  const float decel = 12000;
-  const float v_max = 2400;
+  const float accel = 18000;
+  const float decel = 18000;
+  const float v_max = 900;
   const float v_start = 0;
   float T = 1.5f * (v_max - v_start) / accel;
   portTickType xLastWakeTime = xTaskGetTickCount();
@@ -313,6 +314,17 @@ void log_test() {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   fan.drive(0);
+  mt.free();
+}
+
+void mt_test() {
+  if (!ui.waitForCover())
+    return;
+  delay(1000);
+  bz.play(Buzzer::SELECT);
+  float value = 500;
+  mt.drive(value, value);
+  ui.waitForCover();
   mt.free();
 }
 
@@ -515,6 +527,7 @@ void normal_drive() {
     //* テスト
   case 13:
     // log_test();
+    // mt_test();
     // trapizoid_test();
     accel_test();
     // straight_test();
