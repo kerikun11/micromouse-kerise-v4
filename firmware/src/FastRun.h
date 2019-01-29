@@ -1014,8 +1014,7 @@ private:
     led = led_flags;
   }
   void wallCut(bool diag) {
-#define WALL_CUT_OFFSET_X_ (-40)
-    // #define WALL_CUT_OFFSET__X (-42)
+#define WALL_CUT_OFFSET_X_ (-20)
     if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
       for (int i = 0; i < 2; i++) {
         // 45 [deg] + 90 [deg] の倍数

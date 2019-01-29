@@ -10,8 +10,8 @@
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
 #define SEARCH_WALL_CUT_ENABLED 1
-#define SEARCH_WALL_FRONT_ENABLED 1
-#define SEARCH_WALL_AVOID_ENABLED 1
+#define SEARCH_WALL_FRONT_ENABLED 0
+#define SEARCH_WALL_AVOID_ENABLED 0
 
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
@@ -289,8 +289,7 @@ private:
     }
 #endif
 #if SEARCH_WALL_CUT_ENABLED
-#define SEARCH_WALL_CUT_OFFSET_X_ 46
-    // #define SEARCH_WALL_CUT_OFFSET__X 36
+#define SEARCH_WALL_CUT_OFFSET_X_ 66
     for (int i = 0; i < 2; i++) {
       if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
         const float prev_x = sc.position.x;

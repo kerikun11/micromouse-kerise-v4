@@ -66,8 +66,8 @@ public:
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
 #define SPEED_CONTROLLER_KP 0.6f
-#define SPEED_CONTROLLER_KI 96.0f
-#define SPEED_CONTROLLER_KD 0.01f
+#define SPEED_CONTROLLER_KI 120.0f
+#define SPEED_CONTROLLER_KD 0.03f
 
 #define SPEED_CONTROLLER_PERIOD_US 1000
 
@@ -96,6 +96,7 @@ public:
     }
   };
   WheelParameter target;
+  WheelParameter target_a;
   WheelParameter actual;
   WheelParameter enconly;
   WheelParameter acconly;
@@ -106,7 +107,6 @@ public:
   float Ki = SPEED_CONTROLLER_KI;
   float Kd = SPEED_CONTROLLER_KD;
   Position position;
-  int ave_num;
 
 public:
   SpeedController() {
@@ -129,10 +129,14 @@ public:
     mt.free();
     printf("Speed Controller disabled\n");
   }
-  void set_target(const float &trans, const float &rot) {
+  void set_target(const float trans, const float rot, const float trans_a = 0,
+                  const float rot_a = 0) {
     target.trans = trans;
     target.rot = rot;
     target.pole2wheel();
+    target_a.trans = trans_a;
+    target_a.rot = rot_a;
+    target_a.pole2wheel();
   }
 
 private:
@@ -141,20 +145,18 @@ private:
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<float, acc_num> accel;
   Accumulator<float, acc_num> gyro;
-  WheelParameter actual_prev;
-  WheelParameter target_prev;
+  Accumulator<float, acc_num> angular_accel;
 
   void reset() {
     target.clear();
     actual.clear();
     integral.clear();
     differential.clear();
-    actual_prev.clear();
-    target_prev.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
     accel.clear(imu.accel.y);
     gyro.clear(imu.gyro.z);
+    angular_accel.clear(imu.angular_accel);
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -173,21 +175,16 @@ private:
         wheel_position[i].push(enc.position(i));
       accel.push(imu.accel.y);
       gyro.push(imu.gyro.z);
-
-      // LPFのサンプル数を指定
-      //        ave_num = std::min(acc_num, static_cast<int>(PI *
-      //        MACHINE_GEAR_RATIO * MACHINE_WHEEL_DIAMETER / ((1.0f +
-      //        fabs(target.trans)) * SPEED_CONTROLLER_PERIOD_US / 1000000)));
-      ave_num = acc_num;
+      angular_accel.push(imu.angular_accel);
 
       float sum_accel = 0.0f;
-      for (int j = 0; j < ave_num - 1; j++)
+      for (int j = 0; j < acc_num - 1; j++)
         sum_accel += accel[j];
 
       for (int i = 0; i < 2; i++) {
         actual.wheel[i] =
-            (wheel_position[i][0] - wheel_position[i][ave_num - 1]) /
-            (ave_num - 1) * 1000000 / SPEED_CONTROLLER_PERIOD_US;
+            (wheel_position[i][0] - wheel_position[i][acc_num - 1]) /
+            (acc_num - 1) * 1000000 / SPEED_CONTROLLER_PERIOD_US;
         enconly.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) *
                            1000000 / SPEED_CONTROLLER_PERIOD_US;
       }
@@ -208,14 +205,8 @@ private:
       }
       integral.wheel2pole();
       proportional.wheel2pole();
-      // differential.trans = (target.trans - target_prev.trans) /
-      // SPEED_CONTROLLER_PERIOD_US * 1000000 - accel[0]; differential.rot =
-      // (target.rot - target_prev.rot) / SPEED_CONTROLLER_PERIOD_US * 1000000 -
-      // imu.angular_accel; differential.rot = (target.rot - target_prev.rot) /
-      // SPEED_CONTROLLER_PERIOD_US * 1000000 - (gyro[0] - gyro[1]) /
-      // SPEED_CONTROLLER_PERIOD_US * 1000000;
-      differential.trans = 0;
-      differential.rot = 0;
+      differential.trans = target_a.trans - accel.average();
+      differential.rot = target_a.rot - angular_accel.average();
       differential.pole2wheel();
 
       // calculate pwm value
@@ -237,16 +228,6 @@ private:
                     SPEED_CONTROLLER_PERIOD_US / 1000000;
       position.y += enconly.trans * sin(position.theta) *
                     SPEED_CONTROLLER_PERIOD_US / 1000000;
-      // position.theta += (actual_prev.rot + actual.rot) / 2 *
-      //                   SPEED_CONTROLLER_PERIOD_US / 1000000;
-      // position.x += (actual_prev.trans + actual.trans) / 2 *
-      //               cos(position.theta) * SPEED_CONTROLLER_PERIOD_US /
-      //               1000000;
-      // position.y += (actual_prev.trans + actual.trans) / 2 *
-      //               sin(position.theta) * SPEED_CONTROLLER_PERIOD_US /
-      //               1000000;
-      // actual_prev = actual;
-      // target_prev = target;
     }
   }
 };

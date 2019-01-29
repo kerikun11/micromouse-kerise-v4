@@ -188,7 +188,7 @@ void accel_test() {
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    sc.set_target(ad.v(t), 0);
+    sc.set_target(ad.v(t), 0, ad.a(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
     if ((int)(t * 1000) % 2 == 0)
