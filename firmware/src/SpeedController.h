@@ -65,9 +65,9 @@ public:
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
-#define SPEED_CONTROLLER_KP 0.8f
-#define SPEED_CONTROLLER_KI 12.0f
-#define SPEED_CONTROLLER_KD 0.0f
+#define SPEED_CONTROLLER_KP 0.6f
+#define SPEED_CONTROLLER_KI 96.0f
+#define SPEED_CONTROLLER_KD 0.01f
 
 #define SPEED_CONTROLLER_PERIOD_US 1000
 
@@ -137,7 +137,7 @@ public:
 
 private:
   bool enabled = false;
-  static const int acc_num = 16;
+  static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<float, acc_num> accel;
   Accumulator<float, acc_num> gyro;

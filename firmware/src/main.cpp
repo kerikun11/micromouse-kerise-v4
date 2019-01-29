@@ -168,7 +168,7 @@ void accel_test() {
     float data[9] = {
         0,
         sc.target.trans,
-        sc.actual.rot,
+        sc.actual.trans,
         sc.enconly.trans,
         sc.Kp * sc.proportional.trans,
         sc.Ki * sc.integral.trans,
@@ -184,14 +184,15 @@ void accel_test() {
   delay(500);
   sc.enable();
   const float accel = 9000;
-  const float v_max = 300;
+  const float v_max = 1200;
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     xLastWakeTime = xTaskGetTickCount();
-    printLog();
+    if ((int)(t * 1000) % 2 == 0)
+      printLog();
   }
   sc.set_target(0, 0);
   delay(200);
@@ -326,6 +327,18 @@ void mt_test() {
   mt.drive(value, value);
   ui.waitForCover();
   mt.free();
+}
+
+void pid_tuner() {
+  int Kp = ui.waitForSelect() * 0.1;
+  if (Kp < 0)
+    return;
+  int Ki = ui.waitForSelect() * 16 + ui.waitForSelect();
+  if (Ki < 0)
+    return;
+  sc.Kp = Kp;
+  sc.Ki = Ki;
+  bz.play(Buzzer::SUCCESSFUL);
 }
 
 void petitcon() {
