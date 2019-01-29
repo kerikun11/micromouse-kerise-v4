@@ -1,3 +1,6 @@
 [submodule "firmware/lib/mazelib/MazeLib"]
 	path = firmware/lib/mazelib/MazeLib
 	url = https://github.com/kerikun11/MazeLib
+[submodule "firmware/lib/AccelDesigner"]
+	path = firmware/lib/AccelDesigner
+	url = git@github.com:kerikun11/AccelDesigner.git
