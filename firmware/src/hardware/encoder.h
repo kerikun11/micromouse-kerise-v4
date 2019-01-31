@@ -11,7 +11,7 @@ class Encoder {
 public:
   static constexpr int ENCODER_PULSES = 16384;
 #ifndef M_PI
-  static constexpr float M_PI = 3.14159265358979323846f;
+  static constexpr float M_PI = 3.1415926535897932384626433832795f;
 #endif
 
 public:
@@ -58,6 +58,10 @@ public:
     if (ch == 1)
       value = -value;
     return value;
+  }
+  void clear() {
+    pulses_ovf[0] = 0;
+    pulses_ovf[1] = 0;
   }
   void print() { log_d("Encoder L:\t%f\tR:\t%f\n", position(0), position(1)); }
   void csv() {

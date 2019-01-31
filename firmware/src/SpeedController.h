@@ -69,10 +69,11 @@ public:
 #define SPEED_CONTROLLER_KI 120.0f
 #define SPEED_CONTROLLER_KD 0.03f
 
-#define SPEED_CONTROLLER_PERIOD_US 1000
+#include <pid_controller.h>
 
 class SpeedController {
 public:
+  constexpr static const float Ts = 0.001f;
   struct WheelParameter {
   public:
     float trans;    //< translation [mm]
@@ -95,7 +96,21 @@ public:
       wheel[1] = 0;
     }
   };
-  WheelParameter target;
+  // struct PolarCoordinate {
+  //   float trans;
+  //   float rot;
+  //   PolarCoordinate() {}
+  //   PolarCoordinate(std::array<float, 2> wheel) {
+  //     rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
+  //     trans = (wheel[1] + wheel[0]) / 2;
+  //   }
+  //   void clear() { trans = rot = 0; }
+  // };
+  // struct WheelCoordinate {
+  //   std::array<float, 2> wheel;
+  //   WheelCoordinate() {}
+  // };
+  WheelParameter target_v;
   WheelParameter target_a;
   WheelParameter actual;
   WheelParameter enconly;
@@ -107,11 +122,17 @@ public:
   float Ki = SPEED_CONTROLLER_KI;
   float Kd = SPEED_CONTROLLER_KD;
   Position position;
+  PIDController<float, float> pid_trans;
+  PIDController<float, float> pid_rot;
 
 public:
   SpeedController() {
     enabled = false;
     reset();
+    auto pid_gains = PIDController<float, float>::Gains(
+        SPEED_CONTROLLER_KP, SPEED_CONTROLLER_KI, SPEED_CONTROLLER_KD);
+    pid_trans.setGain(pid_gains);
+    pid_rot.setGain(pid_gains);
     xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
@@ -131,9 +152,9 @@ public:
   }
   void set_target(const float trans, const float rot, const float trans_a = 0,
                   const float rot_a = 0) {
-    target.trans = trans;
-    target.rot = rot;
-    target.pole2wheel();
+    target_v.trans = trans;
+    target_v.rot = rot;
+    target_v.pole2wheel();
     target_a.trans = trans_a;
     target_a.rot = rot_a;
     target_a.pole2wheel();
@@ -148,7 +169,7 @@ private:
   Accumulator<float, acc_num> angular_accel;
 
   void reset() {
-    target.clear();
+    target_v.clear();
     actual.clear();
     integral.clear();
     differential.clear();
@@ -184,24 +205,22 @@ private:
       for (int i = 0; i < 2; i++) {
         actual.wheel[i] =
             (wheel_position[i][0] - wheel_position[i][acc_num - 1]) /
-            (acc_num - 1) * 1000000 / SPEED_CONTROLLER_PERIOD_US;
-        enconly.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) *
-                           1000000 / SPEED_CONTROLLER_PERIOD_US;
+            (acc_num - 1) / Ts;
+        enconly.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
       }
-      acconly.trans = sum_accel * SPEED_CONTROLLER_PERIOD_US / 1000000 / 2;
+      acconly.trans = sum_accel * Ts / 2;
       enconly.wheel2pole();
 
       // calculate actual value
       actual.wheel2pole();
-      actual.trans += sum_accel * SPEED_CONTROLLER_PERIOD_US / 1000000 / 2;
+      actual.trans += sum_accel * Ts / 2;
       actual.rot = imu.gyro.z;
       actual.pole2wheel();
 
       // calculate pid value
       for (int i = 0; i < 2; i++) {
-        integral.wheel[i] += (target.wheel[i] - actual.wheel[i]) *
-                             SPEED_CONTROLLER_PERIOD_US / 1000000;
-        proportional.wheel[i] = target.wheel[i] - actual.wheel[i];
+        integral.wheel[i] += (target_v.wheel[i] - actual.wheel[i]) * Ts;
+        proportional.wheel[i] = target_v.wheel[i] - actual.wheel[i];
       }
       integral.wheel2pole();
       proportional.wheel2pole();
@@ -223,11 +242,9 @@ private:
       }
 
       // calculate odometry value
-      position.theta += imu.gyro.z * SPEED_CONTROLLER_PERIOD_US / 1000000;
-      position.x += enconly.trans * cos(position.theta) *
-                    SPEED_CONTROLLER_PERIOD_US / 1000000;
-      position.y += enconly.trans * sin(position.theta) *
-                    SPEED_CONTROLLER_PERIOD_US / 1000000;
+      position.theta += imu.gyro.z * Ts;
+      position.x += enconly.trans * cos(position.theta) * Ts;
+      position.y += enconly.trans * sin(position.theta) * Ts;
     }
   }
 };

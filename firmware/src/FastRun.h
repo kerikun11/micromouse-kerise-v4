@@ -13,7 +13,6 @@
 
 #define FAST_RUN_TASK_PRIORITY 3
 #define FAST_RUN_STACK_SIZE 8192
-#define FAST_RUN_PERIOD 1000
 
 #define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)

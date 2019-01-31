@@ -167,7 +167,8 @@ void accel_test() {
   auto printLog = []() {
     float data[9] = {
         0,
-        sc.target.trans,
+        sc.target_v.trans,
+        sc.target_a.trans,
         sc.actual.trans,
         sc.enconly.trans,
         sc.Kp * sc.proportional.trans,
@@ -175,7 +176,6 @@ void accel_test() {
         sc.Kd * sc.differential.trans,
         sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
             sc.Kd * sc.differential.trans,
-        ui.getBatteryVoltage(),
     };
     lgr.push(data);
   };

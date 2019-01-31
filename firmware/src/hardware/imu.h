@@ -30,19 +30,19 @@ struct MotionParameter {
     z += obj.z;
     return *this;
   }
-  const MotionParameter &operator/=(const float &div) {
-    x /= div;
-    y /= div;
-    z /= div;
-    return *this;
-  }
 };
 
-#define ICM20602_ACCEL_FACTOR 2048.0f
-#define ICM20602_GYRO_FACTOR 16.4f
-#define ICM20602_ACCEL_G 9806.65f
-
 class ICM20602 {
+public:
+  static constexpr float ACCEL_G = 9806.65f; //< [mm/s/s]
+#ifndef M_PI
+  static constexpr float M_PI = 3.1415926535897932384626433832795f;
+#endif
+
+private:
+  static constexpr float ICM20602_ACCEL_FACTOR = 2048.0f;
+  static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
+
 public:
   ICM20602() {}
   MotionParameter accel, gyro;
@@ -58,6 +58,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
+#warning "try up to 20MHz"
     dev_cfg.clock_speed_hz = 10000000;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
@@ -90,26 +91,23 @@ public:
     readReg(0x3b, rx, 14);
     bond.h = rx[0];
     bond.l = rx[1];
-    accel.x =
-        bond.i / ICM20602_ACCEL_FACTOR * ICM20602_ACCEL_G - accel_offset.x;
+    accel.x = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.x;
     bond.h = rx[2];
     bond.l = rx[3];
-    accel.y =
-        bond.i / ICM20602_ACCEL_FACTOR * ICM20602_ACCEL_G - accel_offset.y;
+    accel.y = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.y;
     bond.h = rx[4];
     bond.l = rx[5];
-    accel.z =
-        bond.i / ICM20602_ACCEL_FACTOR * ICM20602_ACCEL_G - accel_offset.z;
+    accel.z = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.z;
 
     bond.h = rx[8];
     bond.l = rx[9];
-    gyro.x = bond.i / ICM20602_GYRO_FACTOR * PI / 180 - gyro_offset.x;
+    gyro.x = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.x;
     bond.h = rx[10];
     bond.l = rx[11];
-    gyro.y = bond.i / ICM20602_GYRO_FACTOR * PI / 180 - gyro_offset.y;
+    gyro.y = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.y;
     bond.h = rx[12];
     bond.l = rx[13];
-    gyro.z = bond.i / ICM20602_GYRO_FACTOR * PI / 180 - gyro_offset.z;
+    gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.z;
   }
   void calibration() {
     reset();
@@ -167,12 +165,14 @@ private:
   }
 };
 
-#define IMU_UPDATE_PERIOD_US 1000
 #define IMU_STACK_SIZE 2048
 #define IMU_TASK_PRIORITY 5
-#define IMU_ROTATION_RADIOUS 10.0f
 
 class IMU {
+public:
+  static constexpr float Ts = 0.001f;
+  static constexpr float IMU_ROTATION_RADIOUS = 10.0f;
+
 public:
   IMU() {
     sampling_end_semaphore = xSemaphoreCreateBinary();
@@ -250,7 +250,7 @@ private:
     accel.y = (-icm[0].accel.y + icm[1].accel.y) / 2;
     accel.z = (icm[0].accel.z + icm[1].accel.z) / 2;
 
-    angle += gyro.z * IMU_UPDATE_PERIOD_US / 1000000;
+    angle += gyro.z * Ts;
     angular_accel =
         (icm[0].accel.y + icm[1].accel.y) / 2 / IMU_ROTATION_RADIOUS;
   }
