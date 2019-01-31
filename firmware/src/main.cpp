@@ -168,9 +168,9 @@ void accel_test() {
     float data[9] = {
         0,
         sc.target_v.trans,
-        sc.target_a.trans,
+        sc.target_a.trans * 0.001f,
         sc.actual.trans,
-        sc.enconly.trans,
+        sc.enc_v.trans,
         sc.Kp * sc.proportional.trans,
         sc.Ki * sc.integral.trans,
         sc.Kd * sc.differential.trans,

@@ -984,7 +984,7 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.0032f;
+      const float gain = 0.0016f;
       if (wd.wall[0]) {
         sc.position +=
             Position(0, wd.distance.side[0] * gain, 0).rotate(origin.theta);
@@ -999,7 +999,7 @@ private:
     // 45 [deg] の倍数
     if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
         (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-      const float shift = 0.02f;
+      const float shift = 0.01f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, shift, 0).rotate(origin.theta);
@@ -1013,7 +1013,7 @@ private:
     led = led_flags;
   }
   void wallCut(bool diag) {
-#define WALL_CUT_OFFSET_X_ (-20)
+#define WALL_CUT_OFFSET_X_ (-30)
     if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
       for (int i = 0; i < 2; i++) {
         // 45 [deg] + 90 [deg] の倍数

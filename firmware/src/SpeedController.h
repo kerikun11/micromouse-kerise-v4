@@ -12,52 +12,47 @@ public:
 public:
   Position(const float x = 0, const float y = 0, const float theta = 0)
       : x(x), y(y), theta(theta) {}
+  Position(const Position &obj) : x(obj.x), y(obj.y), theta(obj.theta) {}
   Position(const float pos[3]) : x(pos[0]), y(pos[1]), theta(pos[2]) {}
-
-  void reset() {
-    x = 0;
-    y = 0;
-    theta = 0;
-  }
+  void clear() { x = y = theta = 0; }
   void set(const float x = 0, const float y = 0, const float theta = 0) {
     this->x = x;
     this->y = y;
     this->theta = theta;
   }
   const Position rotate(const float angle) const {
-    return Position(x * cos(angle) - y * sin(angle),
-                    x * sin(angle) + y * cos(angle), theta);
+    return Position(x * std::cos(angle) - y * std::sin(angle),
+                    x * std::sin(angle) + y * std::cos(angle), theta);
   }
   float getNorm() const { return std::sqrt(x * x + y * y); }
-  Position mirror_x() const { return Position(x, -y, -theta); }
-
-  Position operator=(const Position &obj) {
+  const Position mirror_x() const { return Position(x, -y, -theta); }
+  const Position &operator=(const Position &obj) {
     x = obj.x;
     y = obj.y;
     theta = obj.theta;
     return *this;
   }
-  Position operator+() const { return Position(x, y, theta); }
-  Position operator+(const Position &obj) const {
+  const Position operator+() const { return Position(x, y, theta); }
+  const Position operator+(const Position &obj) const {
     return Position(x + obj.x, y + obj.y, theta + obj.theta);
   }
-  Position operator+=(const Position &obj) {
+  const Position &operator+=(const Position &obj) {
     x += obj.x;
     y += obj.y;
     theta += obj.theta;
     return *this;
   }
-  Position operator-() const { return Position(-x, -y, -theta); }
-  Position operator-(const Position &obj) const {
+  const Position operator-() const { return Position(-x, -y, -theta); }
+  const Position operator-(const Position &obj) const {
     return Position(x - obj.x, y - obj.y, theta - obj.theta);
   }
-  Position operator-=(const Position &obj) {
+  const Position &operator-=(const Position &obj) {
     x -= obj.x;
     y -= obj.y;
     theta -= obj.theta;
     return *this;
   }
-  inline void print(const char *name = "Pos") {
+  void print(const char *name = "Pos") {
     printf("%s: (%.1f,\t%.1f,\t%.3f)\n", name, x, y, theta);
   }
 };
@@ -113,8 +108,7 @@ public:
   WheelParameter target_v;
   WheelParameter target_a;
   WheelParameter actual;
-  WheelParameter enconly;
-  WheelParameter acconly;
+  WheelParameter enc_v;
   WheelParameter proportional;
   WheelParameter integral;
   WheelParameter differential;
@@ -122,17 +116,17 @@ public:
   float Ki = SPEED_CONTROLLER_KI;
   float Kd = SPEED_CONTROLLER_KD;
   Position position;
-  PIDController<float, float> pid_trans;
-  PIDController<float, float> pid_rot;
+  // PIDController<float, float> pid_trans;
+  // PIDController<float, float> pid_rot;
 
 public:
   SpeedController() {
     enabled = false;
     reset();
-    auto pid_gains = PIDController<float, float>::Gains(
-        SPEED_CONTROLLER_KP, SPEED_CONTROLLER_KI, SPEED_CONTROLLER_KD);
-    pid_trans.setGain(pid_gains);
-    pid_rot.setGain(pid_gains);
+    // auto pid_gains = PIDController<float, float>::Gains(
+    //     SPEED_CONTROLLER_KP, SPEED_CONTROLLER_KI, SPEED_CONTROLLER_KD);
+    // pid_trans.setGain(pid_gains);
+    // pid_rot.setGain(pid_gains);
     xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
@@ -140,7 +134,7 @@ public:
   void enable(const bool &reset_position = true) {
     reset();
     if (reset_position)
-      position.reset();
+      position.clear();
     enabled = true;
     printf("Speed Controller Enabled\n");
   }
@@ -183,40 +177,31 @@ private:
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      // xLastWakeTime = xTaskGetTickCount();
+      // 有効でなければスルー
       if (enabled == false)
-        continue; //< 有効でなければスルー
-
+        continue;
       // サンプリング終了まで待つ
       enc.samplingSemaphoreTake();
       imu.samplingSemaphoreTake();
-
       // 最新のデータの追加
       for (int i = 0; i < 2; i++)
         wheel_position[i].push(enc.position(i));
       accel.push(imu.accel.y);
       gyro.push(imu.gyro.z);
       angular_accel.push(imu.angular_accel);
-
-      float sum_accel = 0.0f;
-      for (int j = 0; j < acc_num - 1; j++)
-        sum_accel += accel[j];
-
-      for (int i = 0; i < 2; i++) {
-        actual.wheel[i] =
-            (wheel_position[i][0] - wheel_position[i][acc_num - 1]) /
-            (acc_num - 1) / Ts;
-        enconly.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
-      }
-      acconly.trans = sum_accel * Ts / 2;
-      enconly.wheel2pole();
-
-      // calculate actual value
+      // エンコーダの微分
+      for (int i = 0; i < 2; i++)
+        enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
+      enc_v.wheel2pole();
+      // calculate estimated value
       actual.wheel2pole();
-      actual.trans += sum_accel * Ts / 2;
-      actual.rot = imu.gyro.z;
+      float kt = 0.75f;
+      float kr = 0.25f;
+      actual.trans =
+          kt * (actual.trans + imu.accel.z * Ts) + (1 - kt) * enc_v.trans;
+      actual.rot =
+          kr * (actual.rot + imu.angular_accel * Ts) + (1 - kr) * imu.gyro.z;
       actual.pole2wheel();
-
       // calculate pid value
       for (int i = 0; i < 2; i++) {
         integral.wheel[i] += (target_v.wheel[i] - actual.wheel[i]) * Ts;
@@ -240,11 +225,10 @@ private:
         mt.emergency_stop();
         fan.drive(0);
       }
-
       // calculate odometry value
       position.theta += imu.gyro.z * Ts;
-      position.x += enconly.trans * cos(position.theta) * Ts;
-      position.y += enconly.trans * sin(position.theta) * Ts;
+      position.x += actual.trans * std::cos(position.theta) * Ts;
+      position.y += actual.trans * std::sin(position.theta) * Ts;
     }
   }
 };
