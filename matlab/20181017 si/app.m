@@ -53,23 +53,37 @@ title('Battery Voltage [V]', 'FontSize', FontSize);
 xlabel('time [ms]', 'FontSize', FontSize);
 ylabel('Battery Voltage [V]', 'FontSize', FontSize);
 
+%% filter design
 diff_enc = (diff(enc(1, :))+diff(enc(2, :))) / dt / 2;
-% diff_enc = (enc(:, 2:end) - enc(:, 1:end-1)) / dt;
 int_accel = cumtrapz(accel) * dt;
-% diff_domega = diff(omega);
 int_domega= cumtrapz(domega) * dt;
+diff_enc_mean = movmean(diff_enc, [16 0]);
+omega_mean = movmean(omega, [16 0]);
+
+% IIR Complementary Filtered
+alpha = 0.75;
+v_filtered = zeros(size(diff_enc));
+v_filtered(1) = diff_enc(1);
+omega_filtered = zeros(size(omega));
+omega_filtered(1) = omega(1);
+for i = 2 : length(diff_enc)
+    v_filtered(i) = alpha * (v_filtered(i-1) + accel(i) * dt) + (1-alpha) * diff_enc(i);
+end
+for i = 2 : length(omega)
+    omega_filtered(i) = alpha * (omega_filtered(i-1) + domega(i) * dt) + (1-alpha) * omega(i);
+end
 
 figure(2);
 subplot(2, 1, 1); hold off;
-plot(time(1:end-1), diff_enc, time, int_accel, 'LineWidth', LineWidth); grid on;
-legend({'differential of encoder', 'integral of accel'}, 'FontSize', FontSize);
+plot(time(1:end-1), diff_enc, time, int_accel, time(1:end-1), diff_enc_mean, time(1:end-1), v_filtered, 'LineWidth', LineWidth); grid on;
+legend({'differential of encoder', 'integral of accel', 'Meadian Fileted', 'Complementary Filtered'}, 'FontSize', FontSize, 'Location', 'SouthEast');
 title('comparison of velocity', 'FontSize', FontSize);
 xlabel('time [ms]', 'FontSize', FontSize);
 ylabel('velocity [mm/s/s]', 'FontSize', FontSize);
 
 subplot(2, 1, 2); hold off;
-plot(time, omega, time, int_domega, 'LineWidth', LineWidth); grid on;
-legend({'angular velocity', 'integral of angular acceleration'}, 'FontSize', FontSize);
+plot(time, omega, time, int_domega, time, omega_mean, time, omega_filtered, 'LineWidth', LineWidth); grid on;
+legend({'angular velocity', 'integral of angular acceleration', 'Meadian Fileted', 'Complementary Filtered'}, 'FontSize', FontSize, 'Location', 'SouthEast');
 title('comparison of angular velocity', 'FontSize', FontSize);
 xlabel('time [ms]', 'FontSize', FontSize);
 ylabel('angular velocity [rad/s]', 'FontSize', FontSize);
