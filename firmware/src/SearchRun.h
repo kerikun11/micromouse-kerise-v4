@@ -4,6 +4,7 @@
 #include "global.h"
 
 #include "TaskBase.h"
+#include <AccelDesigner.h>
 #include <cmath>
 #include <queue>
 #include <vector>
@@ -15,7 +16,6 @@
 
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-// #define SEARCH_ST_LOOK_AHEAD(v) 20
 #define SEARCH_ST_FB_GAIN 20
 #define SEARCH_CURVE_FB_GAIN 4.0f
 
@@ -255,7 +255,7 @@ private:
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (int i = 0; i < 3000; i++) {
-        const float gain = 80.0f;
+        const float gain = 100.0f;
         const float satu = 50.0f;
         const float end = 0.2f;
         SpeedController::WheelParameter wp;
@@ -373,48 +373,80 @@ private:
     sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
     printPosition("Turn End");
   }
+  // void straight_x(const float distance, const float v_max, const float v_end)
+  // {
+  //   const float accel = 3000;
+  //   const float decel = 3000;
+  //   int ms = 0;
+  //   float v_start = sc.actual.trans;
+  //   float T = 1.5f * (v_max - v_start) / accel;
+  //   float int_y = 0;
+  //   portTickType xLastWakeTime = xTaskGetTickCount();
+  //   for (int i = 0; i < 2; i++)
+  //     prev_wall[i] = wd.wall[i];
+  //   while (1) {
+  //     Position cur = sc.position;
+  //     if (v_end >= 1.0f && cur.x > distance - SEARCH_END_REMAIN)
+  //       break;
+  //     if (v_end < 1.0f && cur.x > distance - 1.0f)
+  //       break;
+  //     float extra = distance - cur.x - SEARCH_END_REMAIN;
+  //     if (tof.getDistance() < SEGMENT_WIDTH && tof.getDistance() < extra)
+  //       stop();
+  //     float velocity_a = v_start + (v_max - v_start) * 6.0f *
+  //                                      (-1.0f / 3 * pow(ms / 1000.0f / T, 3)
+  //                                      +
+  //                                       1.0f / 2 * pow(ms / 1000.0f / T, 2));
+  //     float velocity_d = sqrt(2 * decel * fabs(extra) + v_end * v_end);
+  //     float velocity = v_max;
+  //     if (velocity > velocity_d)
+  //       velocity = velocity_d;
+  //     if (ms / 1000.0f < T && velocity > velocity_a)
+  //       velocity = velocity_a;
+  //     float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) -
+  //     cur.theta; if (velocity < 100)
+  //       theta = 0;
+  //     sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
+  //     wall_avoid(distance);
+  //     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+  //     xLastWakeTime = xTaskGetTickCount();
+  //     ms++;
+  //     int_y += sc.position.y;
+  //     sc.position.theta += int_y * 0.00000001f;
+  //   }
+  //   sc.set_target(v_end, 0);
+  //   sc.position.x -= distance; //< 移動した量だけ位置を更新
+  //   printPosition("Straight End");
+  // }
   void straight_x(const float distance, const float v_max, const float v_end) {
-    const float accel = 3000;
-    const float decel = 3000;
-    int ms = 0;
-    float v_start = sc.actual.trans;
-    float T = 1.5f * (v_max - v_start) / accel;
+    const float accel = 6000;
+    const float v_start = sc.actual.trans;
+    AccelDesigner ad(accel, v_start, v_max, v_end,
+                     distance - SEARCH_END_REMAIN);
     float int_y = 0;
-    portTickType xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
-    while (1) {
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    for (float t = 0; true; t += 0.001f) {
       Position cur = sc.position;
       if (v_end >= 1.0f && cur.x > distance - SEARCH_END_REMAIN)
         break;
-      if (v_end < 1.0f && cur.x > distance - 1.0f)
+      if (v_end < 1.0f && cur.x > distance)
         break;
-      float extra = distance - cur.x - SEARCH_END_REMAIN;
-      if (tof.getDistance() < SEGMENT_WIDTH && tof.getDistance() < extra)
-        stop();
-      float velocity_a = v_start + (v_max - v_start) * 6.0f *
-                                       (-1.0f / 3 * pow(ms / 1000.0f / T, 3) +
-                                        1.0f / 2 * pow(ms / 1000.0f / T, 2));
-      float velocity_d = sqrt(2 * decel * fabs(extra) + v_end * v_end);
-      float velocity = v_max;
-      if (velocity > velocity_d)
-        velocity = velocity_d;
-      if (ms / 1000.0f < T && velocity > velocity_a)
-        velocity = velocity_a;
+      float velocity = ad.v(t);
+      if (v_end < 1.0f)
+        velocity = std::max(60.0f, velocity);
       float theta = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
       if (velocity < 100)
         theta = 0;
-      sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta);
+      sc.set_target(velocity, SEARCH_ST_FB_GAIN * theta, ad.a(t));
       wall_avoid(distance);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      xLastWakeTime = xTaskGetTickCount();
-      ms++;
       int_y += sc.position.y;
       sc.position.theta += int_y * 0.00000001f;
     }
     sc.set_target(v_end, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
-    printPosition("Straight End");
   }
   template <class C> void trace(C tr, const float velocity) {
     portTickType xLastWakeTime = xTaskGetTickCount();
