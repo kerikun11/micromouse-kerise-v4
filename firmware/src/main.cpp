@@ -151,9 +151,10 @@ void turn(const float angle) {
 void position_test() {
   if (!ui.waitForCover())
     return;
-  led = 9;
-  delay(1000);
+  led = 6;
+  imu.calibration();
   sc.enable();
+  led = 9;
   sc.set_target(0, 0);
   ui.waitForCover();
   sc.disable();

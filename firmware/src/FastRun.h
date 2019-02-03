@@ -16,8 +16,8 @@
 
 #define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-#define FAST_ST_FB_GAIN 20
-#define FAST_CURVE_FB_GAIN 4.0f
+#define FAST_ST_FB_GAIN 30
+#define FAST_CURVE_FB_GAIN 9.0f
 
 class FastTrajectory {
 public:
@@ -996,19 +996,19 @@ private:
       }
     }
     // 45 [deg] の倍数
-    if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
-        (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
-      const float shift = 0.01f;
-      const float threashold = -50;
-      if (wd.distance.front[0] > threashold) {
-        sc.position += Position(0, shift, 0).rotate(origin.theta);
-        led_flags |= 4;
-      }
-      if (wd.distance.front[1] > threashold) {
-        sc.position -= Position(0, shift, 0).rotate(origin.theta);
-        led_flags |= 2;
-      }
-    }
+    // if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
+    //     (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
+    //   const float shift = 0.01f;
+    //   const float threashold = -50;
+    //   if (wd.distance.front[0] > threashold) {
+    //     sc.position += Position(0, shift, 0).rotate(origin.theta);
+    //     led_flags |= 4;
+    //   }
+    //   if (wd.distance.front[1] > threashold) {
+    //     sc.position -= Position(0, shift, 0).rotate(origin.theta);
+    //     led_flags |= 2;
+    //   }
+    // }
     led = led_flags;
   }
   void wallCut(bool diag) {
@@ -1016,30 +1016,32 @@ private:
     if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
       for (int i = 0; i < 2; i++) {
         // 45 [deg] + 90 [deg] の倍数
-        if (diag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 4) {
-          if (prev_wall[i] && !wd.wall[i]) {
-            Position prev = sc.position;
-            Position fix = sc.position.rotate(-origin.theta);
-            const float extra = 36;
-            if (i == 0) {
-              fix.x = round2(fix.x - extra - SEGMENT_DIAGONAL_WIDTH / 2,
-                             SEGMENT_DIAGONAL_WIDTH) +
-                      SEGMENT_DIAGONAL_WIDTH / 2 + extra;
-            } else {
-              fix.x = round2(fix.x - extra, SEGMENT_DIAGONAL_WIDTH) + extra;
-            }
-            fix = fix.rotate(origin.theta);
-            if (fabs(prev.rotate(-origin.theta).x -
-                     fix.rotate(-origin.theta).x) < 10.0f) {
-              sc.position = fix;
-              printf("WallCutDiag[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, "
-                     "%.1f)\n",
-                     i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
-                     sc.position.y, sc.position.theta * 180 / PI);
-            }
-            bz.play(Buzzer::SHORT);
-          }
-        }
+        // if (diag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 <
+        // 4) {
+        //   if (prev_wall[i] && !wd.wall[i]) {
+        //     Position prev = sc.position;
+        //     Position fix = sc.position.rotate(-origin.theta);
+        //     const float extra = 36;
+        //     if (i == 0) {
+        //       fix.x = round2(fix.x - extra - SEGMENT_DIAGONAL_WIDTH / 2,
+        //                      SEGMENT_DIAGONAL_WIDTH) +
+        //               SEGMENT_DIAGONAL_WIDTH / 2 + extra;
+        //     } else {
+        //       fix.x = round2(fix.x - extra, SEGMENT_DIAGONAL_WIDTH) + extra;
+        //     }
+        //     fix = fix.rotate(origin.theta);
+        //     if (fabs(prev.rotate(-origin.theta).x -
+        //              fix.rotate(-origin.theta).x) < 10.0f) {
+        //       sc.position = fix;
+        //       printf("WallCutDiag[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, "
+        //              "%.1f)\n",
+        //              i, prev.x, prev.y, prev.theta * 180.0f / PI,
+        //              sc.position.x, sc.position.y, sc.position.theta * 180 /
+        //              PI);
+        //     }
+        //     bz.play(Buzzer::SHORT);
+        //   }
+        // }
         // 90 [deg] の倍数
         if ((int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 4) {
           if (prev_wall[i] && !wd.wall[i]) {
@@ -1083,8 +1085,12 @@ private:
     }
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
+    if (distance - FAST_END_REMAIN < 0) {
+      updateOrigin(Position(distance, 0, 0));
+      return;
+    }
     const float accel = runParameter.accel;
-    const float v_start = sc.actual.trans;
+    const float v_start = sc.target_v.trans;
     AccelDesigner ad(accel, v_start, v_max, v_end, distance - FAST_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
@@ -1108,11 +1114,13 @@ private:
       int_y += getRelativePosition().y;
       sc.position.theta += int_y * 0.00000001f;
     }
-    sc.set_target(v_end, 0);
+    if (v_end < 1.0f)
+      sc.set_target(0, 0);
     updateOrigin(Position(distance, 0, 0));
     printPosition("Straight End");
   }
-  template <class C> void trace(C tr, const float velocity) {
+  template <class C> void trace(C tr) {
+    const float velocity = sc.target_v.trans;
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
@@ -1224,7 +1232,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight2;
       } break;
       case FAST_TURN_RIGHT_45: {
@@ -1234,7 +1242,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight2;
       } break;
       case FAST_TURN_LEFT_45R: {
@@ -1244,7 +1252,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight1;
       } break;
       case FAST_TURN_RIGHT_45R: {
@@ -1254,7 +1262,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight1;
       } break;
       case FAST_TURN_LEFT_V90: {
@@ -1264,7 +1272,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_RIGHT_V90: {
@@ -1274,7 +1282,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_LEFT_S90: {
@@ -1285,7 +1293,7 @@ public:
           straight = 0;
         }
         wall_calib(tr.velocity);
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_RIGHT_S90: {
@@ -1296,7 +1304,7 @@ public:
           straight = 0;
         }
         wall_calib(tr.velocity);
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_LEFT_90: {
@@ -1306,7 +1314,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_RIGHT_90: {
@@ -1316,7 +1324,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_LEFT_135: {
@@ -1326,7 +1334,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight2;
       } break;
       case FAST_TURN_RIGHT_135: {
@@ -1336,7 +1344,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight2;
       } break;
       case FAST_TURN_LEFT_135R: {
@@ -1346,7 +1354,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight1;
       } break;
       case FAST_TURN_RIGHT_135R: {
@@ -1356,7 +1364,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight1;
       } break;
       case FAST_TURN_LEFT_180: {
@@ -1366,7 +1374,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_TURN_RIGHT_180: {
@@ -1376,7 +1384,7 @@ public:
           straight_x(straight, v_max, tr.velocity * curve_gain);
           straight = 0;
         }
-        trace(tr, sc.actual.trans);
+        trace(tr);
         straight += tr.straight;
       } break;
       case FAST_GO_STRAIGHT:

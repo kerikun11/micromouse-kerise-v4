@@ -256,7 +256,7 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (int i = 0; i < 3000; i++) {
         const float gain = 100.0f;
-        const float satu = 50.0f;
+        const float satu = 200.0f;
         const float end = 0.2f;
         SpeedController::WheelParameter wp;
         wp.wheel[0] =
@@ -268,7 +268,6 @@ private:
           break;
         sc.set_target(wp.trans, wp.rot);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-        xLastWakeTime = xTaskGetTickCount();
       }
       sc.set_target(0, 0);
       printPosition("wall_attach");
@@ -375,7 +374,7 @@ private:
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
     const float accel = 6000;
-    const float v_start = sc.actual.trans;
+    const float v_start = sc.target_v.trans;
     AccelDesigner ad(accel, v_start, v_max, v_end,
                      distance - SEARCH_END_REMAIN);
     float int_y = 0;
@@ -400,10 +399,12 @@ private:
       int_y += sc.position.y;
       sc.position.theta += int_y * 0.00000001f;
     }
-    sc.set_target(v_end, 0);
+    if (v_end < 1.0f)
+      sc.set_target(0, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
   }
-  template <class C> void trace(C tr, const float velocity) {
+  template <class C> void trace(C tr) {
+    const float velocity = sc.target_v.trans;
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
       if (tr.getRemain() < SEARCH_END_REMAIN)
@@ -517,6 +518,8 @@ private:
         isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
       case GO_STRAIGHT:
+        if (wd.wall[2])
+          stop();
         straight_x(SEGMENT_WIDTH * num, num > 1 ? v_max : velocity, velocity);
         break;
       case GO_HALF:
@@ -529,7 +532,7 @@ private:
           S90 tr(false);
           wall_calib(velocity);
           straight_x(tr.straight - ahead_length, velocity, tr.velocity);
-          trace(tr, tr.velocity);
+          trace(tr);
           straight_x(tr.straight + ahead_length, velocity, velocity);
         }
         break;
@@ -540,7 +543,7 @@ private:
           S90 tr(true);
           wall_calib(velocity);
           straight_x(tr.straight - ahead_length, velocity, tr.velocity);
-          trace(tr, tr.velocity);
+          trace(tr);
           straight_x(tr.straight + ahead_length, velocity, velocity);
         }
         break;

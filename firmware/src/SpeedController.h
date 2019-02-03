@@ -75,7 +75,7 @@ public:
     float rot;      //< rotation [rad]
     float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
   public:
-    WheelParameter() {}
+    WheelParameter() { clear(); }
     void pole2wheel() {
       wheel[0] = trans - MACHINE_ROTATION_RADIUS * rot;
       wheel[1] = trans + MACHINE_ROTATION_RADIUS * rot;
