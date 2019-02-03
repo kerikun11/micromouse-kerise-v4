@@ -1214,7 +1214,7 @@ public:
     imu.calibration();
     bz.play(Buzzer::CANCEL);
     // 壁に背中を確実につける
-    mt.drive(-200, -200);
+    mt.drive(-0.2f, -0.2f);
     delay(200);
     mt.free();
     imu.angle = 0;

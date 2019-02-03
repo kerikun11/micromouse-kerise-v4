@@ -38,25 +38,16 @@
 #define I2C_PORT_NUM_TOF I2C_PORT_NUM
 #define I2C_PORT_NUM_LED I2C_PORT_NUM
 
+/* Motor Control PWM */
+#define MOTOR_L_CTRL1_PIN GPIO_NUM_32
+#define MOTOR_L_CTRL2_PIN GPIO_NUM_33
+#define MOTOR_R_CTRL1_PIN GPIO_NUM_18
+#define MOTOR_R_CTRL2_PIN GPIO_NUM_19
+
 /* LED Controller */
-#define MOTOR_L_CTRL1_PIN 32
-#define MOTOR_L_CTRL2_PIN 33
-#define MOTOR_R_CTRL1_PIN 18
-#define MOTOR_R_CTRL2_PIN 19
-
 #define FAN_PIN 23
-// #define FAN_PIN 25
-
-#define BUZZER_PIN 25
-// #define BUZZER_PIN 23
-
-#define LEDC_CH_MOTOR_L_CTRL1 0
-#define LEDC_CH_MOTOR_L_CTRL2 1
-#define LEDC_CH_MOTOR_R_CTRL1 2
-#define LEDC_CH_MOTOR_R_CTRL2 3
-
 #define LEDC_CH_FAN 6
-
+#define BUZZER_PIN 25
 #define LEDC_CH_BUZZER 4
 
 /* Machine Size Parameter */

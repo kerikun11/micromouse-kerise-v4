@@ -256,7 +256,7 @@ private:
     // 探索
     if (isForceSearch || !calcShortestDirs()) {
       getMaze().resetLastWall(5);
-      mt.drive(-200, -200);
+      mt.drive(-0.2f, -0.2f);
       delay(500);
       mt.free();
       if (!searchRun()) {

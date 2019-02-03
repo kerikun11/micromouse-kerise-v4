@@ -60,9 +60,9 @@ public:
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
-#define SPEED_CONTROLLER_KP 0.6f
-#define SPEED_CONTROLLER_KI 120.0f
-#define SPEED_CONTROLLER_KD 0.03f
+#define SPEED_CONTROLLER_KP 0.0006f
+#define SPEED_CONTROLLER_KI 0.12f
+#define SPEED_CONTROLLER_KD 0.00003f
 
 #include <pid_controller.h>
 
@@ -220,7 +220,7 @@ private:
                        Kd * differential.wheel[i];
       mt.drive(pwm_value[0], pwm_value[1]);
       // fail safe
-      const float pwm_em = Motor::MOTOR_DUTY_MAX * 2;
+      const float pwm_em = 2.0f;
       if (fabs(pwm_value[0]) > pwm_em || fabs(pwm_value[1]) > pwm_em) {
         mt.emergency_stop();
         fan.drive(0);

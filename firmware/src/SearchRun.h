@@ -474,9 +474,9 @@ private:
       delay(1);
     }
     sc.disable();
-    mt.drive(-100, -100);
+    mt.drive(-0.1f, -0.1f);
     delay(200);
-    mt.drive(-200, -200);
+    mt.drive(-0.2f, -0.2f);
     delay(200);
     sc.enable(true);
   }
