@@ -6,10 +6,12 @@
 #include <sstream>
 
 #include "global.h"
+#include "hardware/app_wifi.h"
 
 void mainTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
+void wifiTask(void *arg);
 
 void setup() {
   WiFi.mode(WIFI_OFF);
@@ -44,6 +46,7 @@ void setup() {
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
   xTaskCreate(mainTask, "main", 4096, NULL, 2, NULL);
+  // xTaskCreate(wifiTask, "wifi", 4096, NULL, 2, NULL);
 }
 
 void loop() { delay(1000); }
@@ -51,13 +54,24 @@ void loop() { delay(1000); }
 void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     // float v = ui.getBatteryVoltage();
     // enc.print();
     // ref.csv();
     // tof.csv(); delay(100);
     // imu.print();
     // wd.print();
+    // wd.csv();
+  }
+}
+
+void wifiTask(void *arg) {
+  app_wifi_init("WiFi-2.4GHz", "kashimamerda");
+  app_wifi_wait_connected();
+  bz.play(Buzzer::SUCCESSFUL);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  while (1) {
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
 }
 
@@ -357,7 +371,8 @@ void normal_drive() {
       mr.resetLastWall(4);
       return;
     }
-    bz.play(Buzzer::SUCCESSFUL);
+    if (mr.isComplete())
+      bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
     led = 9;

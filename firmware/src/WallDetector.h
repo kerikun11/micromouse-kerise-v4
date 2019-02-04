@@ -34,6 +34,16 @@ public:
         value[i] = wv.value[i];
       return *this;
     }
+    const WallValue &operator+=(const WallValue &wv) {
+      for (int i = 0; i < 4; ++i)
+        value[i] += wv.value[i];
+      return *this;
+    }
+    const WallValue &operator-=(const WallValue &wv) {
+      for (int i = 0; i < 4; ++i)
+        value[i] -= wv.value[i];
+      return *this;
+    }
     const WallValue operator-(const WallValue &wv) const {
       WallValue ret;
       for (int i = 0; i < 4; ++i)
@@ -130,7 +140,7 @@ private:
   SemaphoreHandle_t calibrationFrontStartSemaphore;
   SemaphoreHandle_t calibrationFrontEndSemaphore;
   WallValue wall_ref;
-  static const int ave_num = 16;
+  static const int ave_num = 32;
   Accumulator<WallValue, ave_num> buffer;
 
   float ref2dist(const int16_t value) {
@@ -169,6 +179,8 @@ private:
       distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
     }
     buffer.push(distance);
+    // 平均処理
+    distance = buffer.average(4);
 
     // 前壁の更新
     if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
@@ -188,7 +200,13 @@ private:
     }
 
     // 変化量の更新
-    diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
+    // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
+    WallValue tmp = {0};
+    for (int i = 0; i < ave_num / 2; ++i)
+      tmp += buffer[i];
+    for (int i = 0; i < ave_num / 2; ++i)
+      tmp -= buffer[ave_num / 2 + i];
+    diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();

@@ -255,7 +255,7 @@ private:
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (int i = 0; i < 3000; i++) {
-        const float gain = 100.0f;
+        const float gain = 60.0f;
         const float satu = 200.0f;
         const float end = 0.2f;
         SpeedController::WheelParameter wp;
