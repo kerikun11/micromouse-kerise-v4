@@ -42,7 +42,7 @@ void setup() {
     bz.play(Buzzer::ERROR);
 
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
-  // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
+  xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
   xTaskCreate(mainTask, "main", 4096, NULL, 2, NULL);
 }
 
@@ -53,23 +53,16 @@ void printTask(void *arg) {
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_RATE_MS);
     // float v = ui.getBatteryVoltage();
-    // if (v > 1.0f)
-    //   printf("%f\n", v);
     // enc.print();
     // ref.csv();
     // tof.csv(); delay(100);
     // imu.print();
     // wd.print();
-    // printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n", sc.target.trans,
-    //        sc.actual.trans, sc.enconly.trans, sc.Kp * sc.proportional.trans,
-    //        sc.Ki * sc.integral.trans, sc.Kd * sc.differential.trans,
-    //        sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
-    //            sc.Kd * sc.differential.trans);
   }
 }
 
 void timeKeepTask(void *arg) {
-  const int searchig_time_ms = 3 * 60 * 1000;
+  const int searchig_time_ms = 1 * 60 * 1000;
   while (millis() < searchig_time_ms)
     delay(1000);
   bz.play(Buzzer::LOW_BATTERY);
@@ -357,7 +350,7 @@ void petitcon() {
 void normal_drive() {
   int mode = ui.waitForSelect(16);
   switch (mode) {
-  //* 走行
+  /* 走行 */
   case 0:
     if (mr.isComplete() && !mr.calcShortestDirs()) {
       bz.play(Buzzer::ERROR);
@@ -376,13 +369,12 @@ void normal_drive() {
         delay(1000);
         mt.emergency_release();
         mr.start(false, true);
-        // break;
       }
       delay(100);
     }
     mr.terminate();
     break;
-  //* 走行パラメータの選択 & 走行
+  /* 走行パラメータの選択 & 走行 */
   case 1: {
     int preset = ui.waitForSelect(16);
     if (preset < 0)
@@ -396,7 +388,7 @@ void normal_drive() {
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
-  //* 速度の設定
+  /* 速度の設定 */
   case 2: {
     int value;
     for (int i = 0; i < 1; i++)
@@ -421,7 +413,7 @@ void normal_drive() {
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
-  //* 壁制御の設定
+  /* 壁制御の設定 */
   case 3: {
     int value = ui.waitForSelect(16);
     if (value < 0)
@@ -433,7 +425,7 @@ void normal_drive() {
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
-  //* ファンの設定
+  /* ファンの設定 */
   case 4: {
     fan.drive(fr.fanDuty);
     delay(100);
@@ -448,17 +440,17 @@ void normal_drive() {
   }
     bz.play(Buzzer::SUCCESSFUL);
     break;
-  //* 宴会芸
+  /* 宴会芸 */
   case 5:
     position_test();
     break;
-  //* データ消去
+  /* データ消去 */
   case 6:
     bz.play(Buzzer::MAZE_BACKUP);
     mr.resetLastWall(10);
     return;
     break;
-  //* 迷路データの復元
+  /* 迷路データの復元 */
   case 7:
     bz.play(Buzzer::MAZE_RESTORE);
     if (!mr.restore()) {
@@ -467,7 +459,7 @@ void normal_drive() {
     }
     bz.play(Buzzer::SUCCESSFUL);
     break;
-  //* 前壁キャリブレーション
+  /* 前壁キャリブレーション */
   case 8:
     led = 6;
     if (!ui.waitForCover(true))
@@ -477,7 +469,7 @@ void normal_drive() {
     wd.calibrationFront();
     bz.play(Buzzer::CANCEL);
     break;
-  //* 横壁キャリブレーション
+  /* 横壁キャリブレーション */
   case 9:
     led = 9;
     if (!ui.waitForCover())
@@ -487,7 +479,7 @@ void normal_drive() {
     wd.calibrationSide();
     bz.play(Buzzer::CANCEL);
     break;
-  //* 前壁補正データの保存
+  /* 前壁補正データの保存 */
   case 10:
     if (!ui.waitForCover())
       return;
@@ -497,7 +489,7 @@ void normal_drive() {
       bz.play(Buzzer::ERROR);
     }
     break;
-  //* ゴール区画の設定
+  /* ゴール区画の設定 */
   case 11: {
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
@@ -526,7 +518,7 @@ void normal_drive() {
     }
     bz.play(Buzzer::SUCCESSFUL);
   } break;
-  //* マス直線
+  /* マス直線 */
   case 12:
     if (!ui.waitForCover(true))
       return;
@@ -538,21 +530,21 @@ void normal_drive() {
     straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
     sc.disable();
     break;
-    //* テスト
+  /* テスト */
   case 13:
+    accel_test();
     // log_test();
     // mt_test();
     // trapizoid_test();
-    accel_test();
     // straight_test();
     // petitcon();
     // gyro_test();
     break;
-  //* ログの表示
+  /* ログの表示 */
   case 14:
     lgr.print();
     break;
-  //* リセット
+  /* リセット */
   case 15:
     mr.print();
     ESP.restart();

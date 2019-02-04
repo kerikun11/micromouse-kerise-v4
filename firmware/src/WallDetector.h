@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <cmath>
+#include <iostream>
 #include <vector>
 
 #define WALL_DETECTOR_TASK_PRIORITY 4
@@ -16,6 +17,37 @@
 #define WALL_DETECTOR_THRESHOLD_SIDE -10
 
 class WallDetector {
+public:
+  static constexpr float Ts = 0.001f;
+  union WallValue {
+    // 意味をもったメンバ
+    struct {
+      float side[2];
+      float front[2];
+    };
+    // シリアライズされたメンバ
+    struct {
+      float value[4];
+    };
+    const WallValue &operator=(const WallValue &wv) {
+      for (int i = 0; i < 4; ++i)
+        value[i] = wv.value[i];
+      return *this;
+    }
+    const WallValue operator-(const WallValue &wv) const {
+      WallValue ret;
+      for (int i = 0; i < 4; ++i)
+        ret.value[i] = value[i] - wv.value[i];
+      return ret;
+    }
+    const WallValue operator/(const auto div) const {
+      WallValue ret;
+      for (int i = 0; i < 4; ++i)
+        ret.value[i] = value[i] / div;
+      return ret;
+    }
+  };
+
 public:
   WallDetector() {}
   bool begin() {
@@ -75,19 +107,20 @@ public:
     xSemaphoreTake(calibrationFrontEndSemaphore, portMAX_DELAY);
   }
   void print() {
-    printf("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]\n", distance.side[0],
-           distance.front[0], distance.front[1], distance.side[1],
-           wall[0] ? 'X' : '.', wall[2] ? 'X' : '.', wall[1] ? 'X' : '.');
+    log_i("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]", distance.side[0],
+          distance.front[0], distance.front[1], distance.side[1],
+          wall[0] ? 'X' : '.', wall[2] ? 'X' : '.', wall[1] ? 'X' : '.');
   }
   void csv() {
-    printf("%f,%f,%f,%f\n", distance.side[0], distance.front[0],
-           distance.front[1], distance.side[1]);
+    std::cout << "0";
+    for (int i = 0; i < 4; ++i)
+      std::cout << "," << distance.value[i];
+    for (int i = 0; i < 4; ++i)
+      std::cout << "," << diff.value[i];
+    std::cout << std::endl;
   }
-  struct WallValue {
-    float side[2];
-    float front[2];
-  };
   WallValue distance;
+  WallValue diff;
   bool wall[3];
 
 private:
@@ -153,6 +186,9 @@ private:
       else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
         wall[i] = false;
     }
+
+    // 変化量の更新
+    diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
