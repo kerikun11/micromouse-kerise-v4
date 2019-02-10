@@ -43,10 +43,9 @@
 #define MOTOR_L_CTRL2_PIN GPIO_NUM_33
 #define MOTOR_R_CTRL1_PIN GPIO_NUM_18
 #define MOTOR_R_CTRL2_PIN GPIO_NUM_19
+#define FAN_PIN GPIO_NUM_23
 
 /* LED Controller */
-#define FAN_PIN 23
-#define LEDC_CH_FAN 6
 #define BUZZER_PIN 25
 #define LEDC_CH_BUZZER 4
 

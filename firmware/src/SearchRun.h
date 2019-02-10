@@ -264,7 +264,7 @@ private:
         wp.wheel[1] =
             -std::max(std::min(wd.distance.front[1] * gain, satu), -satu);
         wp.wheel2pole();
-        if (fabs(wp.wheel[0]) + fabs(wp.wheel[1]) < end)
+        if (std::abs(wp.wheel[0]) + std::abs(wp.wheel[1]) < end)
           break;
         sc.set_target(wp.trans, wp.rot);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -278,7 +278,7 @@ private:
   }
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
-    if (fabs(sc.position.theta) < 0.05 * PI) {
+    if (std::abs(sc.position.theta) < 0.05 * PI) {
       const float gain = 0.0016f;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
@@ -338,7 +338,7 @@ private:
     while (1) {
       if (fix)
         break;
-      if (fabs(sc.actual.rot) > speed)
+      if (std::abs(sc.actual.rot) > speed)
         break;
       float delta = sc.position.x * cos(-sc.position.theta) -
                     sc.position.y * sin(-sc.position.theta);
@@ -355,9 +355,9 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       float extra = angle - sc.position.theta;
-      if (fabs(sc.actual.rot) < 0.1 && fabs(extra) < 0.1)
+      if (std::abs(sc.actual.rot) < 0.1 && std::abs(extra) < 0.1)
         break;
-      float target_speed = sqrt(2 * decel * fabs(extra));
+      float target_speed = sqrt(2 * decel * std::abs(extra));
       float delta = sc.position.x * cos(-sc.position.theta) -
                     sc.position.y * sin(-sc.position.theta);
       target_speed = (target_speed > speed) ? speed : target_speed;
@@ -459,8 +459,7 @@ private:
       delay(1);
     }
     sc.disable();
-    mt.emergency_stop();
-    // isRunningFlag = false;
+    mt.emergencyStop();
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
@@ -481,7 +480,6 @@ private:
           Position cur = sc.position;
           float theta =
               atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
-          // v = std::max(0.0f, v - 12);
           sc.set_target(v, SEARCH_ST_FB_GAIN * theta);
           wall_avoid(0);
         }

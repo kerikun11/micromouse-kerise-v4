@@ -219,12 +219,7 @@ private:
         pwm_value[i] = Kp * proportional.wheel[i] + Ki * integral.wheel[i] +
                        Kd * differential.wheel[i];
       mt.drive(pwm_value[0], pwm_value[1]);
-      // fail safe
-      const float pwm_em = 2.0f;
-      if (fabs(pwm_value[0]) > pwm_em || fabs(pwm_value[1]) > pwm_em) {
-        mt.emergency_stop();
-        fan.drive(0);
-      }
+
       // calculate odometry value
       position.theta += imu.gyro.z * Ts;
       position.x += actual.trans * std::cos(position.theta) * Ts;

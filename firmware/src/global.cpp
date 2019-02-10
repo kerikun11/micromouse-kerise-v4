@@ -11,7 +11,7 @@ Buzzer bz(BUZZER_PIN, LEDC_CH_BUZZER);
 LED led(I2C_PORT_NUM_LED);
 Motor mt(MOTOR_L_CTRL1_PIN, MOTOR_L_CTRL2_PIN, MOTOR_R_CTRL1_PIN,
          MOTOR_R_CTRL2_PIN);
-Fan fan(FAN_PIN, LEDC_CH_FAN);
+Fan fan(FAN_PIN);
 
 /* Sensor */
 Button btn(BUTTON_PIN);
@@ -30,3 +30,6 @@ Logger lgr;
 SearchRun sr;
 FastRun fr;
 MazeRobot mr;
+
+/* Other */
+ExternalController ec;

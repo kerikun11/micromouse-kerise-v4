@@ -45,6 +45,9 @@ private:
 };
 
 class Motor {
+private:
+  static constexpr float emergency_threshold = 2.0f;
+
 public:
   Motor(gpio_num_t gpio_L1, gpio_num_t gpio_L2, gpio_num_t gpio_R1,
         gpio_num_t gpio_R2)
@@ -56,6 +59,9 @@ public:
   void drive(float valueL, float valueR) {
     if (emergency)
       return;
+    if (std::abs(valueL) > emergency_threshold ||
+        std::abs(valueR) > emergency_threshold)
+      emergencyStop();
     mt_L.drive(valueL);
     mt_R.drive(valueR);
   }
@@ -63,11 +69,11 @@ public:
     mt_L.free();
     mt_R.free();
   }
-  void emergency_stop() {
+  void emergencyStop() {
     emergency = true;
     free();
   }
-  void emergency_release() {
+  void emergencyRelease() {
     emergency = false;
     free();
   }

@@ -42,6 +42,9 @@ public:
       bz.play(Buzzer::ERROR);
     if (!wd.begin())
       bz.play(Buzzer::ERROR);
+
+    if (!ec.begin())
+      bz.play(Buzzer::ERROR);
     return true;
   }
   static void driveNormally() {
@@ -61,7 +64,7 @@ public:
         bz.play(Buzzer::EMERGENCY);
         mr.terminate();
         delay(1000);
-        mt.emergency_release();
+        mt.emergencyRelease();
         mr.start(false, true);
       }
       delay(100);

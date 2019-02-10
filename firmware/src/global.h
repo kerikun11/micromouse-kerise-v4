@@ -1,6 +1,6 @@
 /**
    @file  global.h
-   @brief グローバル変数のextern宣言をするファイル．
+   @brief グローバル変数の extern 宣言をするファイル．
 */
 #pragma once
 
@@ -43,3 +43,5 @@ extern SearchRun sr;
 extern FastRun fr;
 #include "MazeRobot.h"
 extern MazeRobot mr;
+#include "ExternalController.h"
+extern ExternalController ec;

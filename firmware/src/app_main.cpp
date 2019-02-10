@@ -6,6 +6,7 @@ void printTask(void *arg);
 void timeKeepTask(void *arg);
 
 void setup() {
+  Serial.begin(115200);
   std::cout << std::endl;
   std::cout << "**************** KERISE v4 ****************" << std::endl;
   Machine::init();
@@ -25,7 +26,7 @@ void printTask(void *arg) {
     // tof.csv(); delay(100);
     // imu.print();
     // wd.print();
-    wd.csv();
+    // wd.csv();
   }
 }
 
