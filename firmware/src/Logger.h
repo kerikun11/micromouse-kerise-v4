@@ -2,40 +2,36 @@
 
 #include <iostream>
 #include <ostream>
-#include <queue>
+#include <vector>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 class Logger {
 public:
   Logger() {}
-  void reset(int size) {
-    this->size = size;
-    while (!buf.empty())
-      buf.pop();
-  }
-  void push(const float *data) {
-    for (int i = 0; i < size; ++i) {
-      buf.push(data[i]);
-    }
-  }
-  void print(std::ostream &os = std::cout) {
-    int length = buf.size() / size;
-    for (int i = 0; i < length; ++i) {
-      os << buf.front();
-      buf.push(buf.front());
-      buf.pop();
-      for (int j = 1; j < size; ++j) {
-        os << "\t";
-        os << buf.front();
-        buf.push(buf.front());
-        buf.pop();
+  auto clear() { return buf.clear(); }
+  auto push(const std::vector<float> &data) { return buf.push_back(data); }
+  auto size() const { return buf.size(); }
+  void print(std::ostream &os = std::cout) const {
+    for (const auto data : buf) {
+      bool first = true;
+      for (const auto value : data) {
+        if (!first)
+          os << "\t";
+        if (first)
+          first = false;
+        os << value;
       }
+      taskYIELD();
       os << std::endl;
-      vTaskDelay(0);
     }
+  }
+  friend std::ostream &operator<<(std::ostream &os, const Logger &obj) {
+    obj.print(os);
+    return os;
   }
 
 private:
-  int index;
-  int size;
-  std::queue<float> buf;
+  std::vector<std::vector<float>> buf;
 };

@@ -1078,9 +1078,6 @@ private:
       if (fabs(prev.rotate(-origin.theta).x - fix.rotate(-origin.theta).x) <
           15.0f)
         sc.position = fix;
-      printf("FrontWallCalib (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
-             prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
-             sc.position.y, sc.position.theta * 180 / PI);
       bz.play(Buzzer::SHORT);
     }
   }

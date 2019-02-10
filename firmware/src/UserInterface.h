@@ -1,61 +1,87 @@
+/**
+ * @file UserInterface.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief マイクロマウスに備わっているセンサを用いてUIを構成する
+ * @version 0.1
+ * @date 2019-02-10
+ *
+ * @copyright Copyright (c) 2019
+ *
+ */
 #pragma once
 
+#include "app_log.h"
 #include "config/config.h"
 #include "global.h"
 
-#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 class UserInterface {
 private:
-  const float thr_accel = 3 * 9807;
-  const float thr_gyro = 4 * PI;
-  const float wait_ms = 200;
-  const int thr_ref_front = 2400;
-  const int thr_ref_side = 2400;
-  const float enc_interval = 10.0f;
+  /* 定数 */
+  static constexpr float thr_battery = 3.8f;
+  /* UI パラメータ */
+  static constexpr float thr_accel = 3 * 9807; /**< 加速度の閾値 */
+  static constexpr float thr_gyro = 4 * PI;    /**< 角速度の閾値 */
+  static constexpr float wait_ms = 200; /**< チャタリング防止時間 */
+  static constexpr int thr_ref_front = 2400; /**< 前壁センサの閾値 */
+  static constexpr int thr_ref_side = 2400;  /**< 横壁センサの閾値 */
+  static constexpr float enc_interval_mm =
+      10.0f; /**< エンコーダのカウント間隔 */
+  static constexpr int wait_fix_ms = 1000; /**< 静止待機の最小静止時間 */
+  static constexpr float thr_fix_gyro =
+      0.01f * M_PI; /**< 静止待機の角速度の閾値 */
 
 public:
   UserInterface() {}
-  int waitForSelect(int range = 16) {
+  /**
+   * @brief ユーザーに番号を選択させる
+   *
+   * @param range 番号の範囲．[0, range)
+   * @return int 0 ~ range-1: 選択された番号
+   * @return int -1: キャンセルされた
+   */
+  static int waitForSelect(int range = 16) {
     float prev_enc = enc.position(0) + enc.position(1);
     uint8_t value = 0;
     led = value;
     while (1) {
       float now_enc = enc.position(0) + enc.position(1);
-      delay(10);
+      vTaskDelay(10 / portTICK_PERIOD_MS);
       /* SELECT */
       if (imu.gyro.y > thr_gyro) {
         value += range - 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
-        delay(wait_ms);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
       }
       if (imu.gyro.y < -thr_gyro) {
         value += 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
-        delay(wait_ms);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
       }
-      if (now_enc > prev_enc + enc_interval) {
-        prev_enc += enc_interval;
+      if (now_enc > prev_enc + enc_interval_mm) {
+        prev_enc += enc_interval_mm;
         value += 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
       }
-      if (now_enc < prev_enc - enc_interval) {
-        prev_enc -= enc_interval;
+      if (now_enc < prev_enc - enc_interval_mm) {
+        prev_enc -= enc_interval_mm;
         value += range - 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
       }
       /* CONFIRM */
-      if (imu.accel.z > thr_accel) {
+      if (std::abs(imu.accel.z) > thr_accel) {
         bz.play(Buzzer::CONFIRM);
-        delay(wait_ms);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
         return value;
       }
       if (btn.pressed) {
@@ -64,9 +90,9 @@ public:
         return value;
       }
       /* CANCEL */
-      if (abs(imu.accel.x) > thr_accel) {
+      if (std::abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        delay(wait_ms);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
         return -1;
       }
       if (btn.long_pressed_1) {
@@ -75,11 +101,20 @@ public:
         return -1;
       }
     }
+    /* it will not reach here */
     return -1;
   }
-  bool waitForCover(bool side = false) {
+  /**
+   * @brief 前壁センサが遮られるのを待つ関数
+   *
+   * @param side センサ位置 true: side, false: front
+   * @return true 遮られた
+   * @return false キャンセルされた
+   */
+  static bool waitForCover(bool side = false) {
     while (1) {
-      delay(10);
+      vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+      /* CONFIRM */
       if (!side && ref.front(0) > thr_ref_front &&
           ref.front(1) > thr_ref_front) {
         bz.play(Buzzer::CONFIRM);
@@ -89,9 +124,10 @@ public:
         bz.play(Buzzer::CONFIRM);
         return true;
       }
-      if (abs(imu.accel.x) > thr_accel) {
+      /* CANCEL */
+      if (std::abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        delay(wait_ms);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
         return false;
       }
       if (btn.long_pressed_1) {
@@ -101,32 +137,52 @@ public:
       }
     }
   }
-  //    static bool waitForFix() {
-  //      int fix_count = 0;
-  //      while (1) {
-  //        delay(1);
-  //        if (fabs(imu.gyro.x) < 0.01f * PI && fabs(imu.gyro.y) < 0.01f * PI
-  //        && fabs(imu.gyro.z) < 0.01f * PI) {
-  //          if (fix_count++ > 1000) {
-  //            bz.play(Buzzer::CONFIRM);
-  //            log_i("waitForFix() => true");
-  //            return true;
-  //          }
-  //        } else {
-  //          fix_count = 0;
-  //        }
-  //        if (btn.pressed) {
-  //          btn.flags = 0;
-  //          bz.play(Buzzer::CANCEL);
-  //          log_i("waitForFix() => false");
-  //          return false;
-  //        }
-  //      }
-  //    }
+  /**
+   * @brief 静止状態になるまで待機する関数
+   *
+   * @return true 静止状態になった
+   * @return false キャンセルされた
+   */
+  static bool waitForFix() {
+    int fix_count = 0;
+    while (1) {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+      /* FIX */
+      if (std::abs(imu.gyro.x) < thr_fix_gyro &&
+          std::abs(imu.gyro.y) < thr_fix_gyro &&
+          std::abs(imu.gyro.z) < thr_fix_gyro) {
+        if (fix_count++ > wait_fix_ms) {
+          bz.play(Buzzer::CONFIRM);
+          return true;
+        }
+      } else {
+        fix_count = 0;
+      }
+      /* CANCEL */
+      if (btn.pressed) {
+        btn.flags = 0;
+        bz.play(Buzzer::CANCEL);
+        return false;
+      }
+      if (std::abs(imu.accel.x) > thr_accel) {
+        bz.play(Buzzer::CANCEL);
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        return false;
+      }
+    }
+  }
+  /**
+   * @brief Sample the Battery Voltage
+   * @return float voltage [V]
+   */
   static float getBatteryVoltage() {
     return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
     // return 2 * 1.0f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
   }
+  /**
+   * @brief バッテリー電圧をLEDで表示
+   * @param voltage [V]
+   */
   static void batteryLedIndicate(const float voltage) {
     led = 0;
     if (voltage < 4.0f)
@@ -141,12 +197,12 @@ public:
   static void batteryCheck() {
     float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
-    printf("Battery Voltage: %.3f\n", voltage);
-    if (voltage < 3.8f) {
-      printf("Battery Low!\n");
+    logi << "Battery Voltage: " << voltage << std::endl;
+    if (voltage < thr_battery) {
+      logw << "Battery Low!" << std::endl;
       bz.play(Buzzer::LOW_BATTERY);
       while (!btn.pressed)
-        delay(100);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
       btn.flags = 0;
       led = 0;
     }
@@ -157,7 +213,6 @@ public:
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
     esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
     esp_deep_sleep_start();
-    while (1)
-      delay(1000);
+    vTaskDelay(portMAX_DELAY);
   }
 };
