@@ -270,7 +270,6 @@ private:
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
       sc.set_target(0, 0);
-      printPosition("wall_attach");
       sc.position.x = 0;     //< 直進方向の補正
       sc.position.theta = 0; //< 回転方向の補正
     }

@@ -6,7 +6,8 @@ void printTask(void *arg);
 void timeKeepTask(void *arg);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(2000000);
+  WiFi.mode(WIFI_OFF);
   std::cout << std::endl;
   std::cout << "**************** KERISE v4 ****************" << std::endl;
   Machine::init();

@@ -179,8 +179,6 @@ private:
       distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
     }
     buffer.push(distance);
-    // 平均処理
-    distance = buffer.average(4);
 
     // 前壁の更新
     if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)

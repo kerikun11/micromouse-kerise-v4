@@ -13,7 +13,6 @@
 class Machine {
 public:
   static bool init() {
-    WiFi.mode(WIFI_OFF);
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS)
       pinMode(p, INPUT_PULLUP);
@@ -63,6 +62,7 @@ public:
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
         mr.terminate();
+        fan.free();
         delay(1000);
         mt.emergencyRelease();
         mr.start(false, true);
