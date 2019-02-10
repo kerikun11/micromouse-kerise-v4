@@ -147,6 +147,7 @@ private:
     return 12.9035f * std::log(value) - 86.7561f;
   }
   void calibration_side() {
+    tof.disable();
     float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
@@ -158,8 +159,10 @@ private:
       wall_ref.side[i] = sum[i] / ave_count;
     printf("Wall Calibration Side: %6.1f%6.1f\n", wall_ref.side[0],
            wall_ref.side[1]);
+    tof.enable();
   }
   void calibration_front() {
+    tof.disable();
     float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
@@ -171,6 +174,7 @@ private:
       wall_ref.front[i] = sum[i] / ave_count;
     printf("Wall Calibration Front: %6.1f%6.1f\n", wall_ref.front[0],
            wall_ref.front[1]);
+    tof.enable();
   }
   void update() {
     // データの更新

@@ -14,6 +14,8 @@
 #define FAST_RUN_TASK_PRIORITY 3
 #define FAST_RUN_STACK_SIZE 8192
 
+#define FAST_RUN_WALL_CUT_ENABLED 0
+
 #define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 #define FAST_ST_FB_GAIN 30
@@ -1012,6 +1014,7 @@ private:
     led = led_flags;
   }
   void wallCut(bool diag) {
+#if FAST_RUN_WALL_CUT_ENABLED
 #define WALL_CUT_OFFSET_X_ (-30)
     if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
       for (int i = 0; i < 2; i++) {
@@ -1063,6 +1066,7 @@ private:
         prev_wall[i] = wd.wall[i];
       }
     }
+#endif
   }
   void wall_calib(const float velocity) {
     if (wd.wall[2]) {

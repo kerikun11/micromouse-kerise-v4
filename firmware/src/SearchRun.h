@@ -10,7 +10,7 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 1
+#define SEARCH_WALL_CUT_ENABLED 0
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
 
@@ -244,7 +244,6 @@ public:
   }
 
 private:
-  // Position origin;
   std::queue<struct Operation> q;
   volatile bool isRunningFlag = false;
   bool prev_wall[2];
@@ -253,16 +252,21 @@ private:
 #if SEARCH_WALL_ATTACH_ENABLED
     if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
+      tof.disable();
       portTickType xLastWakeTime = xTaskGetTickCount();
+      SpeedController::WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
-        const float gain = 60.0f;
-        const float satu = 200.0f;
-        const float end = 0.2f;
+        const float Kp = 72.0f;
+        const float Ki = 6.0f;
+        const float satu = 200.0f; //< [mm/s]
+        const float end = 0.4f;
         SpeedController::WheelParameter wp;
-        wp.wheel[0] =
-            -std::max(std::min(wd.distance.front[0] * gain, satu), -satu);
-        wp.wheel[1] =
-            -std::max(std::min(wd.distance.front[1] * gain, satu), -satu);
+        for (int j = 0; j < 2; ++j) {
+          wp.wheel[j] = -wd.distance.front[j];
+          wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
+          wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j] * Ki;
+          wp.wheel[j] = std::max(std::min(wp.wheel[j], satu), -satu);
+        }
         wp.wheel2pole();
         if (std::abs(wp.wheel[0]) + std::abs(wp.wheel[1]) < end)
           break;
@@ -272,6 +276,8 @@ private:
       sc.set_target(0, 0);
       sc.position.x = 0;     //< 直進方向の補正
       sc.position.theta = 0; //< 回転方向の補正
+      tof.enable();
+      bz.play(Buzzer::SHORT);
     }
 #endif
   }
@@ -436,7 +442,6 @@ private:
     sc.enable(true);
   }
   void uturn() {
-    // if (imu.angle > 0) {
     if (wd.distance.side[0] < wd.distance.side[1]) {
       wall_attach();
       turn(-M_PI / 2);
@@ -554,7 +559,7 @@ private:
         break;
       case STOP:
         straight_x(SEGMENT_WIDTH / 2 - ahead_length, velocity, 0);
-        wall_attach();
+        // wall_attach();
         turn(0, true);
         sc.disable();
         isRunningFlag = false;

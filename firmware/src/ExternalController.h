@@ -29,6 +29,15 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
       char c = getChar();
       switch (c) {
+      case 'g':
+        tof.enable();
+        break;
+      case 's':
+        tof.disable();
+        break;
+      case 'p':
+        tof.print();
+        break;
       case 'f':
         bz.play(Buzzer::CANCEL);
         mt.free();

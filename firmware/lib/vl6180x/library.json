@@ -1,0 +1,13 @@
+{
+    "name": "VL6180X",
+    "description": "ToF sensor VL53L0X driver for ESP32",
+    "keywords": "vl6180x,esp32",
+    "build": {
+        "flags": [
+            "-I .",
+            "-I api/core/inc",
+            "-I api/platform/inc",
+            "-I api/config"
+        ]
+    }
+}
