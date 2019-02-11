@@ -23,8 +23,9 @@ public:
           first = false;
         os << value;
       }
-      taskYIELD();
       os << std::endl;
+      // taskYIELD();
+      vTaskDelay(1);
     }
   }
   friend std::ostream &operator<<(std::ostream &os, const Logger &obj) {

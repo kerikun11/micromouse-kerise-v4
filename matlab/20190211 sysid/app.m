@@ -5,6 +5,7 @@ set(groot, 'DefaultTextInterpreter', 'Latex');
 set(groot, 'DefaultLegendInterpreter', 'Latex');
 set(groot, 'DefaultAxesFontSize', 14);
 set(groot, 'DefaultLineLineWidth', 1.5);
+
 %% load data
 rawdata = dlmread('r0.5.tab', '\t');
 rawdata = rawdata';

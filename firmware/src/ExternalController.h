@@ -10,6 +10,7 @@ public:
   ExternalController() {}
   virtual ~ExternalController() {}
   bool begin() {
+    pinMode(RX, INPUT_PULLUP);
     return createTask("ExternalController", EXTERNAL_CONTROLLER_TASK_PRIORITY,
                       EXTERNAL_CONTROLLER_STACK_SIZE);
   }

@@ -196,7 +196,7 @@ private:
       // calculate estimated value
       actual.wheel2pole();
       float kt = 0.75f;
-      float kr = 0.25f;
+      float kr = 0.0f;
       actual.trans =
           kt * (actual.trans + imu.accel.z * Ts) + (1 - kt) * enc_v.trans;
       actual.rot =

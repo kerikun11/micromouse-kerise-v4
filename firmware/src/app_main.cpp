@@ -105,17 +105,20 @@ void accel_test() {
 }
 
 void traj_test() {
+  int gain = ui.waitForSelect();
+  if (gain < 0)
+    return;
   if (!ui.waitForCover())
     return;
   delay(500);
   lgr.clear();
   imu.calibration();
   sc.enable();
-  const float accel = 9000;
-  const float v_max = 1200;
-  const float distance = 90 * 12;
+  const float accel = 6000;
+  const float v_max = 1800;
+  const float distance = 90 * 16;
   AccelDesigner ad(accel, 0, v_max, 0, distance);
-  const float xi_threshold = 30.0f;
+  const float xi_threshold = 120.0f;
   float xi = xi_threshold;
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -123,13 +126,20 @@ void traj_test() {
     if (ad.v(t) < xi_threshold) {
       sc.set_target(ad.v(t), 0, ad.a(t), 0);
       lgr.push({
-          ad.v(t),
-          ad.x(t),
           sc.actual.trans,
           sc.actual.rot,
           sc.position.x,
           sc.position.y,
           sc.position.theta,
+          imu.accel.y,
+          imu.angular_accel,
+          ad.a(t),
+          ad.v(t),
+          ad.x(t),
+          ad.v(t),
+          0,
+          ad.a(t),
+          0,
       });
       continue;
     }
@@ -140,39 +150,46 @@ void traj_test() {
     const float sin_theta = std::sin(theta);
     const float dx = sc.actual.trans * cos_theta;
     const float dy = sc.actual.trans * sin_theta;
-    // const float kp1 = 1.0e1f;
-    // const float kp2 = 1.0e1f;
-    // const float kd1 = 1.0e-2f;
-    // const float kd2 = 1.0e-2f;
-    const float kp1 = 0.0e1f;
-    const float kp2 = 0.0e1f;
-    const float kd1 = 0.0e-2f;
-    const float kd2 = 0.0e-2f;
-    const float ddx_r = ad.a(t) * cos_theta;
-    const float ddy_r = ad.a(t) * sin_theta;
-    const float dx_r = ad.v(t) * cos_theta;
-    const float dy_r = ad.v(t) * sin_theta;
-    const float x_r = ad.x(t) * cos_theta;
-    const float y_r = ad.x(t) * sin_theta;
-    const float u1 = ddx_r + kp1 * (x_r - x) + kd1 * (dx_r - dx);
-    const float u2 = ddy_r + kp2 * (y_r - y) + kd2 * (dy_r - dy);
+    const float ddx = imu.accel.y * cos_theta;
+    const float ddy = imu.accel.y * sin_theta;
+    const float zeta = 1.0f;
+    const float omega_n = std::pow(10.0f, gain < 8 ? gain : gain - 16);
+    const float kx = omega_n * omega_n;
+    const float kdx = 2 * zeta * omega_n;
+    const float ky = kx;
+    const float kdy = kdx;
+    const float ddx_r = ad.a(t);
+    const float ddy_r = 0;
+    const float dx_r = ad.v(t);
+    const float dy_r = 0;
+    const float x_r = ad.x(t);
+    const float y_r = 0;
+    const float u1 = ddx_r + kx * (x_r - x) + kdx * (dx_r - dx);
+    const float u2 = ddy_r + ky * (y_r - y) + kdy * (dy_r - dy);
+    const float du1 = 0 + kdx * (ddx_r - ddx) + kx * (dx_r - dx);
+    const float du2 = 0 + kdy * (ddy_r - ddy) + ky * (dy_r - dy);
     const float d_xi = u1 * cos_theta + u2 * sin_theta;
-    const float v_r = xi;
-    const float dv_r = d_xi;
-    const float w_r = (u2 * cos_theta - u1 * sin_theta) / xi;
-    const float dw_r = 0;
-    sc.set_target(v_r, w_r, dv_r, dw_r);
+    const float v = xi;
+    const float dv = d_xi;
+    const float w = (u2 * cos_theta - u1 * sin_theta) / xi;
+    const float dw = -(4 * d_xi * w + du1 * sin_theta - du2 * cos_theta) / xi;
+    sc.set_target(v, w, dv, dw);
     xi += d_xi * 0.001f;
     lgr.push({
-        ad.v(t),
-        ad.x(t),
         sc.actual.trans,
         sc.actual.rot,
         sc.position.x,
         sc.position.y,
         sc.position.theta,
-        v_r,
-        w_r,
+        imu.accel.y,
+        imu.angular_accel,
+        ad.a(t),
+        ad.v(t),
+        ad.x(t),
+        v,
+        w,
+        dv,
+        dw,
     });
   }
   sc.set_target(0, 0);
@@ -307,9 +324,9 @@ void driveTask(void *arg) {
       break;
     /* テスト */
     case 13:
-      // traj_test();
+      traj_test();
       // accel_test();
-      sysid_test();
+      // sysid_test();
       break;
     /* ログの表示 */
     case 14:
