@@ -112,8 +112,9 @@ void traj_test() {
   imu.calibration();
   sc.enable();
   const float accel = 9000;
-  const float v_max = 1800;
-  AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
+  const float v_max = 1200;
+  const float distance = 90 * 12;
+  AccelDesigner ad(accel, 0, v_max, 0, distance);
   const float xi_threshold = 30.0f;
   float xi = xi_threshold;
   portTickType xLastWakeTime = xTaskGetTickCount();
@@ -121,6 +122,15 @@ void traj_test() {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     if (ad.v(t) < xi_threshold) {
       sc.set_target(ad.v(t), 0, ad.a(t), 0);
+      lgr.push({
+          ad.v(t),
+          ad.x(t),
+          sc.actual.trans,
+          sc.actual.rot,
+          sc.position.x,
+          sc.position.y,
+          sc.position.theta,
+      });
       continue;
     }
     const float x = sc.position.x;
@@ -130,10 +140,14 @@ void traj_test() {
     const float sin_theta = std::sin(theta);
     const float dx = sc.actual.trans * cos_theta;
     const float dy = sc.actual.trans * sin_theta;
-    const float kp1 = 1.0e1f;
-    const float kp2 = 1.0e1f;
-    const float kd1 = 1.0e-2f;
-    const float kd2 = 1.0e-2f;
+    // const float kp1 = 1.0e1f;
+    // const float kp2 = 1.0e1f;
+    // const float kd1 = 1.0e-2f;
+    // const float kd2 = 1.0e-2f;
+    const float kp1 = 0.0e1f;
+    const float kp2 = 0.0e1f;
+    const float kd1 = 0.0e-2f;
+    const float kd2 = 0.0e-2f;
     const float ddx_r = ad.a(t) * cos_theta;
     const float ddy_r = ad.a(t) * sin_theta;
     const float dx_r = ad.v(t) * cos_theta;
@@ -185,7 +199,7 @@ void straight_test() {
   sc.disable();
 }
 
-void log_test() {
+void sysid_test() {
   int gain = ui.waitForSelect();
   if (gain < 0)
     return;
@@ -206,24 +220,19 @@ void log_test() {
   bz.play(Buzzer::SELECT);
   imu.calibration();
   bz.play(Buzzer::CANCEL);
-  fan.drive(0.33f);
+  fan.drive(0.5f);
   delay(500);
   portTickType xLastWakeTime = xTaskGetTickCount();
-  mt.drive(gain * 50, gain * 50);
+  mt.drive(-gain * 0.05, gain * 0.05);
   for (int i = 0; i < 2000; i++) {
     printLog();
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
-  mt.drive(0, 0);
-  for (int i = 0; i < 200; i++) {
-    printLog();
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-  }
   fan.drive(0);
+  mt.drive(0, 0);
+  delay(500);
   mt.free();
 }
-
-void normal_drive() {}
 
 void driveTask(void *arg) {
   while (1) {
@@ -298,8 +307,9 @@ void driveTask(void *arg) {
       break;
     /* テスト */
     case 13:
-      traj_test();
+      // traj_test();
       // accel_test();
+      sysid_test();
       break;
     /* ログの表示 */
     case 14:
