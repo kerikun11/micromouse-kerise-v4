@@ -58,3 +58,48 @@ Estimated using PROCEST on time domain data.
 Fit to estimation data: 51.68%
 FPE: 16.98, MSE: 16.78
 ```
+
+## 並進のコントローラ
+
+```matlab
+ControllerTrans =
+
+                        Ts                   1
+  u = Kp (b*r-y) + Ki ------ (r-y) + Kd ----------- (c*r-y)
+                        z-1             Tf+Ts/(z-1)
+
+  この場合、 Kp = 0.897, Ki = 2.07, Kd = 0.0665, Tf = 0.0413, b = 0.265, c = 0.004, Ts = 0.001
+
+サンプル時間:  0.001 seconds
+並列型の離散時間 2-DOF PIDF コントローラーです。
+```
+
+## 回転のコントローラ
+
+```matlab
+ControllerRot =
+
+                        Ts                   1
+  u = Kp (b*r-y) + Ki ------ (r-y) + Kd ----------- (c*r-y)
+                        z-1             Tf+Ts/(z-1)
+
+  この場合、 Kp = 0.143, Ki = 4.14, Kd = -1.99e-05, Tf = 0.000641, b = 0.0277, c = 0.0134, Ts = 0.001
+
+サンプル時間:  0.001 seconds
+並列型の離散時間 2-DOF PIDF コントローラーです。
+```
+
+Take 2
+
+```matlab
+ControllerRot =
+ 
+                        Ts  
+  u = Kp (b*r-y) + Ki ------ (r-y)
+                        z-1 
+
+  この場合、 Kp = 4.21e-05, Ki = 0.0842, b = 1, Ts = 0.001
+ 
+サンプル時間:  0.001 seconds
+並列型の離散時間 2-DOF PI コントローラーです。
+```

@@ -7,9 +7,9 @@ set(groot, 'DefaultAxesFontSize', 14);
 set(groot, 'DefaultLineLineWidth', 1.5);
 
 %% load data
-rawdata = dlmread('r0.3-2.tab', '\t');
+rawdata = dlmread('ff1.tab', '\t');
 rawdata = rawdata';
-rawdata = rawdata(:, 1:500);
+% rawdata = rawdata(:, 1:500);
 
 %% extract
 dt = 1e-3;
