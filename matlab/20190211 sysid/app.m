@@ -7,9 +7,9 @@ set(groot, 'DefaultAxesFontSize', 14);
 set(groot, 'DefaultLineLineWidth', 1.5);
 
 %% load data
-rawdata = dlmread('r0.5.tab', '\t');
+rawdata = dlmread('r0.3-2.tab', '\t');
 rawdata = rawdata';
-rawdata = rawdata(:, 1:1400);
+rawdata = rawdata(:, 1:500);
 
 %% extract
 dt = 1e-3;
@@ -41,7 +41,7 @@ subplot(subNum, 1, 3); hold off;
 plot(time, gyro); grid on;
 title('IMU gyro');
 xlabel('Time [ms]');
-ylabel('Angular velocity [rad/s]');
+ylabel('Angular Velocity [rad/s]');
 
 subplot(subNum, 1, 4); hold off;
 plot(time, ang_accel); grid on;
@@ -58,7 +58,7 @@ ylabel('Battery Voltage [V]');
 %% filter design
 diff_enc = (diff(enc(1, :))+diff(enc(2, :))) / dt / 2;
 machine_rotation_radius = 15;
-omega_enc = (diff(enc(2, :))-diff(enc(1, :))) / dt / 2 / machine_rotation_radius;
+omega_enc = (diff(enc(2, :))-diff(enc(1, :))) / dt / 2 / (machine_rotation_radius*2);
 
 % IIR Complementary Filtered
 alpha = 0.75;
