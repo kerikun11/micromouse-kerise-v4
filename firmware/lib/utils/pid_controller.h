@@ -1,37 +1,55 @@
 #pragma once
 
-template <typename T_var, typename T_gain> class PIDController {
+class PIDController {
 public:
-  template <typename T> struct PID_Vector {
-    T p, i, d;
-    PID_Vector(T_gain p = T_gain(), T_gain i = T_gain(), T_gain d = T_gain())
-        : p(p), i(i), d(d) {}
-    PID_Vector(const PID_Vector &obj) : p(obj.p), i(obj.i), d(obj.d) {}
-    const PID_Vector &operator=(const PID_Vector &obj) {
-      p = obj.p;
-      i = obj.i;
-      d = obj.d;
-      return *this;
-    }
+  struct Parameter {
+    float Kp, Ki, Kd;
+    Parameter(float Kp, float Ki, float Kd) : Kp(Kp), Ki(Ki), Kd(Kd) {}
+    Parameter() {}
   };
-  typedef PID_Vector<T_var> Vars;
-  typedef PID_Vector<T_gain> Gains;
 
 public:
-  PIDController(Gains gains = Gains()) {}
-  const Gains getGains() const { return gains; }
-  void setGain(Gains newGains) { gains = newGains; }
-  const Vars getError() const { return e; }
-  void resetError() { e.p = e.i = e.d = T_var(); }
-  const T_var calculate(const float Ts, const T_var r, const T_var y,
-                        const T_var r_dot, const T_var y_dot) {
-    e.p = r - y;
-    e.i += (r - y) * Ts;
-    e.d = r_dot - y_dot;
-    return e.p * gains.p + e.i * gains.i + e.d * gains.d;
+  PIDController(struct Parameter gain) : gain(gain) {}
+  PIDController() {}
+  float p, i, d;
+
+  void setGain(const struct Parameter gain) { this->gain = gain; }
+  const struct Parameter getGain() const { return gain; }
+  float calc(float r, float y, float ie, float dr, float dy) {
+    p = gain.Kp * (r - y);
+    i = gain.Ki * ie;
+    d = gain.Kd * (dr - dy);
+    return p + i + d;
   }
 
 private:
-  Gains gains;
-  Vars e;
+  struct Parameter gain;
+};
+
+class Disc2DOFPIDController {
+public:
+  struct Parameter {
+    float Kp, Ki, Kd, Tf, b, c, Ts;
+    Parameter(float Kp, float Ki, float Kd, float Tf, float b, float c,
+              float Ts)
+        : Kp(Kp), Ki(Ki), Kd(Kd), Tf(Tf), b(b), c(c), Ts(Ts) {}
+    Parameter() {}
+  };
+
+public:
+  Disc2DOFPIDController(struct Parameter gain) : gain(gain) {}
+  Disc2DOFPIDController() {}
+  float p, i, d;
+
+  void setGain(const struct Parameter gain) { this->gain = gain; }
+  const struct Parameter getGain() const { return gain; }
+  float calc(float r, float y, float ie, float dr, float dy) {
+    p = gain.Kp * (gain.b * r - y);
+    i = gain.Ki * ie;
+    d = gain.Kd * (gain.c * dr - dy);
+    return p + i + d;
+  }
+
+private:
+  struct Parameter gain;
 };

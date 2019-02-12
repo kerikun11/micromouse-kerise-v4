@@ -270,7 +270,7 @@ private:
         wp.wheel2pole();
         if (std::abs(wp.wheel[0]) + std::abs(wp.wheel[1]) < end)
           break;
-        sc.set_target(wp.trans, wp.rot);
+        sc.set_target(wp.tra, wp.rot);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
       sc.set_target(0, 0);
@@ -343,7 +343,7 @@ private:
     while (1) {
       if (fix)
         break;
-      if (std::abs(sc.actual.rot) > speed)
+      if (std::abs(sc.est_v.rot) > speed)
         break;
       float delta = sc.position.x * cos(-sc.position.theta) -
                     sc.position.y * sin(-sc.position.theta);
@@ -360,7 +360,7 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       float extra = angle - sc.position.theta;
-      if (std::abs(sc.actual.rot) < 0.1 && std::abs(extra) < 0.1)
+      if (std::abs(sc.est_v.rot) < 0.1 && std::abs(extra) < 0.1)
         break;
       float target_speed = sqrt(2 * decel * std::abs(extra));
       float delta = sc.position.x * cos(-sc.position.theta) -
@@ -379,7 +379,7 @@ private:
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
     const float accel = 6000;
-    const float v_start = sc.target_v.trans;
+    const float v_start = sc.target_v.tra;
     AccelDesigner ad(accel, v_start, v_max, v_end,
                      distance - SEARCH_END_REMAIN);
     float int_y = 0;
@@ -409,7 +409,7 @@ private:
     sc.position.x -= distance; //< 移動した量だけ位置を更新
   }
   template <class C> void trace(C tr) {
-    const float velocity = sc.target_v.trans;
+    const float velocity = sc.target_v.tra;
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
       if (tr.getRemain() < SEARCH_END_REMAIN)
@@ -456,7 +456,7 @@ private:
   }
   void stop() {
     bz.play(Buzzer::EMERGENCY);
-    float v = sc.actual.trans;
+    float v = sc.est_v.tra;
     while (v > 0) {
       sc.set_target(v, 0);
       v -= 9;

@@ -47,7 +47,7 @@ void timeKeepTask(void *arg) {
 
 void straight_x(const float distance, const float v_max, const float v_end) {
   const float a_max = 1000;
-  const float v_start = std::max(sc.actual.trans, 0.0f);
+  const float v_start = std::max(sc.est_v.tra, 0.0f);
   AccelDesigner ad(a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN,
                    sc.position.x);
   portTickType xLastWakeTime = xTaskGetTickCount();
@@ -70,16 +70,24 @@ void accel_test() {
   lgr.clear();
   auto printLog = []() {
     lgr.push({
-        0,
-        sc.target_v.trans,
-        sc.target_a.trans * 0.001f,
-        sc.actual.trans,
-        sc.enc_v.trans,
-        sc.Kp * sc.proportional.trans,
-        sc.Ki * sc.integral.trans,
-        sc.Kd * sc.differential.trans,
-        sc.Kp * sc.proportional.trans + sc.Ki * sc.integral.trans +
-            sc.Kd * sc.differential.trans,
+        // sc.pwm_value.wheel[0] * 1000,
+        // sc.pwm_value.wheel[1] * 1000,
+        // sc.target_v.rot,
+        // sc.target_a.rot * 0.1f,
+        // sc.est_v.rot,
+        // sc.est_a.rot * 0.1f,
+        // sc.pwm_value.rot * 1000,
+        // sc.pidc_rot.p * 1000,
+        // sc.pidc_rot.i * 1000,
+        // sc.pidc_rot.d * 1000,
+        sc.target_v.tra,
+        sc.target_a.tra * 0.1f,
+        sc.est_v.tra,
+        sc.est_a.tra * 0.1f,
+        sc.pwm_value.tra * 1000,
+        sc.pidc_tra.p * 1000,
+        sc.pidc_tra.i * 1000,
+        sc.pidc_tra.d * 1000,
     });
   };
   imu.calibration();
@@ -93,9 +101,50 @@ void accel_test() {
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    xLastWakeTime = xTaskGetTickCount();
     if ((int)(t * 1000) % 2 == 0)
       printLog();
+    if (mt.isEmergency()) {
+      bz.play(Buzzer::EMERGENCY);
+      break;
+    }
+  }
+  sc.set_target(0, 0);
+  delay(200);
+  bz.play(Buzzer::CANCEL);
+  sc.disable();
+  fan.drive(0);
+}
+
+void ff_test() {
+  if (!ui.waitForCover())
+    return;
+  delay(500);
+  lgr.clear();
+  imu.calibration();
+  fan.drive(0.4);
+  delay(500);
+  sc.enable();
+  const float accel = 3000;
+  const float v_max = 1200;
+  AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
+    const float j = (ad.a(t + 0.001f) - ad.a(t - 0.001f)) / 0.002f / 10;
+    const float u = 0.0117 * j + 0.1526f * ad.v(t) + 0.0882f * ad.a(t);
+    mt.drive(u / 1000, u / 1000);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    lgr.push({
+        enc.position(0),
+        enc.position(1),
+        imu.gyro.z,
+        imu.accel.y,
+        imu.angular_accel,
+        u,
+    });
+    if (mt.isEmergency()) {
+      bz.play(Buzzer::EMERGENCY);
+      break;
+    }
   }
   sc.set_target(0, 0);
   delay(200);
@@ -126,8 +175,8 @@ void traj_test() {
     if (ad.v(t) < xi_threshold) {
       sc.set_target(ad.v(t), 0, ad.a(t), 0);
       lgr.push({
-          sc.actual.trans,
-          sc.actual.rot,
+          sc.est_v.tra,
+          sc.est_v.rot,
           sc.position.x,
           sc.position.y,
           sc.position.theta,
@@ -148,8 +197,8 @@ void traj_test() {
     const float theta = sc.position.theta;
     const float cos_theta = std::cos(theta);
     const float sin_theta = std::sin(theta);
-    const float dx = sc.actual.trans * cos_theta;
-    const float dy = sc.actual.trans * sin_theta;
+    const float dx = sc.est_v.tra * cos_theta;
+    const float dy = sc.est_v.tra * sin_theta;
     const float ddx = imu.accel.y * cos_theta;
     const float ddy = imu.accel.y * sin_theta;
     const float zeta = 1.0f;
@@ -176,8 +225,8 @@ void traj_test() {
     sc.set_target(v, w, dv, dw);
     xi += d_xi * 0.001f;
     lgr.push({
-        sc.actual.trans,
-        sc.actual.rot,
+        sc.est_v.tra,
+        sc.est_v.rot,
         sc.position.x,
         sc.position.y,
         sc.position.theta,
@@ -198,7 +247,7 @@ void traj_test() {
   sc.disable();
 }
 
-void straight_test() {
+void straight_test_v() {
   if (!ui.waitForCover())
     return;
   delay(1000);
@@ -216,7 +265,7 @@ void straight_test() {
   sc.disable();
 }
 
-void sysid_test() {
+void sysid_test_v() {
   int gain = ui.waitForSelect();
   if (gain < 0)
     return;
@@ -324,9 +373,10 @@ void driveTask(void *arg) {
       break;
     /* テスト */
     case 13:
-      traj_test();
+      // traj_test();
       // accel_test();
       // sysid_test();
+      ff_test();
       break;
     /* ログの表示 */
     case 14:

@@ -980,7 +980,7 @@ private:
 
   void wallAvoid(bool diag, float remain) {
     // 一定速より小さかったら行わない
-    if (sc.actual.trans < 100.0f)
+    if (sc.est_v.tra < 100.0f)
       return;
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
@@ -1091,7 +1091,7 @@ private:
       return;
     }
     const float accel = runParameter.accel;
-    const float v_start = sc.target_v.trans;
+    const float v_start = sc.target_v.tra;
     AccelDesigner ad(accel, v_start, v_max, v_end, distance - FAST_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
@@ -1121,7 +1121,7 @@ private:
     printPosition("Straight End");
   }
   template <class C> void trace(C tr) {
-    const float velocity = sc.target_v.trans;
+    const float velocity = sc.target_v.tra;
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
