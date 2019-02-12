@@ -30,13 +30,14 @@ dw =    rawdata(14, :);
 
 %% x, y, theta
 figure(figindex); figindex = figindex + 1;
-subplot(3, 1, [1 2]); hold off;
+subplot(2, 1, 1); hold off;
 plot(x, y); grid on;
 title('$x-y$');
 xlabel('$x$ [mm]');
 ylabel('$y$ [mm]');
+ylim([-5 5]);
 axis equal;
-subplot(3, 1, 3); hold off;
+subplot(2, 1, 2); hold off;
 plot(t, theta); grid on;
 title('Orientation');
 xlabel('Time [ms]');
