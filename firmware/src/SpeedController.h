@@ -60,8 +60,6 @@ public:
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
-#include <pid_controller.h>
-
 class SpeedController {
 public:
   constexpr static const float Ts = 0.001f;
@@ -87,35 +85,78 @@ public:
       wheel[1] = 0;
     }
   };
+  class Polar {
+  public:
+    float tra; //< tralation [mm]
+    float rot; //< rotation [rad]
+  public:
+    Polar(const float tra = 0, const float rot = 0) : tra(tra), rot(rot) {}
+    Polar(const Polar &o) : tra(o.tra), rot(o.rot) {}
+    const Polar &operator=(const Polar &o) {
+      tra = o.tra;
+      rot = o.rot;
+      return *this;
+    }
+    const Polar &operator+=(const Polar &o) {
+      tra += o.tra;
+      rot += o.rot;
+      return *this;
+    }
+    const Polar &operator*=(const Polar &o) {
+      tra *= o.tra;
+      rot *= o.rot;
+      return *this;
+    }
+    const Polar &operator/=(const Polar &o) {
+      tra /= o.tra;
+      rot /= o.rot;
+      return *this;
+    }
+    const Polar operator+(const Polar &o) const {
+      return Polar(tra + o.tra, rot + o.rot);
+    }
+    const Polar operator-(const Polar &o) const {
+      return Polar(tra - o.tra, rot - o.rot);
+    }
+    const Polar operator*(const Polar &o) const {
+      return Polar(tra * o.tra, rot * o.rot);
+    }
+    const Polar operator/(const Polar &o) const {
+      return Polar(tra / o.tra, rot / o.rot);
+    }
+    const Polar operator+(const float &k) const {
+      return Polar(tra + k, rot + k);
+    }
+    const Polar operator-(const float &k) const {
+      return Polar(tra - k, rot - k);
+    }
+    const Polar operator*(const float &k) const {
+      return Polar(tra * k, rot * k);
+    }
+    const Polar operator/(const float &k) const {
+      return Polar(tra / k, rot / k);
+    }
+    void clear() { tra = rot = 0; }
+  };
   WheelParameter target_v;
   WheelParameter target_a;
   WheelParameter est_v;
   WheelParameter est_a;
   WheelParameter enc_v;
-  WheelParameter proportional;
-  WheelParameter integral;
-  WheelParameter differential;
-  WheelParameter pwm_value;
   Position position;
-  // Disc2DOFPIDController pidc_tra;
-  // Disc2DOFPIDController pidc_rot;
-  PIDController pidc_tra;
-  PIDController pidc_rot;
+
+  Polar Kp;
+  Polar Ki;
+  Polar Kd;
+  Polar e_int;
 
 public:
   SpeedController() {
     enabled = false;
     reset();
-    // Disc2DOFPIDController::Parameter gain_tra(0.897f * 0.001f, 2.07f *
-    // 0.001f,
-    //                                           0.0665f * 0.001f, 0.0413f,
-    //                                           0.265f, 0.004f, 0.001f);
-    // Disc2DOFPIDController::Parameter gain_rot(4.21e-5f, 0.0842f, 0.0f, 0.0f,
-    //                                           0.0f, 0.0f, 0.001f);
-    PIDController::Parameter gain_tra(0.0006f, 0.12f, 0.00003f);
-    PIDController::Parameter gain_rot(0.0006f, 0.12f, 0.00003f);
-    pidc_tra.setGain(gain_tra);
-    pidc_rot.setGain(gain_rot);
+    Kp = Polar(0.0006f, 0.0006f);
+    Ki = Polar(0.12f, 0.12f);
+    Kd = Polar(0.00003f, 0.00003f);
     xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
@@ -154,8 +195,7 @@ private:
   void reset() {
     target_v.clear();
     est_v.clear();
-    integral.clear();
-    differential.clear();
+    e_int.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
     accel.clear(imu.accel.y);
@@ -192,18 +232,30 @@ private:
       est_a.tra = accel.average();
       est_a.rot = angular_accel.average();
       est_a.pole2wheel();
-      // calculate error integral
-      for (int i = 0; i < 2; i++)
-        integral.wheel[i] += (target_v.wheel[i] - est_v.wheel[i]) * Ts;
-      integral.wheel2pole();
+      // ref and out
+      Polar ref_v(target_v.tra, target_v.rot);
+      Polar ref_a(target_a.tra, target_a.rot);
+      Polar out_v(est_v.tra, est_v.rot);
+      Polar out_a(est_a.tra, est_a.rot);
+      // feedforward
+      Polar K = Polar(6465, 54.96f);
+      Polar T1 = Polar(0.264f, 0.08372f);
+      Polar ff = (T1 * ref_a + ref_v) / K;
+      // feedback
+      e_int += (ref_v - out_v) * Ts;
+      Polar fb = Kp * (ref_v - out_v) + Ki * e_int + Kd * (ref_a - out_a);
+
       // calculate pwm value
-      pwm_value.tra = pidc_tra.calc(target_v.tra, est_v.tra, integral.tra,
-                                    target_a.tra, est_a.tra);
-      pwm_value.rot = pidc_rot.calc(target_v.rot, est_v.rot, integral.rot,
-                                    target_a.rot, est_a.rot);
-      pwm_value.pole2wheel();
+
+      // Polar pwm_value = ff + fb;
+      // float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
+      // float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
+      float r = MACHINE_ROTATION_RADIUS;
+      float pwm_value_L = ff.tra - ff.rot / 2 + fb.tra - fb.rot * r;
+      float pwm_value_R = ff.tra + ff.rot / 2 + fb.tra + fb.rot * r;
+
       // drive the motors
-      mt.drive(pwm_value.wheel[0], pwm_value.wheel[1]);
+      mt.drive(pwm_value_L, pwm_value_R);
 
       // calculate odometry value
       position.theta += est_v.rot * Ts;

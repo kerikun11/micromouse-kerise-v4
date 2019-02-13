@@ -70,24 +70,10 @@ void accel_test() {
   lgr.clear();
   auto printLog = []() {
     lgr.push({
-        // sc.pwm_value.wheel[0] * 1000,
-        // sc.pwm_value.wheel[1] * 1000,
-        // sc.target_v.rot,
-        // sc.target_a.rot * 0.1f,
-        // sc.est_v.rot,
-        // sc.est_a.rot * 0.1f,
-        // sc.pwm_value.rot * 1000,
-        // sc.pidc_rot.p * 1000,
-        // sc.pidc_rot.i * 1000,
-        // sc.pidc_rot.d * 1000,
         sc.target_v.tra,
         sc.target_a.tra * 0.1f,
         sc.est_v.tra,
         sc.est_a.tra * 0.1f,
-        sc.pwm_value.tra * 1000,
-        sc.pidc_tra.p * 1000,
-        sc.pidc_tra.i * 1000,
-        sc.pidc_tra.d * 1000,
     });
   };
   imu.calibration();
