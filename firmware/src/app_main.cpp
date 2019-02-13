@@ -129,7 +129,7 @@ void ff_test() {
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    const float j = (ad.a(t + 0.001f) - ad.a(t - 0.001f)) / 0.002f / 10;
+    const float j = (ad.a(t + 0.001f) - ad.a(t - 0.001f)) / 0.002f / 100;
     const float u = 0.0117 * j + 0.1526f * ad.v(t) + 0.0882f * ad.a(t);
     mt.drive(u / 1000, u / 1000);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -140,6 +140,9 @@ void ff_test() {
         imu.accel.y,
         imu.angular_accel,
         u,
+        j,
+        ad.a(t),
+        ad.v(t),
     });
     if (mt.isEmergency()) {
       bz.play(Buzzer::EMERGENCY);

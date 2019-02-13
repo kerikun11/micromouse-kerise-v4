@@ -1,4 +1,4 @@
-
+clear all
 load('IdentifyedModelDutyToTranslationalVelocity.mat');
 load('IdentifyedModelDutyToRotationalVelocity.mat');
 
@@ -17,7 +17,8 @@ W=hankel(fliplr(d(1:numel(d)-1)));
 G=ss(sys);
 UC=ctrb(G);
 S=UC*W;
-csys=ss(inv(S)*G.a*S,inv(S)*G.b,G.c*S,G.d);
+% csys=ss(inv(S)*G.a*S,inv(S)*G.b,G.c*S,G.d);
+csys = ss2ss(P, inv(S));
 csys = ss2ss(csys, csys.C(1)*eye(2));
 csys
 
