@@ -379,7 +379,7 @@ private:
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
     const float accel = 6000;
-    const float v_start = sc.target_v.tra;
+    const float v_start = sc.ref_v.tra;
     AccelDesigner ad(accel, v_start, v_max, v_end,
                      distance - SEARCH_END_REMAIN);
     float int_y = 0;
@@ -409,7 +409,7 @@ private:
     sc.position.x -= distance; //< 移動した量だけ位置を更新
   }
   template <class C> void trace(C tr) {
-    const float velocity = sc.target_v.tra;
+    const float velocity = sc.ref_v.tra;
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
       if (tr.getRemain() < SEARCH_END_REMAIN)

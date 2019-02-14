@@ -70,10 +70,17 @@ void accel_test() {
   lgr.clear();
   auto printLog = []() {
     lgr.push({
-        sc.target_v.tra,
-        sc.target_a.tra * 0.1f,
+        sc.ref_v.tra,
+        sc.ref_a.tra * 0.1f,
         sc.est_v.tra,
         sc.est_a.tra * 0.1f,
+        sc.ff.tra * 1000,
+        sc.fbp.tra * 1000,
+        sc.fbi.tra * 1000,
+        sc.fb.tra * 1000,
+        sc.pwm_value.tra * 1000,
+        sc.fb.rot * 1000,
+        sc.pwm_value.rot * 1000,
     });
   };
   imu.calibration();
@@ -81,7 +88,7 @@ void accel_test() {
   delay(500);
   sc.enable();
   const float accel = 9000;
-  const float v_max = 1200;
+  const float v_max = 1800;
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -363,9 +370,9 @@ void driveTask(void *arg) {
     /* テスト */
     case 13:
       // traj_test();
-      // accel_test();
+      accel_test();
       // sysid_test();
-      ff_test();
+      // ff_test();
       break;
     /* ログの表示 */
     case 14:

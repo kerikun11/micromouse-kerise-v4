@@ -138,25 +138,23 @@ public:
     }
     void clear() { tra = rot = 0; }
   };
-  WheelParameter target_v;
-  WheelParameter target_a;
-  WheelParameter est_v;
-  WheelParameter est_a;
+  Polar ref_v;
+  Polar ref_a;
+  Polar est_v;
+  Polar est_a;
+  Polar e_int;
   WheelParameter enc_v;
   Position position;
-
-  Polar Kp;
-  Polar Ki;
-  Polar Kd;
-  Polar e_int;
+  Polar ff;
+  Polar fb;
+  Polar fbp;
+  Polar fbi;
+  Polar pwm_value;
 
 public:
   SpeedController() {
     enabled = false;
     reset();
-    Kp = Polar(0.0006f, 0.0006f);
-    Ki = Polar(0.12f, 0.12f);
-    Kd = Polar(0.00003f, 0.00003f);
     xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
@@ -176,31 +174,25 @@ public:
   }
   void set_target(const float tra, const float rot, const float tra_a = 0,
                   const float rot_a = 0) {
-    target_v.tra = tra;
-    target_v.rot = rot;
-    target_v.pole2wheel();
-    target_a.tra = tra_a;
-    target_a.rot = rot_a;
-    target_a.pole2wheel();
+    ref_v.tra = tra;
+    ref_v.rot = rot;
+    ref_a.tra = tra_a;
+    ref_a.rot = rot_a;
   }
 
 private:
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
-  Accumulator<float, acc_num> accel;
-  Accumulator<float, acc_num> gyro;
-  Accumulator<float, acc_num> angular_accel;
+  Accumulator<Polar, acc_num> accel;
 
   void reset() {
-    target_v.clear();
+    ref_v.clear();
     est_v.clear();
     e_int.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
-    accel.clear(imu.accel.y);
-    gyro.clear(imu.gyro.z);
-    angular_accel.clear(imu.angular_accel);
+    accel.clear(Polar(imu.accel.y, imu.angular_accel));
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -215,45 +207,34 @@ private:
       // 最新のデータの追加
       for (int i = 0; i < 2; i++)
         wheel_position[i].push(enc.position(i));
-      accel.push(imu.accel.y);
-      gyro.push(imu.gyro.z);
-      angular_accel.push(imu.angular_accel);
+      accel.push(Polar(imu.accel.y, imu.angular_accel));
       // approximated differential of encoder value
       for (int i = 0; i < 2; i++)
         enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
       enc_v.wheel2pole();
-      // calculate est_vimated value
-      float kt = 0.75f;
-      float kr = 0.0f;
-      est_v.tra = kt * (est_v.tra + accel[0] * Ts) + (1 - kt) * enc_v.tra;
-      est_v.rot = kr * (est_v.rot + angular_accel[0] * Ts) + (1 - kr) * gyro[0];
-      est_v.pole2wheel();
-      // estimated accleration
-      est_a.tra = accel.average();
-      est_a.rot = angular_accel.average();
-      est_a.pole2wheel();
-      // ref and out
-      Polar ref_v(target_v.tra, target_v.rot);
-      Polar ref_a(target_a.tra, target_a.rot);
-      Polar out_v(est_v.tra, est_v.rot);
-      Polar out_a(est_a.tra, est_a.rot);
+      // calculate estimated velocity value with complementary filter
+      Polar noisy_v = Polar(enc_v.tra, imu.gyro.z);
+      Polar alpha = Polar(0.75f, 0);
+      est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
+      // estimated acceleration
+      // est_a = accel.average();
+      est_a = accel[0];
       // feedforward
-      Polar K = Polar(6465, 54.96f);
+      Polar K1 = Polar(6465, 54.96f);
       Polar T1 = Polar(0.264f, 0.08372f);
-      Polar ff = (T1 * ref_a + ref_v) / K;
+      ff = (T1 * ref_a + ref_v) / K1;
       // feedback
-      e_int += (ref_v - out_v) * Ts;
-      Polar fb = Kp * (ref_v - out_v) + Ki * e_int + Kd * (ref_a - out_a);
-
+      Polar Kp = Polar(0.002f, 0.018919f);
+      Polar Ki = Polar(0.1f, 0.321020f);
+      Polar Kd = Polar(0, 0);
+      e_int += (ref_v - est_v) * Ts;
+      fbp = Kp * (ref_v - est_v);
+      fbi = Ki * e_int;
+      fb = Kp * (ref_v - est_v) + Ki * e_int + Kd * (ref_a - est_a);
       // calculate pwm value
-
-      // Polar pwm_value = ff + fb;
-      // float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
-      // float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
-      float r = MACHINE_ROTATION_RADIUS;
-      float pwm_value_L = ff.tra - ff.rot / 2 + fb.tra - fb.rot * r;
-      float pwm_value_R = ff.tra + ff.rot / 2 + fb.tra + fb.rot * r;
-
+      pwm_value = ff + fb;
+      float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
+      float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
       // drive the motors
       mt.drive(pwm_value_L, pwm_value_R);
 
