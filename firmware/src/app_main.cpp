@@ -71,16 +71,21 @@ void accel_test() {
   auto printLog = []() {
     lgr.push({
         sc.ref_v.tra,
-        sc.ref_a.tra * 0.1f,
+        // sc.ref_a.tra * 0.1f,
         sc.est_v.tra,
-        sc.est_a.tra * 0.1f,
+        // sc.est_a.tra * 0.1f,
         sc.ff.tra * 1000,
         sc.fbp.tra * 1000,
         sc.fbi.tra * 1000,
         sc.fb.tra * 1000,
         sc.pwm_value.tra * 1000,
+        sc.pwm_value.rot * 1000,
+        sc.ff.rot * 1000,
+        sc.fbp.rot * 1000,
+        sc.fbi.rot * 1000,
         sc.fb.rot * 1000,
         sc.pwm_value.rot * 1000,
+        sc.pwm_value.tra * 1000,
     });
   };
   imu.calibration();
@@ -88,7 +93,7 @@ void accel_test() {
   delay(500);
   sc.enable();
   const float accel = 9000;
-  const float v_max = 1800;
+  const float v_max = 1200;
   AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -167,27 +172,6 @@ void traj_test() {
   float xi = xi_threshold;
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    if (ad.v(t) < xi_threshold) {
-      sc.set_target(ad.v(t), 0, ad.a(t), 0);
-      lgr.push({
-          sc.est_v.tra,
-          sc.est_v.rot,
-          sc.position.x,
-          sc.position.y,
-          sc.position.theta,
-          imu.accel.y,
-          imu.angular_accel,
-          ad.a(t),
-          ad.v(t),
-          ad.x(t),
-          ad.v(t),
-          0,
-          ad.a(t),
-          0,
-      });
-      continue;
-    }
     const float x = sc.position.x;
     const float y = sc.position.y;
     const float theta = sc.position.theta;
@@ -203,6 +187,8 @@ void traj_test() {
     const float kdx = 2 * zeta * omega_n;
     const float ky = kx;
     const float kdy = kdx;
+    const float dddx_r = 0;
+    const float dddy_r = 0;
     const float ddx_r = ad.a(t);
     const float ddy_r = 0;
     const float dx_r = ad.v(t);
@@ -211,13 +197,21 @@ void traj_test() {
     const float y_r = 0;
     const float u1 = ddx_r + kx * (x_r - x) + kdx * (dx_r - dx);
     const float u2 = ddy_r + ky * (y_r - y) + kdy * (dy_r - dy);
-    const float du1 = 0 + kdx * (ddx_r - ddx) + kx * (dx_r - dx);
-    const float du2 = 0 + kdy * (ddy_r - ddy) + ky * (dy_r - dy);
+    const float du1 = dddx_r + kdx * (ddx_r - ddx) + kx * (dx_r - dx);
+    const float du2 = dddy_r + kdy * (ddy_r - ddy) + ky * (dy_r - dy);
     const float d_xi = u1 * cos_theta + u2 * sin_theta;
-    const float v = xi;
-    const float dv = d_xi;
-    const float w = (u2 * cos_theta - u1 * sin_theta) / xi;
-    const float dw = -(4 * d_xi * w + du1 * sin_theta - du2 * cos_theta) / xi;
+    float v, w, dv, dw;
+    if (xi < xi_threshold) {
+      v = ad.v(t);
+      w = 0;
+      dv = ad.a(t);
+      dw = 0;
+    } else {
+      v = xi;
+      dv = d_xi;
+      w = (u2 * cos_theta - u1 * sin_theta) / xi;
+      dw = -(4 * d_xi * w + du1 * sin_theta - du2 * cos_theta) / xi;
+    }
     sc.set_target(v, w, dv, dw);
     xi += d_xi * 0.001f;
     lgr.push({
@@ -236,6 +230,7 @@ void traj_test() {
         dv,
         dw,
     });
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   sc.set_target(0, 0);
   delay(200);
@@ -243,7 +238,7 @@ void traj_test() {
   sc.disable();
 }
 
-void straight_test_v() {
+void straight_test() {
   if (!ui.waitForCover())
     return;
   delay(1000);
@@ -261,7 +256,7 @@ void straight_test_v() {
   sc.disable();
 }
 
-void sysid_test_v() {
+void sysid_test() {
   int gain = ui.waitForSelect();
   if (gain < 0)
     return;

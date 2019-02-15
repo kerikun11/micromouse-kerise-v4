@@ -214,20 +214,22 @@ private:
       enc_v.wheel2pole();
       // calculate estimated velocity value with complementary filter
       Polar noisy_v = Polar(enc_v.tra, imu.gyro.z);
-      Polar alpha = Polar(0.75f, 0);
+      Polar alpha = Polar(0.75f, 0.25f);
       est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
       // estimated acceleration
-      // est_a = accel.average();
       est_a = accel[0];
+      // error integral
+      e_int += (ref_v - est_v) * Ts;
       // feedforward
       Polar K1 = Polar(6465, 54.96f);
       Polar T1 = Polar(0.264f, 0.08372f);
       ff = (T1 * ref_a + ref_v) / K1;
       // feedback
-      Polar Kp = Polar(0.002f, 0.018919f);
-      Polar Ki = Polar(0.1f, 0.321020f);
+      // Polar Kp = Polar(0.002f, 0.018919f);
+      // Polar Ki = Polar(0.1f, 0.321020f);
+      Polar Kp = Polar(0.002f, 0.008f);
+      Polar Ki = Polar(0.1f, 2.0f);
       Polar Kd = Polar(0, 0);
-      e_int += (ref_v - est_v) * Ts;
       fbp = Kp * (ref_v - est_v);
       fbi = Ki * e_int;
       fb = Kp * (ref_v - est_v) + Ki * e_int + Kd * (ref_a - est_a);
