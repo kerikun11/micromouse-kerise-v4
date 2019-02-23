@@ -1,4 +1,15 @@
+%% Micromouse; Turn Trajectory Generator
+% Author Ryotaro Onuki
+% Created_at 2017.12.13
+%% cleaning
 clear;
+% close all;
+set(groot, 'DefaultTextInterpreter', 'Latex');
+set(groot, 'DefaultLegendInterpreter', 'Latex');
+% set(groot, 'DefaultAxesFontSize', 16);
+set(groot, 'DefaultLineLineWidth', 1.5);
+figindex = 1;
+
 %% 区画の大きさを定義 [mm]
 seg_full = 90;
 seg_half = seg_full / 2;
@@ -179,19 +190,19 @@ extra_straight = max([(pos_target(2)-pos(end, 2)) / sin(pos_target(3)),(pos_targ
 
 %% 上で生成したグラフ(カーブのみ)を装飾
 subplot(6,1,1);
-title(sprintf('$$ \\dot{\\omega}_{max}: %.0f\\pi,\\ \\omega_{max}: %.0f\\pi $$', omega_dot/pi, omega_max/pi), 'Interpreter','latex', 'FontSize', 12);
-xlabel('t', 'Interpreter','latex', 'FontSize', 12);
-ylabel('\omega', 'FontSize', 12);
+title(sprintf('$ \\dot{\\omega}_{max}: %.0f\\pi,\\ \\omega_{max}: %.0f\\pi $', omega_dot/pi, omega_max/pi));
+xlabel('$t$');
+ylabel('$\omega$');
 xlim([0, dt*length]);
 subplot(6,1,2);
-title(sprintf('$$ \\theta_{end}: %.2f\\pi $$', pos_target(3)/pi), 'Interpreter','latex', 'FontSize', 12);
-xlabel('t', 'Interpreter','latex', 'FontSize', 12);
-ylabel('\theta', 'FontSize', 12);
+title(sprintf('$ \\theta_{end}: %.2f\\pi $', pos_target(3)/pi));
+xlabel('$t$');
+ylabel('$\theta$');
 xlim([0, dt*length]);
 subplot(6,1,[3 6]);
-title(sprintf('$$ v_{max}: %.3f $$', v), 'Interpreter','latex', 'FontSize', 12);
-xlabel('x', 'Interpreter','latex', 'FontSize', 12);
-ylabel('y', 'Interpreter','latex', 'FontSize', 12);
+title(sprintf('$ v_{max}: %.3f $', v));
+xlabel('$x$');
+ylabel('$y$');
 axis equal;
 xlim([min(pos(:,1)), max(pos(:,1))]);
 ylim([min(pos(:,2)), max(pos(:,2))]);
@@ -209,6 +220,8 @@ ylim([floor(min(pos_disp(2,:))/seg_half)*seg_half, ceil(max(pos_disp(2,:)-1)/seg
 xticks(-5*seg_half:seg_half/6:5*seg_half);
 yticks(-5*seg_half:seg_half/6:5*seg_half);
 grid on;
+xlabel('$x$', 'Interpreter', 'Latex');
+ylabel('$y$', 'Interpreter', 'Latex');
 %}
 %% 情報の出力
 % x[mm], y[mm], theta[rad]のCSV形式で保存
@@ -216,10 +229,3 @@ dlmwrite('data.csv', pos, 'precision', '%.10f');
 length
 velocity
 extra_straight
-
-%%
-figure(3);
-theta = pos(:, 3);
-theta = theta(2:end) - theta(1:end-1);
-plot(theta);
-plot(omega);
