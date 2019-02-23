@@ -31,10 +31,10 @@ private:
       char c = getChar();
       switch (c) {
       case 'g':
-        tof.enable();
+        // tof.enable();
         break;
       case 's':
-        tof.disable();
+        // tof.disable();
         break;
       case 'p':
         tof.print();
@@ -55,7 +55,7 @@ private:
       case '9': {
         float duty = (c - '0');
         duty /= 10.0f;
-        fan.drive(duty);
+        // fan.drive(duty);
       } break;
       }
     }

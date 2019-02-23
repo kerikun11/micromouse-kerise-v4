@@ -200,11 +200,25 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
-    fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
-                "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
-                "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+    // fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
+    //             "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
+    //             "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
+    std::string path;
+    for (int i = 0; i < 4; ++i)
+      path += "srrlrllsllrlrr";
+    // path += "rllrrssrrllrrssr";
+    fr.set_path(path);
     fr.start();
-    while (fr.isRunning())
-      delay(1000);
+    while (fr.isRunning()) {
+      delay(100);
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        fr.terminate();
+        fan.free();
+        delay(100);
+        mt.emergencyRelease();
+        break;
+      }
+    }
   }
 };

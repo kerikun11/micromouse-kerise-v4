@@ -16,8 +16,8 @@
 
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-#define SEARCH_ST_FB_GAIN 20
-#define SEARCH_CURVE_FB_GAIN 4.0f
+#define SEARCH_ST_FB_GAIN 10
+#define SEARCH_CURVE_FB_GAIN 3.0f
 
 #define ahead_length 2
 

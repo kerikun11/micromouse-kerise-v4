@@ -46,7 +46,7 @@ private:
 
 class Motor {
 private:
-  static constexpr float emergency_threshold = 1.5f;
+  static constexpr float emergency_threshold = 2.0f;
 
 public:
   Motor(gpio_num_t gpio_L1, gpio_num_t gpio_L2, gpio_num_t gpio_R1,
