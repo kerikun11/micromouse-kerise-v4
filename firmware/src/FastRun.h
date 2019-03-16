@@ -903,10 +903,8 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    // RunParameter(const float curve_gain = 0.6, const float max_speed = 600,
-    //              const float accel = 2400, const float decel = 1200)
-    RunParameter(const float curve_gain = 0.6, const float max_speed = 1200,
-                 const float accel = 6000, const float decel = 6000)
+    RunParameter(const float curve_gain = 0.6, const float max_speed = 900,
+                 const float accel = 4800, const float decel = 4800)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
     RunParameter(std::array<float, 4> params)

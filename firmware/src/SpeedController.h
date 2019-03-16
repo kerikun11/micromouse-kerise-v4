@@ -227,8 +227,8 @@ private:
       // feedback
       // Polar Kp = Polar(0.002f, 0.018919f);
       // Polar Ki = Polar(0.1f, 0.321020f);
-      Polar Kp = Polar(0.002f, 0.002f);
-      Polar Ki = Polar(0.1f, 2.0f);
+      Polar Kp = Polar(0.001f, 0.04f);
+      Polar Ki = Polar(0.1f, 3.0f);
       Polar Kd = Polar(0, 0);
       fbp = Kp * (ref_v - est_v);
       fbi = Ki * e_int;
