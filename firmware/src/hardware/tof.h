@@ -38,7 +38,7 @@ public:
   void enable() { enabled = true; }
   void disable() { enabled = false; }
   uint16_t getDistance() { return distance; }
-  uint16_t passedTimeMs() { return passed_ms; }
+  int passedTimeMs() { return passed_ms; }
   void print() {
     log_d("ToF: %d [mm], Passed %d [ms]", getDistance(), passedTimeMs());
   }
@@ -52,7 +52,7 @@ private:
   MyDev_t myDev;
   bool enabled = true;
   uint16_t distance;
-  uint16_t passed_ms;
+  int passed_ms;
 
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();

@@ -12,7 +12,7 @@ void setup() {
   std::cout << "**************** KERISE v4 ****************" << std::endl;
   Machine::init();
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
-  xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
+  // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
   xTaskCreate(driveTask, "drive", 4096, NULL, 2, NULL);
 }
 
@@ -355,7 +355,7 @@ void driveTask(void *arg) {
       break;
     /* マス直線 */
     case 12:
-      if (!ui.waitForCover(true))
+      if (!ui.waitForCover())
         return;
       bz.play(Buzzer::CONFIRM);
       imu.calibration();
@@ -377,8 +377,9 @@ void driveTask(void *arg) {
       break;
     /* リセット */
     case 15:
-      mr.print();
-      ESP.restart();
+      // mr.print();
+      // ESP.restart();
+      Machine::petitcon();
       break;
     }
   }

@@ -14,7 +14,7 @@
 #define WALL_DETECTOR_BACKUP_PATH "/WallDetector.bin"
 
 #define WALL_DETECTOR_THRESHOLD_FRONT 120
-#define WALL_DETECTOR_THRESHOLD_SIDE -10
+#define WALL_DETECTOR_THRESHOLD_SIDE -20
 
 class WallDetector {
 public:
@@ -189,7 +189,7 @@ private:
       wall[2] = true;
     else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
       wall[2] = false;
-    if (tof.passedTimeMs() > 200)
+    if (tof.passedTimeMs() > 50)
       wall[2] = false;
 
     // 横壁の更新

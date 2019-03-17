@@ -18,8 +18,8 @@
 
 #define FAST_END_REMAIN 9
 #define FAST_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-#define FAST_ST_FB_GAIN 10
-#define FAST_CURVE_FB_GAIN 3.0f
+#define FAST_ST_FB_GAIN 30
+#define FAST_CURVE_FB_GAIN 12.0f
 
 class FastTrajectory {
 public:
@@ -784,7 +784,7 @@ class FS90 : public FastTrajectory {
 public:
   FS90(bool mirror = false) : mirror(mirror) {}
   // static constexpr float velocity = 245.3346843519961;
-  static constexpr float velocity = 400.0f;
+  static constexpr float velocity = 300.0f;
   static constexpr float straight = 5.0f;
 
 private:
@@ -903,8 +903,8 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    RunParameter(const float curve_gain = 0.6, const float max_speed = 900,
-                 const float accel = 4800, const float decel = 4800)
+    RunParameter(const float curve_gain = 0.7, const float max_speed = 600,
+                 const float accel = 2400, const float decel = 2400)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
     RunParameter(std::array<float, 4> params)

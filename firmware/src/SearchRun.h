@@ -16,10 +16,10 @@
 
 #define SEARCH_END_REMAIN 5
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-#define SEARCH_ST_FB_GAIN 10
-#define SEARCH_CURVE_FB_GAIN 3.0f
+#define SEARCH_ST_FB_GAIN 40
+#define SEARCH_CURVE_FB_GAIN 12.0f
 
-#define ahead_length 2
+#define ahead_length 5
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -258,7 +258,7 @@ private:
       for (int i = 0; i < 3000; i++) {
         const float Kp = 72.0f;
         const float Ki = 6.0f;
-        const float satu = 200.0f; //< [mm/s]
+        const float satu = 120.0f; //< [mm/s]
         const float end = 0.4f;
         SpeedController::WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
@@ -267,9 +267,9 @@ private:
           wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j] * Ki;
           wp.wheel[j] = std::max(std::min(wp.wheel[j], satu), -satu);
         }
-        wp.wheel2pole();
         if (std::abs(wp.wheel[0]) + std::abs(wp.wheel[1]) < end)
           break;
+        wp.wheel2pole();
         sc.set_target(wp.tra, wp.rot);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
@@ -284,7 +284,7 @@ private:
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
     if (std::abs(sc.position.theta) < 0.05 * PI) {
-      const float gain = 0.0016f;
+      const float gain = 0.002;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
       if (wd.wall[1])
@@ -380,6 +380,10 @@ private:
   void straight_x(const float distance, const float v_max, const float v_end) {
     const float accel = 6000;
     const float v_start = sc.ref_v.tra;
+    if (distance - SEARCH_END_REMAIN < 0) {
+      sc.position.x -= distance; //< 移動した量だけ位置を更新
+      return;
+    }
     AccelDesigner ad(accel, v_start, v_max, v_end,
                      distance - SEARCH_END_REMAIN);
     float int_y = 0;
@@ -455,7 +459,8 @@ private:
     }
   }
   void stop() {
-    bz.play(Buzzer::EMERGENCY);
+    // bz.play(Buzzer::EMERGENCY);
+    bz.play(Buzzer::ERROR);
     float v = sc.est_v.tra;
     while (v > 0) {
       sc.set_target(v, 0);

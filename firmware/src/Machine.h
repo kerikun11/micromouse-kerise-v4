@@ -65,6 +65,7 @@ public:
         fan.free();
         delay(1000);
         mt.emergencyRelease();
+        break; //< for debug
         mr.start(false, true);
       }
       delay(100);
@@ -204,8 +205,17 @@ public:
     //             "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
     //             "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
     std::string path;
-    for (int i = 0; i < 4; ++i)
-      path += "srrlrllsllrlrr";
+    path += "s";
+    for (int j = 0; j < 4; ++j) {
+      for (int i = 0; i < 28; ++i)
+        path += "s";
+      path += "r";
+      for (int i = 0; i < 12; ++i)
+        path += "s";
+      path += "r";
+    }
+    path += "s";
+    // path += "srrlrllsllrlrr";
     // path += "rllrrssrrllrrssr";
     fr.set_path(path);
     fr.start();
