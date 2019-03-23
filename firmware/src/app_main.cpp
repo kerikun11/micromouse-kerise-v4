@@ -6,8 +6,8 @@ void printTask(void *arg);
 void timeKeepTask(void *arg);
 
 void setup() {
-  Serial.begin(2000000);
   WiFi.mode(WIFI_OFF);
+  Serial.begin(2000000);
   std::cout << std::endl;
   std::cout << "**************** KERISE v4 ****************" << std::endl;
   Machine::init();
@@ -258,63 +258,24 @@ void straight_test() {
   sc.disable();
 }
 
-void sysid_test() {
-  int gain = ui.waitForSelect();
-  if (gain < 0)
-    return;
-  if (!ui.waitForCover())
-    return;
-  delay(1000);
-  lgr.clear();
-  auto printLog = []() {
-    lgr.push({
-        enc.position(0),
-        enc.position(1),
-        imu.gyro.z,
-        imu.accel.y,
-        imu.angular_accel,
-        ui.getBatteryVoltage(),
-    });
-  };
-  bz.play(Buzzer::SELECT);
-  imu.calibration();
-  bz.play(Buzzer::CANCEL);
-  fan.drive(0.5f);
-  delay(500);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  mt.drive(-gain * 0.05, gain * 0.05);
-  for (int i = 0; i < 2000; i++) {
-    printLog();
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-  }
-  fan.drive(0);
-  mt.drive(0, 0);
-  delay(500);
-  mt.free();
-}
-
 void driveTask(void *arg) {
   while (1) {
     delay(1);
     int mode = ui.waitForSelect(16);
     switch (mode) {
-    /* 走行 */
-    case 0:
+    case 0: /* 迷路走行 */
       Machine::driveNormally();
       break;
-    /* プリセット走行パラメータの選択 */
-    case 1:
+    case 1: /* プリセット走行パラメータの選択 */
       Machine::selectParamPreset();
       break;
-    /* マニュアル走行パラメータの設定 */
-    case 2:
+    case 2: /* マニュアル走行パラメータの設定 */
       Machine::selectParamManually();
       break;
-    /* 壁制御の設定 */
-    case 3: {
+    case 3: { /* 壁制御，斜め走行の設定 */
       int value = ui.waitForSelect(16);
       if (value < 0)
-        return;
+        break;
       fr.wallAvoidFlag = value & 0x01;
       fr.wallAvoid45Flag = value & 0x02;
       fr.wallCutFlag = value & 0x04;
@@ -322,39 +283,34 @@ void driveTask(void *arg) {
     }
       bz.play(Buzzer::SUCCESSFUL);
       break;
-    /* ファンの設定 */
-    case 4:
+    case 4: /* ファンの設定 */
       Machine::selectFanGain();
       break;
-    /* 迷路データの復元 */
-    case 5:
+    case 5: /* 迷路データの復元 */
       bz.play(Buzzer::MAZE_RESTORE);
       if (!mr.restore()) {
         bz.play(Buzzer::ERROR);
-        return;
+        break;
       }
       bz.play(Buzzer::SUCCESSFUL);
       break;
-    /* データ消去 */
-    case 6:
+    case 6: /* データ消去 */
       bz.play(Buzzer::MAZE_BACKUP);
       mr.resetLastWall(10);
-      return;
       break;
-    /* 宴会芸 */
-    case 7:
+    case 7: /* 宴会芸 */
       Machine::partyStunt();
       break;
-    /* 壁センサキャリブレーション */
-    case 8:
+    case 8: /* 壁センサキャリブレーション */
       Machine::wallCalibration();
       break;
-    /* ゴール区画の設定 */
-    case 11:
+    case 9: /* プチコン */
+      Machine::petitcon();
+      break;
+    case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
       break;
-    /* マス直線 */
-    case 12:
+    case 12: /* マス直線 */
       if (!ui.waitForCover())
         return;
       bz.play(Buzzer::CONFIRM);
@@ -364,22 +320,18 @@ void driveTask(void *arg) {
       straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
       sc.disable();
       break;
-    /* テスト */
-    case 13:
+    case 13: /* テスト */
       // traj_test();
       accel_test();
-      // sysid_test();
+      Machine::sysid();
       // ff_test();
       break;
-    /* ログの表示 */
-    case 14:
+    case 14: /* ログの表示 */
       lgr.print();
       break;
-    /* リセット */
-    case 15:
-      // mr.print();
+    case 15: /* 迷路の表示 */
+      mr.print();
       // ESP.restart();
-      Machine::petitcon();
       break;
     }
   }

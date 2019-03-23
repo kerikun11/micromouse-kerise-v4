@@ -231,4 +231,39 @@ public:
       }
     }
   }
+  static void sysid() {
+    int gain = ui.waitForSelect();
+    if (gain < 0)
+      return;
+    if (!ui.waitForCover())
+      return;
+    delay(1000);
+    lgr.clear();
+    auto printLog = []() {
+      lgr.push({
+          enc.position(0),
+          enc.position(1),
+          imu.gyro.z,
+          imu.accel.y,
+          imu.angular_accel,
+          ui.getBatteryVoltage(),
+      });
+    };
+    bz.play(Buzzer::SELECT);
+    imu.calibration();
+    bz.play(Buzzer::CANCEL);
+    fan.drive(0.5f);
+    delay(500);
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    mt.drive(-gain * 0.05, gain * 0.05); //< 回転
+    // mt.drive(gain * 0.1, gain * 0.1);    //< 並進
+    for (int i = 0; i < 2000; i++) {
+      printLog();
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    }
+    fan.drive(0);
+    mt.drive(0, 0);
+    delay(500);
+    mt.free();
+  }
 };
