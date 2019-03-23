@@ -114,7 +114,8 @@ private:
       /* drive the motors */
       mt.drive(pwm_value_L, pwm_value_R);
       /* estimates slip angle */
-      const float k = 0.001f;
+      // const float k = 0.001f;
+      const float k = 0.0f;
       const float slip_angle = k * est_v.tra * est_v.rot;
       /* calculate odometry value */
       position.theta += est_v.rot * Ts;

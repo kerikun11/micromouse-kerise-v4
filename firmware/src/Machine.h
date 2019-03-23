@@ -65,7 +65,7 @@ public:
         fan.free();
         delay(1000);
         mt.emergencyRelease();
-        break; //< for debug
+        // break; //< for debug
         mr.start(false, true);
       }
       delay(100);
