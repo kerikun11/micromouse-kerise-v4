@@ -158,7 +158,7 @@ private:
   void calibration() override {
     bz.play(Buzzer::CONFIRM);
     imu.calibration();
-    enc.clear();
+    enc.clearOffset();
     bz.play(Buzzer::CANCEL);
   }
   void calcNextDirsPreCallback() override {}

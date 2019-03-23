@@ -59,7 +59,7 @@ public:
       value = -value;
     return value;
   }
-  void clear() {
+  void clearOffset() {
     pulses_ovf[0] = 0;
     pulses_ovf[1] = 0;
   }

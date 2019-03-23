@@ -254,13 +254,13 @@ private:
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       tof.disable();
       portTickType xLastWakeTime = xTaskGetTickCount();
-      SpeedController::WheelParameter wi;
+      WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 72.0f;
         const float Ki = 6.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.4f;
-        SpeedController::WheelParameter wp;
+        WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
           wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
