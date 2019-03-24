@@ -21,7 +21,7 @@ P1_rot = tf([K1_rot], [T1_rot 1]);
 % Combi
 P1 = [P1_tra 0; 0 P1_rot];
 %% visualiztion
-%{
+% %{
 figure(figindex); figindex = figindex + 1;
 subplot(2, 2, 1); step(P1_tra); grid on;
 subplot(2, 2, 2); bode(P1_tra); grid on;
@@ -36,7 +36,7 @@ closed_loop = feedback(P1*Ctrlr, eye(2));
 closed_tra = feedback(P1_tra * C_tra, 1);
 closed_rot = feedback(P1_rot * C_rot, 1);
 %% visualization
-%{
+% %{
 figure(figindex); figindex = figindex + 1;
 subplot(2, 2, 1); step(closed_tra); grid on;
 subplot(2, 2, 2); bode(closed_tra); grid on;

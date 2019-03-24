@@ -1,20 +1,29 @@
+%% Micromouse; Log File Loader and Visualizer
+% Author: Ryotaro Onuki
+% Created_at: 2019.03.24
+
 %% cleaning
-clear
-% close all
+clear;
+% close all;
 set(groot, 'DefaultTextInterpreter', 'Latex');
 set(groot, 'DefaultLegendInterpreter', 'Latex');
 set(groot, 'DefaultAxesFontSize', 14);
 set(groot, 'DefaultLineLineWidth', 1.5);
+figindex = 1;
 
-%% load data
-rawdata = dlmread('r0.3-2.tab', '\t');
+%% Select a Log File
+[filename, pathname] = uigetfile({'*'}, 'Select a Log File');
+fprintf('Log File: %s\n', filename);
+
+%% Load Data
+rawdata = dlmread(filename);
+
+%% Triming and Preprocess
 rawdata = rawdata';
-
-%% Triming
-rawdata = rawdata(:, 1:600);
+% rawdata = rawdata(:, 1:600);
 % rawdata = rawdata(:, 1:1150);
 
-%% extract
+%% extract data
 dt = 1e-3;
 time = dt * 1:length(rawdata);
 input = 1.0 * 1:length(rawdata) / 1024;
@@ -25,34 +34,35 @@ ang_accel = rawdata(5, :);
 voltage = rawdata(6, :);
 
 %% visualize
-figure(1);
-subNum = 5;
-subplot(subNum, 1, 1); hold off;
+figure(figindex); figindex = figindex + 1;
+subNum = 5; subIndex = 1; % for subplot increment
+
+subplot(subNum, 1, subIndex); subIndex = subIndex + 1; hold off;
 plot(time, enc); grid on;
 title('Encoder Position');
 xlabel('Time [ms]');
 ylabel('Position [mm]');
 legend({'Encoder L', 'Encoder R'});
 
-subplot(subNum, 1, 2); hold off;
+subplot(subNum, 1, subIndex); subIndex = subIndex + 1; hold off;
 plot(time, accel); grid on;
 title('IMU Acceleration');
 xlabel('Time [ms]');
 ylabel('Acceleration [mm/s/s]');
 
-subplot(subNum, 1, 3); hold off;
+subplot(subNum, 1, subIndex); subIndex = subIndex + 1; hold off;
 plot(time, gyro); grid on;
 title('IMU gyro');
 xlabel('Time [ms]');
 ylabel('Angular Velocity [rad/s]');
 
-subplot(subNum, 1, 4); hold off;
+subplot(subNum, 1, subIndex); subIndex = subIndex + 1; hold off;
 plot(time, ang_accel); grid on;
 title('IMUs Angular Acceleration');
 xlabel('Time [ms]');
 ylabel('Angular Acceleration. [rad/s/s]');
 
-subplot(subNum, 1, 5); hold off;
+subplot(subNum, 1, subIndex); subIndex = subIndex + 1; hold off;
 plot(time, voltage); grid on;
 title('Battery Voltage');
 xlabel('Time [ms]');
@@ -80,7 +90,7 @@ for i = 2 : length(gyro)-1
 end
 
 %% Visualization of Velocity
-figure(2);
+figure(figindex); figindex = figindex + 1;
 
 subplot(2, 1, 1); hold off; clear legstr; legstr = {};
 plot(time(1:end-1), diff_enc);
@@ -96,8 +106,6 @@ legend(legstr, 'Location', 'NorthWest');
 subplot(2, 1, 2); hold off; clear legstr; legstr = {};
 plot(time, gyro); hold on;
 legstr{length(legstr)+1} = 'Gyroscope';
-% plot(time, omega_filtered); hold on;
-% legstr{length(legstr)+1} = 'Encoder + Gyro + IMU-Accel, Complementary Filtered';
 plot(time(1:end-1), omega_enc); hold on;
 legstr{length(legstr)+1} = 'Differential of Encoder';
 grid on;
