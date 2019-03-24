@@ -55,7 +55,8 @@ private:
       case '9': {
         float duty = (c - '0');
         duty /= 10.0f;
-        // fan.drive(duty);
+        // mt.drive(duty, 0);
+        fan.drive(duty);
       } break;
       }
     }

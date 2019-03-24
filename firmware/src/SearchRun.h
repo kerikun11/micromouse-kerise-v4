@@ -157,8 +157,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -345,8 +346,8 @@ private:
         break;
       if (std::abs(sc.est_v.rot) > speed)
         break;
-      float delta = sc.position.x * cos(-sc.position.theta) -
-                    sc.position.y * sin(-sc.position.theta);
+      float delta = sc.position.x * std::cos(-sc.position.theta) -
+                    sc.position.y * std::sin(-sc.position.theta);
       if (angle > 0) {
         sc.set_target(-delta * back_gain, ms / 1000.0f * accel);
       } else {
@@ -363,8 +364,8 @@ private:
       if (std::abs(sc.est_v.rot) < 0.1 && std::abs(extra) < 0.1)
         break;
       float target_speed = sqrt(2 * decel * std::abs(extra));
-      float delta = sc.position.x * cos(-sc.position.theta) -
-                    sc.position.y * sin(-sc.position.theta);
+      float delta = sc.position.x * std::cos(-sc.position.theta) -
+                    sc.position.y * std::sin(-sc.position.theta);
       target_speed = (target_speed > speed) ? speed : target_speed;
       if (extra > 0) {
         sc.set_target(-delta * back_gain, target_speed);

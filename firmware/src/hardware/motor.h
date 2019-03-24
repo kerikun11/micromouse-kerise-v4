@@ -13,9 +13,9 @@ public:
     mcpwm_gpio_init(unit, io_signals_2, gpio_num_2);
     gpio_pulldown_en(gpio_num_2);
     mcpwm_config_t pwm_config = {0};
-    pwm_config.frequency = 80000; //< frequency
-    pwm_config.cmpr_a = 0;        //< duty cycle of PWMxA = 0
-    pwm_config.cmpr_b = 0;        //< duty cycle of PWMxb = 0
+    pwm_config.frequency = 250000; //< frequency
+    pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
+    pwm_config.cmpr_b = 0;         //< duty cycle of PWMxb = 0
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
     ESP_ERROR_CHECK(mcpwm_init(unit, timer, &pwm_config));

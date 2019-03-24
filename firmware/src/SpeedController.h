@@ -94,15 +94,19 @@ private:
       est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
       /* estimated acceleration */
       est_a = accel[0];
-      // error integral
+      /* error integral */
       e_int += (ref_v - est_v) * Ts;
       /* feedforward */
       Polar K1 = Polar(6465, 54.96f);
       Polar T1 = Polar(0.264f, 0.08372f);
       ff = (T1 * ref_a + ref_v) / K1;
       /* feedback */
+      // Polar Kp = Polar(0, 0);
+      // Polar Ki = Polar(0, 0);
       Polar Kp = Polar(0.001f, 0.04f);
       Polar Ki = Polar(0.1f, 3.0f);
+      // Polar Kp = Polar(0.0f, 0.04f);
+      // Polar Ki = Polar(0.0f, 3.0f);
       Polar Kd = Polar(0, 0);
       fbp = Kp * (ref_v - est_v);
       fbi = Ki * e_int;

@@ -149,8 +149,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -297,8 +298,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -457,8 +459,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -665,8 +668,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -769,8 +773,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -867,8 +872,9 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret = end + Position((index - size()) * interval * cos(end.theta),
-                           (index - size()) * interval * sin(end.theta), 0);
+      ret =
+          end + Position((index - size()) * interval * std::cos(end.theta),
+                         (index - size()) * interval * std::sin(end.theta), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
