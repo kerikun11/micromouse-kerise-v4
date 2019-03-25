@@ -1098,7 +1098,8 @@ private:
     }
     const float accel = runParameter.accel;
     const float v_start = sc.ref_v.tra;
-    AccelDesigner ad(accel, v_start, v_max, v_end, distance - FAST_END_REMAIN);
+    signal_processing::AccelDesigner ad(accel, v_start, v_max, v_end,
+                                        distance - FAST_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];

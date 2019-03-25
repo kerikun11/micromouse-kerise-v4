@@ -1,6 +1,8 @@
 #include "Machine.h"
 #include <iostream>
 
+#include "TrajectoryTracker.h"
+
 void driveTask(void *arg);
 void printTask(void *arg);
 void timeKeepTask(void *arg);
@@ -55,8 +57,8 @@ void timeKeepTask(void *arg) {
 void straight_x(const float distance, const float v_max, const float v_end) {
   const float a_max = 1000;
   const float v_start = std::max(sc.est_v.tra, 0.0f);
-  AccelDesigner ad(a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN,
-                   sc.position.x);
+  signal_processing::AccelDesigner ad(
+      a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0.0f; true; t += 0.001f) {
     Position cur = sc.position;
@@ -103,7 +105,7 @@ void accel_test() {
   sc.enable();
   const float accel = 6000;
   const float v_max = 1200;
-  AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
+  signal_processing::AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);
@@ -132,7 +134,7 @@ void turn_test() {
   const float d_omega = 48 * PI;
   imu.calibration();
   sc.enable();
-  AccelDesigner ad(d_omega, 0, omega, 0, sign * angle);
+  signal_processing::AccelDesigner ad(d_omega, 0, omega, 0, sign * angle);
   portTickType xLastWakeTime = xTaskGetTickCount();
   const float back_gain = 10.0f;
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -171,7 +173,7 @@ void traj_test() {
   const float v_max = 1200;
   const float distance = 90 * 16;
   const float v_start = 0;
-  AccelDesigner ad(accel, v_start, v_max, 0, distance);
+  signal_processing::AccelDesigner ad(accel, v_start, v_max, 0, distance);
   const float xi_threshold = 180.0f;
   float xi = v_start;
   portTickType xLastWakeTime = xTaskGetTickCount();
@@ -426,7 +428,7 @@ void slalom_test() {
   const float accel = 2400;
   const float v_max = 300;
   const float vel = 300;
-  AccelDesigner ad(accel, 0, v_max, vel, 90);
+  signal_processing::AccelDesigner ad(accel, 0, v_max, vel, 90);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);

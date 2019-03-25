@@ -385,8 +385,8 @@ private:
       sc.position.x -= distance; //< 移動した量だけ位置を更新
       return;
     }
-    AccelDesigner ad(accel, v_start, v_max, v_end,
-                     distance - SEARCH_END_REMAIN);
+    signal_processing::AccelDesigner ad(accel, v_start, v_max, v_end,
+                                        distance - SEARCH_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
