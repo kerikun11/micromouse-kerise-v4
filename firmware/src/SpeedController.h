@@ -48,6 +48,10 @@ public:
     mt.free();
     printf("Speed Controller disabled\n");
   }
+  void set_target(const Polar dq, const Polar ddq) {
+    ref_v = dq;
+    ref_a = ddq;
+  }
   void set_target(const float tra, const float rot, const float tra_a = 0,
                   const float rot_a = 0) {
     ref_v.tra = tra;

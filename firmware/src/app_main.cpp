@@ -169,57 +169,20 @@ void traj_test() {
   lgr.clear();
   imu.calibration();
   sc.enable();
-  const float accel = 6000;
-  const float v_max = 1200;
+  const float accel = 4800;
+  const float v_max = 1800;
   const float distance = 90 * 16;
   const float v_start = 0;
   signal_processing::AccelDesigner ad(accel, v_start, v_max, 0, distance);
-  const float xi_threshold = 180.0f;
-  float xi = v_start;
+  trajectory::TrajectoryTracker tt(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    const float x = sc.position.x;
-    const float y = sc.position.y;
-    const float theta = sc.position.theta;
-    const float cos_theta = std::cos(theta);
-    const float sin_theta = std::sin(theta);
-    const float dx = sc.est_v.tra * cos_theta;
-    const float dy = sc.est_v.tra * sin_theta;
-    const float ddx = imu.accel.y * cos_theta;
-    const float ddy = imu.accel.y * sin_theta;
-    const float zeta = 1.0f;
-    const float omega_n = 5;
-    const float kx = omega_n * omega_n;
-    const float kdx = 2 * zeta * omega_n;
-    const float ky = kx;
-    const float kdy = kdx;
-    const float dddx_r = 0; //< assume this
-    const float dddy_r = 0; //< assume this
-    const float ddx_r = ad.a(t);
-    const float ddy_r = 0;
-    const float dx_r = ad.v(t);
-    const float dy_r = 0;
-    const float x_r = ad.x(t);
-    const float y_r = 0;
-    const float u1 = ddx_r + kx * (x_r - x) + kdx * (dx_r - dx);
-    const float u2 = ddy_r + ky * (y_r - y) + kdy * (dy_r - dy);
-    const float du1 = dddx_r + kdx * (ddx_r - ddx) + kx * (dx_r - dx);
-    const float du2 = dddy_r + kdy * (ddy_r - ddy) + ky * (dy_r - dy);
-    const float d_xi = u1 * cos_theta + u2 * sin_theta;
-    float v, w, dv, dw;
-    if (xi < xi_threshold) {
-      v = ad.v(t);
-      w = 0;
-      dv = ad.a(t);
-      dw = 0;
-    } else {
-      v = xi;
-      dv = d_xi;
-      w = (u2 * cos_theta - u1 * sin_theta) / xi;
-      dw = -(4 * d_xi * w + du1 * sin_theta - du2 * cos_theta) / xi;
-    }
-    sc.set_target(v, w, dv, dw);
-    xi += d_xi * 0.001f;
+    auto ref_q = Position(ad.x(t), 0);
+    auto ref_dq = Position(ad.v(t), 0);
+    auto ref_ddq = Position(ad.a(t), 0);
+    auto ref =
+        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+    sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     lgr.push({
         sc.ref_v.tra,
         sc.est_v.tra,
