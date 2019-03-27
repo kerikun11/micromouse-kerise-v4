@@ -1098,7 +1098,8 @@ private:
     }
     const float accel = runParameter.accel;
     const float v_start = sc.ref_v.tra;
-    signal_processing::AccelDesigner ad(accel, v_start, v_max, v_end,
+    const float jerk = 500000;
+    signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
                                         distance - FAST_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)

@@ -103,9 +103,10 @@ void accel_test() {
   fan.drive(0.4);
   delay(500);
   sc.enable();
+  const float jerk = 500000;
   const float accel = 6000;
   const float v_max = 1200;
-  signal_processing::AccelDesigner ad(accel, 0, v_max, 0, 90 * 8);
+  signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);
@@ -128,13 +129,14 @@ void turn_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
+  const float jerk = 540 * PI;
   const float angle = -1 * PI;
   const float sign = (angle > 0) ? 1 : -1;
   const float omega = 4 * PI;
   const float d_omega = 48 * PI;
   imu.calibration();
   sc.enable();
-  signal_processing::AccelDesigner ad(d_omega, 0, omega, 0, sign * angle);
+  signal_processing::AccelDesigner ad(jerk, d_omega, 0, omega, 0, sign * angle);
   portTickType xLastWakeTime = xTaskGetTickCount();
   const float back_gain = 10.0f;
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -169,11 +171,12 @@ void traj_test() {
   lgr.clear();
   imu.calibration();
   sc.enable();
+  const float jerk = 500000;
   const float accel = 4800;
   const float v_max = 1800;
   const float distance = 90 * 16;
   const float v_start = 0;
-  signal_processing::AccelDesigner ad(accel, v_start, v_max, 0, distance);
+  signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, 0, distance);
   trajectory::TrajectoryTracker tt(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -388,10 +391,11 @@ void slalom_test() {
   fan.drive(0.4);
   delay(500);
   sc.enable();
+  const float jerk = 500000;
   const float accel = 2400;
   const float v_max = 300;
   const float vel = 300;
-  signal_processing::AccelDesigner ad(accel, 0, v_max, vel, 90);
+  signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, vel, 90);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);
@@ -411,7 +415,7 @@ void slalom_test() {
       break;
     }
   }
-  ad.reset(accel, vel, v_max, 0, 90);
+  ad.reset(jerk, accel, vel, v_max, 0, 90);
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     sc.set_target(ad.v(t), 0, ad.a(t), 0);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);

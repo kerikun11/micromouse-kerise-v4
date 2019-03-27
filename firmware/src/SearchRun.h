@@ -379,13 +379,14 @@ private:
     printPosition("Turn End");
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
+    const float jerk = 500000;
     const float accel = 6000;
     const float v_start = sc.ref_v.tra;
     if (distance - SEARCH_END_REMAIN < 0) {
       sc.position.x -= distance; //< 移動した量だけ位置を更新
       return;
     }
-    signal_processing::AccelDesigner ad(accel, v_start, v_max, v_end,
+    signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
                                         distance - SEARCH_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
