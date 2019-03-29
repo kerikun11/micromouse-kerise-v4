@@ -35,7 +35,7 @@ public:
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
   }
-  void enable(const bool &reset_position = true) {
+  void enable(const bool reset_position = true) {
     reset();
     if (reset_position)
       position.clear();
@@ -101,8 +101,8 @@ private:
       /* error integral */
       e_int += (ref_v - est_v) * Ts;
       /* feedforward */
-      Polar K1 = Polar(6465, 54.96f);
-      Polar T1 = Polar(0.264f, 0.08372f);
+      Polar K1 = Polar(5789, 49.74f);
+      Polar T1 = Polar(0.2517f, 0.09089f);
       ff = (T1 * ref_a + ref_v) / K1;
       /* feedback */
       // Polar Kp = Polar(0, 0);

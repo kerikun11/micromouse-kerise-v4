@@ -72,59 +72,6 @@ void straight_x(const float distance, const float v_max, const float v_end) {
   sc.set_target(ad.v_end(), 0);
 }
 
-void accel_test() {
-  if (!ui.waitForCover())
-    return;
-  delay(500);
-  lgr.clear();
-  auto printLog = []() {
-    lgr.push({
-        sc.ref_v.tra,
-        sc.est_v.tra,
-        sc.ref_a.tra,
-        sc.est_a.tra,
-        sc.ff.tra,
-        sc.fb.tra,
-        sc.fbp.tra,
-        sc.fbi.tra,
-        sc.pwm_value.tra,
-        sc.ref_v.rot,
-        sc.est_v.rot,
-        sc.ref_a.rot,
-        sc.est_a.rot,
-        sc.ff.rot,
-        sc.fb.rot,
-        sc.fbp.rot,
-        sc.fbi.rot,
-        sc.pwm_value.rot,
-    });
-  };
-  imu.calibration();
-  fan.drive(0.4);
-  delay(500);
-  sc.enable();
-  const float jerk = 500000;
-  const float accel = 6000;
-  const float v_max = 1200;
-  signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    sc.set_target(ad.v(t), 0, ad.a(t), 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    if ((int)(t * 1000) % 2 == 0)
-      printLog();
-    if (mt.isEmergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      break;
-    }
-  }
-  sc.set_target(0, 0);
-  delay(200);
-  bz.play(Buzzer::CANCEL);
-  sc.disable();
-  fan.drive(0);
-}
-
 void turn_test() {
   if (!ui.waitForCover())
     return;
@@ -228,12 +175,92 @@ void straight_test() {
   sc.disable();
 }
 
-void gain_test() {
+#include "SlalomDesigner.h"
+
+void slalom_test() {
   if (!ui.waitForCover())
     return;
+  delay(500);
+  lgr.clear();
+  auto printLog = [](const float x, const float y) {
+    lgr.push({
+        sc.ref_v.tra,
+        sc.est_v.tra,
+        sc.ref_a.tra,
+        sc.est_a.tra,
+        sc.ref_v.rot,
+        sc.est_v.rot,
+        sc.ref_a.rot,
+        sc.est_a.rot,
+        sc.position.x,
+        sc.position.y,
+        sc.position.theta,
+        x,
+        y,
+    });
+  };
+  auto sd = signal_processing::SlalomDesigner(
+      signal_processing::SlalomDesigner::Constraint(-M_PI / 2, -40, 45, -45));
+  signal_processing::AccelDesigner ad;
+  bz.play(Buzzer::CONFIRM);
+  imu.calibration();
+  bz.play(Buzzer::CANCEL);
+  sc.enable();
+  const float jerk = 500000;
+  const float accel = 2400;
+  const float v_max = 300;
+  const float vel = 300;
+  const float v_start = 0;
+  trajectory::TrajectoryTracker tt(v_start);
+  portTickType xLastWakeTime = xTaskGetTickCount();
+  /* 加速 */
+  ad.reset(jerk, accel, v_start, v_max, vel, 90);
+  for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    auto ref_q = Position(ad.x(t), 0);
+    auto ref_dq = Position(ad.v(t), 0);
+    auto ref_ddq = Position(ad.a(t), 0);
+    auto ref =
+        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+    sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    printLog(ad.x(t), 0);
+  }
+  /* ターン */
+  signal_processing::SlalomDesigner::State s;
+  s.x = sc.position.x;
+  s.y = sc.position.y;
+  const float Ts = 0.001f;
+  sd.reset(vel);
+  for (float t = 0; t < sd.t_end(); t += 0.001f) {
+    sd.update(&s, Ts);
+    auto ref_q = Position(s.x, s.y);
+    auto ref_dq = Position(s.dx, s.dy);
+    auto ref_ddq = Position(s.ddx, s.ddx);
+    // auto ref_dddq = Position(s.dddx, s.dddx);
+    auto ref =
+        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+    sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    printLog(s.x, s.y);
+  }
+  /* 減速 */
+  ad.reset(jerk, accel, vel, v_max, 0, 180, sc.position.x);
+  for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    auto ref_q = Position(ad.x(t), 0);
+    auto ref_dq = Position(ad.v(t), 0);
+    auto ref_ddq = Position(ad.a(t), 0);
+    auto ref =
+        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+    sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    printLog(ad.x(t), 0);
+  }
+  sc.set_target(0, 0);
+  delay(200);
+  bz.play(Buzzer::CANCEL);
+  sc.disable();
+  fan.drive(0);
 }
-
-void slalom_test();
 
 void driveTask(void *arg) {
   while (1) {
@@ -265,11 +292,10 @@ void driveTask(void *arg) {
       break;
     case 5: /* 迷路データの復元 */
       bz.play(Buzzer::MAZE_RESTORE);
-      if (!mr.restore()) {
+      if (!mr.restore())
         bz.play(Buzzer::ERROR);
-        break;
-      }
-      bz.play(Buzzer::SUCCESSFUL);
+      else
+        bz.play(Buzzer::SUCCESSFUL);
       break;
     case 6: /* データ消去 */
       bz.play(Buzzer::MAZE_BACKUP);
@@ -302,132 +328,15 @@ void driveTask(void *arg) {
       // ESP.restart();
       break;
     case 14: /* テスト */
-      traj_test();
-      // accel_test();
+      // Machine::accel_test();
       // Machine::sysid();
-      // slalom_test();
+      slalom_test();
       // turn_test();
-      // gain_test();
+      // traj_test();
       break;
     case 15: /* ログの表示 */
       lgr.print();
       break;
     }
   }
-}
-
-const float traj_omega[238] = {
-    0.0000000000, 0.0376847965, 0.1501364582, 0.3355564418, 0.5909791541,
-    0.9123193834, 1.2944376386, 1.7312223490, 2.2156876132, 2.7400849302,
-    3.2960271290, 3.8746225122, 4.4666170689, 5.0625424830, 5.6528675684,
-    6.2281507105, 6.7791908740, 7.2971747644, 7.7738177863, 8.2014965475,
-    8.5733707860, 8.8834927735, 9.1269024423, 9.2997067167, 9.3991417780,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608, 9.4247779608,
-    9.4247779608, 9.4247779608, 9.4053449981, 9.4217746685, 9.3628827802,
-    9.2296112458, 9.0240916000, 8.7496109086, 8.4105591950, 8.0123592266,
-    7.5613797836, 7.0648337971, 6.5306629861, 5.9674108382, 5.3840859656,
-    4.7900180221, 4.1947084857, 3.6076786919, 3.0383175510, 2.4957313819,
-    1.9885982668, 1.5250292545, 1.1124386325, 0.7574253443, 0.4656674453,
-    0.2418312895, 0.0894968953, 0.0111006875,
-};
-
-void slalom_test() {
-  if (!ui.waitForCover())
-    return;
-  delay(500);
-  lgr.clear();
-  auto printLog = []() {
-    lgr.push({
-        sc.ref_v.tra,
-        sc.est_v.tra,
-        sc.ref_a.tra,
-        sc.est_a.tra,
-        sc.ref_v.rot,
-        sc.est_v.rot,
-        sc.ref_a.rot,
-        sc.est_a.rot,
-        sc.position.x,
-        sc.position.y,
-        sc.position.theta,
-    });
-  };
-  imu.calibration();
-  fan.drive(0.4);
-  delay(500);
-  sc.enable();
-  const float jerk = 500000;
-  const float accel = 2400;
-  const float v_max = 300;
-  const float vel = 300;
-  signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, vel, 90);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    sc.set_target(ad.v(t), 0, ad.a(t), 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog();
-    if (mt.isEmergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      break;
-    }
-  }
-  for (int i = 0; i < 238; ++i) {
-    sc.set_target(vel, traj_omega[i], 0, 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog();
-    if (mt.isEmergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      break;
-    }
-  }
-  ad.reset(jerk, accel, vel, v_max, 0, 90);
-  for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-    sc.set_target(ad.v(t), 0, ad.a(t), 0);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog();
-    if (mt.isEmergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      break;
-    }
-  }
-  sc.set_target(0, 0);
-  delay(200);
-  bz.play(Buzzer::CANCEL);
-  sc.disable();
-  fan.drive(0);
 }

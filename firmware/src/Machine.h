@@ -232,6 +232,7 @@ public:
     }
   }
   static void sysid() {
+    int dir = ui.waitForSelect(2);
     int gain = ui.waitForSelect();
     if (gain < 0)
       return;
@@ -255,8 +256,10 @@ public:
     fan.drive(0.5f);
     delay(500);
     portTickType xLastWakeTime = xTaskGetTickCount();
-    mt.drive(-gain * 0.05, gain * 0.05); //< 回転
-    // mt.drive(gain * 0.1, gain * 0.1);    //< 並進
+    if (dir == 1)
+      mt.drive(-gain * 0.05, gain * 0.05); //< 回転
+    else
+      mt.drive(gain * 0.1, gain * 0.1); //< 並進
     for (int i = 0; i < 2000; i++) {
       printLog();
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -265,5 +268,57 @@ public:
     mt.drive(0, 0);
     delay(500);
     mt.free();
+  }
+  static void accel_test() {
+    if (!ui.waitForCover())
+      return;
+    delay(500);
+    lgr.clear();
+    auto printLog = []() {
+      lgr.push({
+          sc.ref_v.tra,
+          sc.est_v.tra,
+          sc.ref_a.tra,
+          sc.est_a.tra,
+          sc.ff.tra,
+          sc.fb.tra,
+          sc.fbp.tra,
+          sc.fbi.tra,
+          sc.pwm_value.tra,
+          sc.ref_v.rot,
+          sc.est_v.rot,
+          sc.ref_a.rot,
+          sc.est_a.rot,
+          sc.ff.rot,
+          sc.fb.rot,
+          sc.fbp.rot,
+          sc.fbi.rot,
+          sc.pwm_value.rot,
+      });
+    };
+    imu.calibration();
+    fan.drive(0.4);
+    delay(500);
+    sc.enable();
+    const float jerk = 500000;
+    const float accel = 6000;
+    const float v_max = 1200;
+    signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
+      sc.set_target(ad.v(t), 0, ad.a(t), 0);
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      if ((int)(t * 1000) % 2 == 0)
+        printLog();
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        break;
+      }
+    }
+    sc.set_target(0, 0);
+    delay(200);
+    bz.play(Buzzer::CANCEL);
+    sc.disable();
+    fan.drive(0);
   }
 };

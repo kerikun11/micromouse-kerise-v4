@@ -16,12 +16,12 @@ figindex = 1;
 fprintf('Log File: %s\n', filename);
 
 %% Load Data
-rawdata = dlmread(filename);
+rawdata = dlmread([pathname filename]);
 
 %% Triming and Preprocess
 rawdata = rawdata';
 % rawdata = rawdata(:, 1:600);
-% rawdata = rawdata(:, 1:1150);
+rawdata = rawdata(:, 1:1800);
 
 %% extract data
 dt = 1e-3;
