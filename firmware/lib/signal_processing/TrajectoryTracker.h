@@ -24,7 +24,7 @@ public:
     float dw;
   };
   constexpr static const float Ts = 0.001f;
-  constexpr static const float xi_threshold = 180.0f;
+  constexpr static const float xi_threshold = 120.0f;
 
 public:
   TrajectoryTracker(const float vs = 0) { reset(vs); }

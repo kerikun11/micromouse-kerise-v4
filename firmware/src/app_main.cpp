@@ -240,9 +240,9 @@ void slalom_test() {
   /* ターン */
   signal_processing::SlalomDesigner::State s;
   const float Ts = 0.001f;
-  sd.reset(vel);
+  sd_SL90.reset(vel);
   for (float t = 0; t < sd.t_end(); t += 0.001f) {
-    sd.update(&s, Ts);
+    sd_SL90.update(&s, Ts);
     auto est_q = (sc.position - offset).rotate(-offset.theta);
     auto ref_q = Position(s.x, s.y, s.th);
     auto ref_dq = Position(s.dx, s.dy);
@@ -283,6 +283,35 @@ void slalom_test() {
   bz.play(Buzzer::CANCEL);
   sc.disable();
   fan.drive(0);
+}
+
+void serch_run_test() {
+  if (!ui.waitForCover())
+    return;
+  delay(500);
+  bz.play(Buzzer::CONFIRM);
+  imu.calibration();
+  bz.play(Buzzer::CANCEL);
+  sr.set_action(SearchRun::START_STEP);
+  sr.set_action(SearchRun::TURN_RIGHT_90);
+  sr.set_action(SearchRun::TURN_LEFT_90);
+  sr.set_action(SearchRun::TURN_LEFT_90);
+  sr.set_action(SearchRun::TURN_RIGHT_90);
+  sr.set_action(SearchRun::TURN_RIGHT_90);
+  sr.set_action(SearchRun::GO_STRAIGHT);
+  sr.set_action(SearchRun::STOP);
+  sr.enable();
+  while (sr.isRunning()) {
+    if (mt.isEmergency()) {
+      bz.play(Buzzer::EMERGENCY);
+      sr.disable();
+      fan.free();
+      delay(1000);
+      mt.emergencyRelease();
+      break;
+    }
+    delay(100);
+  }
 }
 
 void driveTask(void *arg) {
@@ -353,9 +382,10 @@ void driveTask(void *arg) {
     case 14: /* テスト */
       // Machine::accel_test();
       // Machine::sysid();
-      slalom_test();
+      // slalom_test();
       // turn_test();
       // traj_test();
+      serch_run_test();
       break;
     case 15: /* ログの表示 */
       lgr.print();
