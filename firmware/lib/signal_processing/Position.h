@@ -21,8 +21,10 @@ public:
     this->theta = theta;
   }
   const Position rotate(const float angle) const {
-    return Position(x * std::cos(angle) - y * std::sin(angle),
-                    x * std::sin(angle) + y * std::cos(angle), theta);
+    const float cos_angle = std::cos(angle);
+    const float sin_angle = std::sin(angle);
+    return Position(x * cos_angle - y * sin_angle,
+                    x * sin_angle + y * cos_angle, theta);
   }
   float getNorm() const { return std::sqrt(x * x + y * y); }
   const Position mirror_x() const { return Position(x, -y, -theta); }

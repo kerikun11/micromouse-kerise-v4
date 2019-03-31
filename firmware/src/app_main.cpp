@@ -130,8 +130,9 @@ void traj_test() {
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
-    auto ref =
-        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+    auto ref_dddq = Position(ad.j(t), 0);
+    auto ref = tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq,
+                         ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     lgr.push({
         sc.ref_v.tra,
@@ -182,7 +183,7 @@ void slalom_test() {
     return;
   delay(500);
   lgr.clear();
-  auto printLog = [](const float x, const float y) {
+  auto printLog = [](const Position ref_q, const Position est_q) {
     lgr.push({
         sc.ref_v.tra,
         sc.est_v.tra,
@@ -192,68 +193,90 @@ void slalom_test() {
         sc.est_v.rot,
         sc.ref_a.rot,
         sc.est_a.rot,
-        sc.position.x,
-        sc.position.y,
-        sc.position.theta,
-        x,
-        y,
+        ref_q.x,
+        est_q.x,
+        ref_q.y,
+        est_q.y,
+        ref_q.theta,
+        est_q.theta,
     });
   };
   auto sd = signal_processing::SlalomDesigner(
       signal_processing::SlalomDesigner::Constraint(-M_PI / 2, -40, 45, -45));
+  // auto sd = signal_processing::SlalomDesigner(
+  //     signal_processing::SlalomDesigner::Constraint(M_PI / 2, 70, 90, 90));
   signal_processing::AccelDesigner ad;
   bz.play(Buzzer::CONFIRM);
   imu.calibration();
   bz.play(Buzzer::CANCEL);
   sc.enable();
   const float jerk = 500000;
-  const float accel = 2400;
-  const float v_max = 300;
-  const float vel = 300;
+  const float accel = 4800;
+  const float vel = 360;
   const float v_start = 0;
   trajectory::TrajectoryTracker tt(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
+  Position offset;
   /* 加速 */
-  ad.reset(jerk, accel, v_start, v_max, vel, 90);
+  const float st_len = 60;
+  ad.reset(jerk, accel, v_start, vel, vel, st_len);
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    auto est_q = (sc.position - offset).rotate(-offset.theta);
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
+    auto ref_dddq = Position(ad.j(t), 0);
     auto ref =
-        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(ad.x(t), 0);
+    printLog(offset + ref_q.rotate(offset.theta),
+             offset + est_q.rotate(offset.theta));
+  }
+  {
+    auto net = Position(st_len, 0, 0);
+    offset += net.rotate(offset.theta);
   }
   /* ターン */
   signal_processing::SlalomDesigner::State s;
-  s.x = sc.position.x;
-  s.y = sc.position.y;
   const float Ts = 0.001f;
   sd.reset(vel);
   for (float t = 0; t < sd.t_end(); t += 0.001f) {
     sd.update(&s, Ts);
-    auto ref_q = Position(s.x, s.y);
+    auto est_q = (sc.position - offset).rotate(-offset.theta);
+    auto ref_q = Position(s.x, s.y, s.th);
     auto ref_dq = Position(s.dx, s.dy);
-    auto ref_ddq = Position(s.ddx, s.ddx);
-    // auto ref_dddq = Position(s.dddx, s.dddx);
+    auto ref_ddq = Position(s.ddx, s.ddy);
+    auto ref_dddq = Position(s.dddx, s.dddy);
     auto ref =
-        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(s.x, s.y);
+    printLog(offset + ref_q.rotate(offset.theta),
+             offset + est_q.rotate(offset.theta));
+  }
+  {
+    auto net = Position(sd.x_end(), sd.y_end(), sd.th_end());
+    offset += net.rotate(offset.theta);
   }
   /* 減速 */
-  ad.reset(jerk, accel, vel, v_max, 0, 180, sc.position.x);
+  ad.reset(jerk, accel, vel, vel, 0, st_len);
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    auto est_q = (sc.position - offset).rotate(-offset.theta);
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
+    auto ref_dddq = Position(ad.j(t), 0);
     auto ref =
-        tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq, ref_ddq);
+        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(ad.x(t), 0);
+    printLog(offset + ref_q.rotate(offset.theta),
+             offset + est_q.rotate(offset.theta));
+  }
+  {
+    auto net = Position(st_len, 0, 0);
+    offset += net.rotate(offset.theta);
   }
   sc.set_target(0, 0);
   delay(200);
