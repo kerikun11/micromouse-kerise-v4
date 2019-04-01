@@ -4,7 +4,7 @@
 #include "global.h"
 
 #include "TrajectoryTracker.h"
-#include "config/trajectory.h"
+#include "slalom_shapes.h"
 
 #include "TaskBase.h"
 #include <AccelDesigner.h>
@@ -13,7 +13,7 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 1
+#define SEARCH_WALL_CUT_ENABLED 0
 #define SEARCH_WALL_FRONT_ENABLED 0
 #define SEARCH_WALL_AVOID_ENABLED 1
 
@@ -250,10 +250,10 @@ private:
       sc.set_target(0, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
   }
-  void trace(SlalomDesigner &sd, const float velocity) {
+  void trace(slalom::Trajectory &sd, const float velocity) {
     TrajectoryTracker tt(tt_gain);
     tt.reset(velocity);
-    SlalomDesigner::State s;
+    slalom::State s;
     const float Ts = 0.001f;
     sd.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -378,11 +378,10 @@ private:
           if (wd.wall[0])
             stop();
           wall_calib(velocity);
-          straight_x(sd_SL90.get_straight_prev() - ahead_length, velocity,
-                     velocity);
-          trace(sd_SL90, velocity);
-          straight_x(sd_SL90.get_straight_post() + ahead_length, velocity,
-                     velocity);
+          slalom::Trajectory st(SS_SL90);
+          straight_x(st.get_straight_prev() - ahead_length, velocity, velocity);
+          trace(st, velocity);
+          straight_x(st.get_straight_post() + ahead_length, velocity, velocity);
         }
         break;
       case TURN_RIGHT_90:
@@ -390,11 +389,10 @@ private:
           if (wd.wall[1])
             stop();
           wall_calib(velocity);
-          straight_x(sd_SR90.get_straight_prev() - ahead_length, velocity,
-                     velocity);
-          trace(sd_SR90, velocity);
-          straight_x(sd_SR90.get_straight_post() + ahead_length, velocity,
-                     velocity);
+          slalom::Trajectory st(SS_SR90);
+          straight_x(st.get_straight_prev() - ahead_length, velocity, velocity);
+          trace(st, velocity);
+          straight_x(st.get_straight_post() + ahead_length, velocity, velocity);
         }
         break;
       case TURN_BACK:

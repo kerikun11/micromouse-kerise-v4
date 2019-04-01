@@ -215,8 +215,6 @@ public:
       path += "r";
     }
     path += "s";
-    // path += "srrlrllsllrlrr";
-    // path += "rllrrssrrllrrssr";
     fr.set_path(path);
     fr.start();
     while (fr.isRunning()) {
@@ -320,5 +318,32 @@ public:
     bz.play(Buzzer::CANCEL);
     sc.disable();
     fan.drive(0);
+  }
+  static void SearchRun_test() {
+    if (!ui.waitForCover())
+      return;
+    delay(500);
+    bz.play(Buzzer::CONFIRM);
+    imu.calibration();
+    bz.play(Buzzer::CANCEL);
+    sr.set_action(SearchRun::START_STEP);
+    sr.set_action(SearchRun::TURN_RIGHT_90);
+    sr.set_action(SearchRun::TURN_LEFT_90);
+    sr.set_action(SearchRun::TURN_LEFT_90);
+    sr.set_action(SearchRun::TURN_RIGHT_90);
+    sr.set_action(SearchRun::TURN_RIGHT_90);
+    sr.set_action(SearchRun::GO_STRAIGHT);
+    sr.set_action(SearchRun::STOP);
+    sr.enable();
+    while (sr.isRunning()) {
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        sr.disable();
+        delay(1000);
+        mt.emergencyRelease();
+        break;
+      }
+      delay(100);
+    }
   }
 };

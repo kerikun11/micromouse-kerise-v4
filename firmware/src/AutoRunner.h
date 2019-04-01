@@ -42,12 +42,12 @@ private:
     return true;
   }
   bool backup() {
-    auto f = std::ifstream(MACHINE_SAVE_PATH);
+    auto f = std::ofstream(MACHINE_SAVE_PATH);
     if (f.fail()) {
       log_e("failed to open %s", MACHINE_SAVE_PATH);
       return false;
     }
-    f.read((char *)&saveData, sizeof(SaveData));
+    f.write((char *)&saveData, sizeof(SaveData));
     return true;
   }
 };
