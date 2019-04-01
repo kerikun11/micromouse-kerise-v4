@@ -1,10 +1,10 @@
 #pragma once
 
-#include "config/config.h"
+#include "config/model.h"
 #include "global.h"
 
-#include "Trajectory.h"
 #include "TrajectoryTracker.h"
+#include "config/trajectory.h"
 
 #include "TaskBase.h"
 #include <AccelDesigner.h>
@@ -13,7 +13,7 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 0
+#define SEARCH_WALL_CUT_ENABLED 1
 #define SEARCH_WALL_FRONT_ENABLED 0
 #define SEARCH_WALL_AVOID_ENABLED 1
 
@@ -79,7 +79,7 @@ public:
   //   void waitForEnd() const { xSemaphoreTake(wait, portMAX_DELAY); }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%.1f, %.1f, %.1f)\n", name, sc.position.x, sc.position.y,
-           sc.position.theta * 180 / PI);
+           sc.position.th * 180 / PI);
   }
   bool positionRecovery() {
     sc.enable();
@@ -109,13 +109,13 @@ private:
         (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
       tof.disable();
       portTickType xLastWakeTime = xTaskGetTickCount();
-      WheelParameter wi;
+      SpeedController::WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 72.0f;
         const float Ki = 6.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.4f;
-        WheelParameter wp;
+        SpeedController::WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
           wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
@@ -129,8 +129,8 @@ private:
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
       sc.set_target(0, 0);
-      sc.position.x = 0;     //< 直進方向の補正
-      sc.position.theta = 0; //< 回転方向の補正
+      sc.position.x = 0;  //< 直進方向の補正
+      sc.position.th = 0; //< 回転方向の補正
       tof.enable();
       bz.play(Buzzer::SHORT);
     }
@@ -138,7 +138,7 @@ private:
   }
   void wall_avoid(const float distance) {
 #if SEARCH_WALL_AVOID_ENABLED
-    if (std::abs(sc.position.theta) < 0.05 * PI) {
+    if (std::abs(sc.position.th) < 0.05 * PI) {
       const float gain = 0.002;
       if (wd.wall[0])
         sc.position.y += wd.distance.side[0] * gain;
@@ -160,17 +160,6 @@ private:
           bz.play(Buzzer::CANCEL);
         }
       }
-      // if (!prev_wall[i] && wd.wall[i] && sc.position.x > 30.0f) {
-      //   const float prev_x = sc.position.x;
-      //   if (distance > SEGMENT_WIDTH - 1)
-      //     sc.position.x = sc.position.x - ((int)sc.position.x) %
-      //     SEGMENT_WIDTH +
-      //                     SEARCH_WALL_CUT_OFFSET__X - ahead_length;
-      //   printf("WallCut[%d] _X distance: %.0f, x: %.1f => %.1f\n", i,
-      //   distance,
-      //          prev_x, sc.position.x);
-      //   bz.play(Buzzer::CONFIRM);
-      // }
       prev_wall[i] = wd.wall[i];
     }
 #endif
@@ -202,8 +191,8 @@ private:
         break;
       if (std::abs(sc.est_v.rot) > speed)
         break;
-      float delta = sc.position.x * std::cos(-sc.position.theta) -
-                    sc.position.y * std::sin(-sc.position.theta);
+      float delta = sc.position.x * std::cos(-sc.position.th) -
+                    sc.position.y * std::sin(-sc.position.th);
       if (angle > 0) {
         sc.set_target(-delta * back_gain, ms / 1000.0f * accel);
       } else {
@@ -216,12 +205,12 @@ private:
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
-      float extra = angle - sc.position.theta;
+      float extra = angle - sc.position.th;
       if (std::abs(sc.est_v.rot) < 0.1 && std::abs(extra) < 0.1)
         break;
       float target_speed = sqrt(2 * decel * std::abs(extra));
-      float delta = sc.position.x * std::cos(-sc.position.theta) -
-                    sc.position.y * std::sin(-sc.position.theta);
+      float delta = sc.position.x * std::cos(-sc.position.th) -
+                    sc.position.y * std::sin(-sc.position.th);
       target_speed = (target_speed > speed) ? speed : target_speed;
       if (extra > 0) {
         sc.set_target(-delta * back_gain, target_speed);
@@ -230,7 +219,7 @@ private:
       }
     }
     sc.set_target(0, 0);
-    sc.position.theta -= angle; //< 移動した量だけ位置を更新
+    sc.position.th -= angle; //< 移動した量だけ位置を更新
     sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
     printPosition("Turn End");
   }
@@ -238,10 +227,10 @@ private:
     const float jerk = 500000;
     const float accel = 6000;
     const float v_start = sc.ref_v.tra;
-    trajectory::TrajectoryTracker tt(v_start);
+    TrajectoryTracker tt(tt_gain);
+    tt.reset(v_start);
     portTickType xLastWakeTime = xTaskGetTickCount();
-    signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
-                                        distance);
+    AccelDesigner ad(jerk, accel, v_start, v_max, v_end, distance);
     float int_y = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
       auto est_q = sc.position;
@@ -249,48 +238,44 @@ private:
       auto ref_dq = Position(ad.v(t), 0);
       auto ref_ddq = Position(ad.a(t), 0);
       auto ref_dddq = Position(ad.j(t), 0);
-      auto ref = tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq,
+      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq,
                            ref_dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       wall_avoid(distance);
       int_y += sc.position.y;
-      sc.position.theta += int_y * 0.00000001f;
+      sc.position.th += int_y * 0.00000001f;
     }
     if (v_end < 1.0f)
       sc.set_target(0, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
   }
-  void trace(signal_processing::SlalomDesigner &sd, const float velocity) {
-    trajectory::TrajectoryTracker tt(velocity);
-    signal_processing::SlalomDesigner::State s;
+  void trace(SlalomDesigner &sd, const float velocity) {
+    TrajectoryTracker tt(tt_gain);
+    tt.reset(velocity);
+    SlalomDesigner::State s;
     const float Ts = 0.001f;
     sd.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < sd.t_end(); t += 0.001f) {
       sd.update(&s, Ts);
       auto est_q = sc.position;
-      auto ref_q = Position(s.x, s.y, s.th);
-      auto ref_dq = Position(s.dx, s.dy);
-      auto ref_ddq = Position(s.ddx, s.ddy);
-      auto ref_dddq = Position(s.dddx, s.dddy);
-      auto ref = tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq,
-                           ref_dddq);
+      auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     }
     sc.set_target(velocity, 0);
-    const auto net = Position(sd.x_end(), sd.y_end(), sd.th_end());
-    sc.position = (sc.position - net).rotate(-net.theta);
+    const auto net = sd.get_net_curve();
+    sc.position = (sc.position - net).rotate(-net.th);
   }
   void put_back() {
     const int max_v = 150;
     for (int i = 0; i < max_v; i++) {
-      sc.set_target(-i, -sc.position.theta * 200.0f);
+      sc.set_target(-i, -sc.position.th * 200.0f);
       delay(1);
     }
     for (int i = 0; i < 100; i++) {
-      sc.set_target(-max_v, -sc.position.theta * 200.0f);
+      sc.set_target(-max_v, -sc.position.th * 200.0f);
       delay(1);
     }
     sc.disable();
@@ -344,9 +329,8 @@ private:
           Position cur = sc.position;
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
 #define SEARCH_ST_FB_GAIN 40
-          float theta =
-              atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.theta;
-          sc.set_target(v, SEARCH_ST_FB_GAIN * theta);
+          float th = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.th;
+          sc.set_target(v, SEARCH_ST_FB_GAIN * th);
           wall_avoid(0);
         }
       }
@@ -394,10 +378,10 @@ private:
           if (wd.wall[0])
             stop();
           wall_calib(velocity);
-          straight_x(sd_SL90.straight_prev() - ahead_length, velocity,
+          straight_x(sd_SL90.get_straight_prev() - ahead_length, velocity,
                      velocity);
           trace(sd_SL90, velocity);
-          straight_x(sd_SL90.straight_post() + ahead_length, velocity,
+          straight_x(sd_SL90.get_straight_post() + ahead_length, velocity,
                      velocity);
         }
         break;
@@ -406,10 +390,10 @@ private:
           if (wd.wall[1])
             stop();
           wall_calib(velocity);
-          straight_x(sd_SR90.straight_prev() - ahead_length, velocity,
+          straight_x(sd_SR90.get_straight_prev() - ahead_length, velocity,
                      velocity);
           trace(sd_SR90, velocity);
-          straight_x(sd_SR90.straight_post() + ahead_length, velocity,
+          straight_x(sd_SR90.get_straight_post() + ahead_length, velocity,
                      velocity);
         }
         break;

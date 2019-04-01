@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config/config.h"
+#include "config/model.h"
 #include "global.h"
 
 #include "AccelDesigner.h"
@@ -28,12 +28,11 @@ public:
   void reset() { last_index = -FAST_END_REMAIN; }
   Position getNextDir(const Position &cur, const float velocity) {
     int index_cur = getNextIndex(cur);
-    Position dir = (getPosition(index_cur + 6) - cur).rotate(-cur.theta);
+    Position dir = (getPosition(index_cur + 6) - cur).rotate(-cur.th);
     float dt = 1.0f / velocity;
     float ff =
-        (getPosition(last_index + 1).theta - getPosition(last_index).theta) /
-        dt;
-    dir.theta = ff + FAST_CURVE_FB_GAIN * atan2f(dir.y, dir.x);
+        (getPosition(last_index + 1).th - getPosition(last_index).th) / dt;
+    dir.th = ff + FAST_CURVE_FB_GAIN * atan2f(dir.y, dir.x);
     return dir;
   }
   float getRemain() const { return (getSize() - last_index) * interval; }
@@ -51,7 +50,7 @@ protected:
   int getNextIndex(const Position &pos) {
     for (int i = last_index;; i++) {
       Position target = getPosition(i);
-      Position dir = (target - pos).rotate(-target.theta);
+      Position dir = (target - pos).rotate(-target.th);
       if (dir.x > 0) {
         last_index = i;
         return last_index;
@@ -149,9 +148,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -298,9 +296,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -459,9 +456,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -668,9 +664,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -773,9 +768,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -872,9 +866,8 @@ private:
       ret = Position(0 + interval * index, 0, 0);
     } else if (index > size() - 1) {
       Position end(data[size()][0], data[size()][1], data[size()][2]);
-      ret =
-          end + Position((index - size()) * interval * std::cos(end.theta),
-                         (index - size()) * interval * std::sin(end.theta), 0);
+      ret = end + Position((index - size()) * interval * std::cos(end.th),
+                           (index - size()) * interval * std::sin(end.th), 0);
     } else {
       ret = Position(data[index][0], data[index][1], data[index][2]);
     }
@@ -956,14 +949,14 @@ public:
   }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%06.1f, %06.1f, %06.3f)\t", name, getRelativePosition().x,
-           getRelativePosition().y, getRelativePosition().theta);
+           getRelativePosition().y, getRelativePosition().th);
     printf("Abs:(%06.1f, %06.1f, %06.3f)\n", sc.position.x, sc.position.y,
-           sc.position.theta);
+           sc.position.th);
   }
   Position getRelativePosition() const {
-    return (sc.position - origin).rotate(-origin.theta);
+    return (sc.position - origin).rotate(-origin.th);
   }
-  void updateOrigin(Position passed) { origin += passed.rotate(origin.theta); }
+  void updateOrigin(Position passed) { origin += passed.rotate(origin.th); }
   void setPosition(Position pos = Position(SEGMENT_WIDTH / 2,
                                            WALL_THICKNESS / 2 +
                                                MACHINE_TAIL_LENGTH,
@@ -990,30 +983,30 @@ private:
       return;
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
-    if (wallAvoidFlag && (int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 2) {
+    if (wallAvoidFlag && (int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 2) {
       const float gain = 0.0016f;
       if (wd.wall[0]) {
         sc.position +=
-            Position(0, wd.distance.side[0] * gain, 0).rotate(origin.theta);
+            Position(0, wd.distance.side[0] * gain, 0).rotate(origin.th);
         led_flags |= 8;
       }
       if (wd.wall[1]) {
         sc.position -=
-            Position(0, wd.distance.side[1] * gain, 0).rotate(origin.theta);
+            Position(0, wd.distance.side[1] * gain, 0).rotate(origin.th);
         led_flags |= 1;
       }
     }
     // 45 [deg] の倍数
     // if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
-    //     (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 < 2) {
+    //     (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2) {
     //   const float shift = 0.01f;
     //   const float threashold = -50;
     //   if (wd.distance.front[0] > threashold) {
-    //     sc.position += Position(0, shift, 0).rotate(origin.theta);
+    //     sc.position += Position(0, shift, 0).rotate(origin.th);
     //     led_flags |= 4;
     //   }
     //   if (wd.distance.front[1] > threashold) {
-    //     sc.position -= Position(0, shift, 0).rotate(origin.theta);
+    //     sc.position -= Position(0, shift, 0).rotate(origin.th);
     //     led_flags |= 2;
     //   }
     // }
@@ -1022,14 +1015,14 @@ private:
   void wallCut(bool diag) {
 #if FAST_RUN_WALL_CUT_ENABLED
 #define WALL_CUT_OFFSET_X_ (-30)
-    if (wallCutFlag && fabs(origin.theta - sc.position.theta) < PI / 48) {
+    if (wallCutFlag && fabs(origin.th - sc.position.th) < PI / 48) {
       for (int i = 0; i < 2; i++) {
         // 45 [deg] + 90 [deg] の倍数
-        // if (diag && (int)(fabs(origin.theta) * 180.0f / PI + 45 + 1) % 90 <
+        // if (diag && (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 <
         // 4) {
         //   if (prev_wall[i] && !wd.wall[i]) {
         //     Position prev = sc.position;
-        //     Position fix = sc.position.rotate(-origin.theta);
+        //     Position fix = sc.position.rotate(-origin.th);
         //     const float extra = 36;
         //     if (i == 0) {
         //       fix.x = round2(fix.x - extra - SEGMENT_DIAGONAL_WIDTH / 2,
@@ -1038,33 +1031,33 @@ private:
         //     } else {
         //       fix.x = round2(fix.x - extra, SEGMENT_DIAGONAL_WIDTH) + extra;
         //     }
-        //     fix = fix.rotate(origin.theta);
-        //     if (fabs(prev.rotate(-origin.theta).x -
-        //              fix.rotate(-origin.theta).x) < 10.0f) {
+        //     fix = fix.rotate(origin.th);
+        //     if (fabs(prev.rotate(-origin.th).x -
+        //              fix.rotate(-origin.th).x) < 10.0f) {
         //       sc.position = fix;
         //       printf("WallCutDiag[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, "
         //              "%.1f)\n",
-        //              i, prev.x, prev.y, prev.theta * 180.0f / PI,
-        //              sc.position.x, sc.position.y, sc.position.theta * 180 /
+        //              i, prev.x, prev.y, prev.th * 180.0f / PI,
+        //              sc.position.x, sc.position.y, sc.position.th * 180 /
         //              PI);
         //     }
         //     bz.play(Buzzer::SHORT);
         //   }
         // }
         // 90 [deg] の倍数
-        if ((int)(fabs(origin.theta) * 180.0f / PI + 1) % 90 < 4) {
+        if ((int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 4) {
           if (prev_wall[i] && !wd.wall[i]) {
             Position prev = sc.position;
-            Position fix = sc.position.rotate(-origin.theta);
+            Position fix = sc.position.rotate(-origin.th);
             fix.x = round2(fix.x, SEGMENT_WIDTH) + WALL_CUT_OFFSET_X_;
-            fix = fix.rotate(origin.theta);
-            if (fabs(prev.rotate(-origin.theta).x -
-                     fix.rotate(-origin.theta).x) < 15.0f) {
+            fix = fix.rotate(origin.th);
+            if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
+                15.0f) {
               sc.position = fix;
               printf(
                   "WallCut[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
-                  i, prev.x, prev.y, prev.theta * 180.0f / PI, sc.position.x,
-                  sc.position.y, sc.position.theta * 180 / PI);
+                  i, prev.x, prev.y, prev.th * 180.0f / PI, sc.position.x,
+                  sc.position.y, sc.position.th * 180 / PI);
               bz.play(Buzzer::SHORT);
             }
           }
@@ -1080,13 +1073,12 @@ private:
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
       float pos = 90 - dist - FS90::straight + FAST_END_REMAIN;
       Position prev = sc.position;
-      Position fix = sc.position.rotate(-origin.theta);
+      Position fix = sc.position.rotate(-origin.th);
       fix.x =
           floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH +
           pos;
-      fix = fix.rotate(origin.theta);
-      if (fabs(prev.rotate(-origin.theta).x - fix.rotate(-origin.theta).x) <
-          15.0f)
+      fix = fix.rotate(origin.th);
+      if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) < 15.0f)
         sc.position = fix;
       bz.play(Buzzer::SHORT);
     }
@@ -1099,8 +1091,8 @@ private:
     const float accel = runParameter.accel;
     const float v_start = sc.ref_v.tra;
     const float jerk = 500000;
-    signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
-                                        distance - FAST_END_REMAIN);
+    AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
+                     distance - FAST_END_REMAIN);
     float int_y = 0;
     for (int i = 0; i < 2; i++)
       prev_wall[i] = wd.wall[i];
@@ -1115,13 +1107,13 @@ private:
       float velocity = ad.v(t);
       if (v_end < 1.0f)
         velocity = std::max(60.0f, velocity);
-      float theta = atan2f(-cur.y, FAST_ST_LOOK_AHEAD(velocity)) - cur.theta;
-      sc.set_target(velocity, FAST_ST_FB_GAIN * theta, ad.a(t));
+      float th = atan2f(-cur.y, FAST_ST_LOOK_AHEAD(velocity)) - cur.th;
+      sc.set_target(velocity, FAST_ST_FB_GAIN * th, ad.a(t));
       wallAvoid(true, extra);
       wallCut(true);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       int_y += getRelativePosition().y;
-      sc.position.theta += int_y * 0.00000001f;
+      sc.position.th += int_y * 0.00000001f;
     }
     if (v_end < 1.0f)
       sc.set_target(0, 0);
@@ -1139,8 +1131,8 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       xLastWakeTime = xTaskGetTickCount();
       Position dir = tr.getNextDir(getRelativePosition(), velocity);
-      sc.set_target(velocity, dir.theta);
-      if (fabs(getRelativePosition().theta) < 0.01f * PI) {
+      sc.set_target(velocity, dir.th);
+      if (fabs(getRelativePosition().th) < 0.01f * PI) {
         wallAvoid(false, 0);
         wallCut(false);
       }

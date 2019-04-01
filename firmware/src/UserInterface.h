@@ -11,7 +11,8 @@
 #pragma once
 
 #include "app_log.h"
-#include "config/config.h"
+#include "config/io_mapping.h"
+#include "config/model.h"
 #include "global.h"
 
 #include <freertos/FreeRTOS.h>

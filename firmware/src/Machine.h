@@ -303,7 +303,7 @@ public:
     const float jerk = 500000;
     const float accel = 6000;
     const float v_max = 1200;
-    signal_processing::AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
+    AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
       sc.set_target(ad.v(t), 0, ad.a(t), 0);

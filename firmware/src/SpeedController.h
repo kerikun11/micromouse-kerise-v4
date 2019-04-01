@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config/model.h"
 #include "global.h"
 
 #include "Accumulator.h"
@@ -9,11 +10,42 @@
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
-using namespace coordinate;
+namespace ctrl {
 
 class SpeedController {
 public:
   constexpr static const float Ts = 0.001f;
+  struct WheelParameter {
+  public:
+    float tra;      //< tralation [mm]
+    float rot;      //< rotation [rad]
+    float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
+  public:
+    WheelParameter() { clear(); }
+    void pole2wheel() {
+      wheel[0] = tra - MACHINE_ROTATION_RADIUS * rot;
+      wheel[1] = tra + MACHINE_ROTATION_RADIUS * rot;
+    }
+    void wheel2pole() {
+      rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
+      tra = (wheel[1] + wheel[0]) / 2;
+    }
+    void clear() {
+      tra = 0;
+      rot = 0;
+      wheel[0] = 0;
+      wheel[1] = 0;
+    }
+  };
+  struct Model {
+    Polar K1;
+    Polar T1;
+    Polar Kp;
+    Polar Ki;
+    Polar Kd;
+  };
+
+public:
   Polar ref_v;
   Polar ref_a;
   Polar est_v;
@@ -126,9 +158,11 @@ private:
       const float k = 0.0f;
       const float slip_angle = k * est_v.tra * est_v.rot;
       /* calculate odometry value */
-      position.theta += est_v.rot * Ts;
-      position.x += est_v.tra * std::cos(position.theta + slip_angle) * Ts;
-      position.y += est_v.tra * std::sin(position.theta + slip_angle) * Ts;
+      position.th += est_v.rot * Ts;
+      position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
+      position.y += est_v.tra * std::sin(position.th + slip_angle) * Ts;
     }
   }
 };
+
+}; // namespace ctrl

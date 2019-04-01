@@ -1,6 +1,7 @@
 #include "Machine.h"
 #include <iostream>
 
+#include "SlalomDesigner.h"
 #include "TrajectoryTracker.h"
 
 void driveTask(void *arg);
@@ -49,56 +50,32 @@ void timeKeepTask(void *arg) {
   vTaskDelay(portMAX_DELAY);
 }
 
-#define TEST_END_REMAIN 1
-#define TEST_ST_LOOK_AHEAD(v) (6 + v / 100)
-#define TEST_ST_FB_GAIN 10
-#define TEST_ST_TR_FB_GAIN 0
-
-void straight_x(const float distance, const float v_max, const float v_end) {
-  const float a_max = 1000;
-  const float v_start = std::max(sc.est_v.tra, 0.0f);
-  signal_processing::AccelDesigner ad(
-      a_max, v_start, v_max, v_end, distance - TEST_END_REMAIN, sc.position.x);
-  portTickType xLastWakeTime = xTaskGetTickCount();
-  for (float t = 0.0f; true; t += 0.001f) {
-    Position cur = sc.position;
-    if (t > ad.t_end())
-      break;
-    float velocity = ad.v(t) + TEST_ST_TR_FB_GAIN * (ad.x(t) - cur.x);
-    float theta = std::atan2(-cur.y, TEST_ST_LOOK_AHEAD(velocity)) - cur.theta;
-    sc.set_target(velocity, TEST_ST_FB_GAIN * theta);
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-  }
-  sc.set_target(ad.v_end(), 0);
-}
-
 void turn_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
   const float jerk = 540 * PI;
-  const float angle = -1 * PI;
-  const float sign = (angle > 0) ? 1 : -1;
+  const float angle = -PI;
   const float omega = 4 * PI;
   const float d_omega = 48 * PI;
   imu.calibration();
   sc.enable();
-  signal_processing::AccelDesigner ad(jerk, d_omega, 0, omega, 0, sign * angle);
+  AccelDesigner ad(jerk, d_omega, 0, omega, 0, angle);
   portTickType xLastWakeTime = xTaskGetTickCount();
   const float back_gain = 10.0f;
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
-    float delta = sc.position.x * std::cos(-sc.position.theta) -
-                  sc.position.y * std::sin(-sc.position.theta);
-    sc.set_target(-delta * back_gain, sign * ad.v(t), 0, sign * ad.a(t));
+    float delta = sc.position.x * std::cos(-sc.position.th) -
+                  sc.position.y * std::sin(-sc.position.th);
+    sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
   }
   float int_error = 0;
   while (1) {
-    float delta = sc.position.x * std::cos(-sc.position.theta) -
-                  sc.position.y * std::sin(-sc.position.theta);
+    float delta = sc.position.x * std::cos(-sc.position.th) -
+                  sc.position.y * std::sin(-sc.position.th);
     const float Kp = 20.0f;
     const float Ki = 10.0f;
-    const float error = angle - sc.position.theta;
+    const float error = angle - sc.position.th;
     int_error += error * 0.001f;
     sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -123,15 +100,16 @@ void traj_test() {
   const float v_max = 1800;
   const float distance = 90 * 16;
   const float v_start = 0;
-  signal_processing::AccelDesigner ad(jerk, accel, v_start, v_max, 0, distance);
-  trajectory::TrajectoryTracker tt(v_start);
+  AccelDesigner ad(jerk, accel, v_start, v_max, 0, distance);
+  TrajectoryTracker tt(tt_gain);
+  tt.reset(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
     auto ref_dddq = Position(ad.j(t), 0);
-    auto ref = tt.update(sc.est_v, sc.est_a, sc.position, ref_q, ref_dq,
+    auto ref = tt.update(sc.position, sc.est_v, sc.est_a, ref_q, ref_dq,
                          ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     lgr.push({
@@ -145,7 +123,7 @@ void traj_test() {
         sc.est_a.rot,
         sc.position.x,
         sc.position.y,
-        sc.position.theta,
+        sc.position.th,
         ad.a(t),
         ad.v(t),
         ad.x(t),
@@ -157,26 +135,6 @@ void traj_test() {
   bz.play(Buzzer::CANCEL);
   sc.disable();
 }
-
-void straight_test() {
-  if (!ui.waitForCover())
-    return;
-  delay(1000);
-  bz.play(Buzzer::SELECT);
-  imu.calibration();
-  sc.enable();
-  fan.drive(0.2);
-  delay(500);
-  sc.position.x = 0;
-  straight_x(8 * 90 - 3 - MACHINE_TAIL_LENGTH, 2400, 0);
-  sc.set_target(0, 0);
-  delay(100);
-  fan.drive(0);
-  delay(500);
-  sc.disable();
-}
-
-#include "SlalomDesigner.h"
 
 void slalom_test() {
   if (!ui.waitForCover())
@@ -197,15 +155,12 @@ void slalom_test() {
         est_q.x,
         ref_q.y,
         est_q.y,
-        ref_q.theta,
-        est_q.theta,
+        ref_q.th,
+        est_q.th,
     });
   };
-  auto sd = signal_processing::SlalomDesigner(
-      signal_processing::SlalomDesigner::Constraint(-M_PI / 2, -40, 45, -45));
-  // auto sd = signal_processing::SlalomDesigner(
-  //     signal_processing::SlalomDesigner::Constraint(M_PI / 2, 70, 90, 90));
-  signal_processing::AccelDesigner ad;
+  auto &sd = sd_SL90;
+  AccelDesigner ad;
   bz.play(Buzzer::CONFIRM);
   imu.calibration();
   bz.play(Buzzer::CANCEL);
@@ -214,69 +169,64 @@ void slalom_test() {
   const float accel = 4800;
   const float vel = 360;
   const float v_start = 0;
-  trajectory::TrajectoryTracker tt(v_start);
+  TrajectoryTracker tt(tt_gain);
+  tt.reset(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   Position offset;
   /* 加速 */
   const float st_len = 60;
   ad.reset(jerk, accel, v_start, vel, vel, st_len);
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
-    auto est_q = (sc.position - offset).rotate(-offset.theta);
+    auto est_q = (sc.position - offset).rotate(-offset.th);
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
     auto ref_dddq = Position(ad.j(t), 0);
     auto ref =
-        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
+        tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(offset + ref_q.rotate(offset.theta),
-             offset + est_q.rotate(offset.theta));
+    printLog(offset + ref_q.rotate(offset.th),
+             offset + est_q.rotate(offset.th));
   }
   {
     auto net = Position(st_len, 0, 0);
-    offset += net.rotate(offset.theta);
+    offset += net.rotate(offset.th);
   }
   /* ターン */
-  signal_processing::SlalomDesigner::State s;
+  SlalomDesigner::State s;
   const float Ts = 0.001f;
   sd_SL90.reset(vel);
   for (float t = 0; t < sd.t_end(); t += 0.001f) {
     sd_SL90.update(&s, Ts);
-    auto est_q = (sc.position - offset).rotate(-offset.theta);
-    auto ref_q = Position(s.x, s.y, s.th);
-    auto ref_dq = Position(s.dx, s.dy);
-    auto ref_ddq = Position(s.ddx, s.ddy);
-    auto ref_dddq = Position(s.dddx, s.dddy);
-    auto ref =
-        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
+    auto est_q = (sc.position - offset).rotate(-offset.th);
+    auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(offset + ref_q.rotate(offset.theta),
-             offset + est_q.rotate(offset.theta));
+    printLog(offset + s.q.rotate(offset.th), offset + est_q.rotate(offset.th));
   }
   {
-    auto net = Position(sd.x_end(), sd.y_end(), sd.th_end());
-    offset += net.rotate(offset.theta);
+    const auto net = sd.get_net_curve();
+    offset += net.rotate(offset.th);
   }
   /* 減速 */
   ad.reset(jerk, accel, vel, vel, 0, st_len);
   for (float t = 0; t < ad.t_end(); t += 0.001f) {
-    auto est_q = (sc.position - offset).rotate(-offset.theta);
+    auto est_q = (sc.position - offset).rotate(-offset.th);
     auto ref_q = Position(ad.x(t), 0);
     auto ref_dq = Position(ad.v(t), 0);
     auto ref_ddq = Position(ad.a(t), 0);
     auto ref_dddq = Position(ad.j(t), 0);
     auto ref =
-        tt.update(sc.est_v, sc.est_a, est_q, ref_q, ref_dq, ref_ddq, ref_dddq);
+        tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq, ref_dddq);
     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    printLog(offset + ref_q.rotate(offset.theta),
-             offset + est_q.rotate(offset.theta));
+    printLog(offset + ref_q.rotate(offset.th),
+             offset + est_q.rotate(offset.th));
   }
   {
     auto net = Position(st_len, 0, 0);
-    offset += net.rotate(offset.theta);
+    offset += net.rotate(offset.th);
   }
   sc.set_target(0, 0);
   delay(200);
@@ -366,14 +316,6 @@ void driveTask(void *arg) {
       Machine::setGoalPositions();
       break;
     case 12: /* マス直線 */
-      if (!ui.waitForCover())
-        return;
-      bz.play(Buzzer::CONFIRM);
-      imu.calibration();
-      bz.play(Buzzer::CANCEL);
-      sc.enable();
-      straight_x(9 * 90 - 6 - MACHINE_TAIL_LENGTH, 300, 0);
-      sc.disable();
       break;
     case 13: /* 迷路の表示 */
       mr.print();

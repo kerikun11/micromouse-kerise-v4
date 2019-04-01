@@ -30,7 +30,7 @@ extern ToF tof;
 #include "UserInterface.h"
 extern UserInterface ui;
 #include "SpeedController.h"
-extern SpeedController sc;
+extern ctrl::SpeedController sc;
 #include "WallDetector.h"
 extern WallDetector wd;
 
