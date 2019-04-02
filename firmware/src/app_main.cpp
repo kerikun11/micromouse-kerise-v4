@@ -30,7 +30,6 @@ void loop() { delay(1000); }
 
 void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
-  // Accumulator<float, 64> tmp;
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     // enc.print();
@@ -38,13 +37,8 @@ void printTask(void *arg) {
     // tof.csv(); delay(100);
     // imu.print();
     // wd.print();
+    // wd.printDiff();
     // wd.csv();
-    // for (int i = 0; i < 100; i++) {
-    //   vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //   tmp.push(enc.position(0));
-    // }
-    // std::cout << (tmp[0] - tmp[tmp.size() - 1]) / tmp.size() / 0.001f
-    //           << std::endl;
   }
 }
 

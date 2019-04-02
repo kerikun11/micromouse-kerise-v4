@@ -13,7 +13,7 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 0
+#define SEARCH_WALL_CUT_ENABLED 1
 #define SEARCH_WALL_FRONT_ENABLED 0
 #define SEARCH_WALL_AVOID_ENABLED 1
 
@@ -22,7 +22,7 @@
 
 static constexpr const float ahead_length = 0.0f;
 
-#define SEARCH_RUN_VELOCITY 240.0f
+#define SEARCH_RUN_VELOCITY 180.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchRun : TaskBase {
@@ -136,31 +136,40 @@ private:
     }
 #endif
   }
-  void wall_avoid(const float distance) {
+  void wall_avoid() {
 #if SEARCH_WALL_AVOID_ENABLED
     if (std::abs(sc.position.th) < 0.05 * PI) {
       const float gain = 0.002;
-      if (wd.wall[0])
+      const float diff_thr = 100;
+      if (wd.wall[0] && std::abs(wd.diff.side[0]) < diff_thr)
         sc.position.y += wd.distance.side[0] * gain;
-      if (wd.wall[1])
+      if (wd.wall[1] && std::abs(wd.diff.side[1]) < diff_thr)
         sc.position.y -= wd.distance.side[1] * gain;
     }
 #endif
+  }
+  void wall_cut(const float velocity) {
 #if SEARCH_WALL_CUT_ENABLED
 #define SEARCH_WALL_CUT_OFFSET_X_ 66
+    if (velocity < 120)
+      return;
     for (int i = 0; i < 2; i++) {
-      if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
-        const float prev_x = sc.position.x;
-        float fix = -((int)sc.position.x) % SEGMENT_WIDTH +
-                    SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
-        if (distance > SEGMENT_WIDTH - 1 && fix < 0.0f) {
-          sc.position.x = sc.position.x + fix;
-          printf("WallCut[%d] X_ distance: %.0f, x: %.1f => %.1f\n", i,
-                 distance, prev_x, sc.position.x);
-          bz.play(Buzzer::CANCEL);
-        }
+      const float normal_th = sc.position.th / (M_PI / 2);
+      const float frac_part = normal_th - roundf(normal_th);
+      const float diff_thr = velocity * 2.0f;
+      if (wd.diff.side[i] < -diff_thr && std::abs(frac_part) < 0.05f) {
+        bz.play(Buzzer::SHORT);
       }
-      prev_wall[i] = wd.wall[i];
+      // if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
+      //   const float prev_x = sc.position.x;
+      //   float fix = -((int)sc.position.x) % SEGMENT_WIDTH +
+      //               SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
+      //   if (distance > SEGMENT_WIDTH - 1 && fix < 0.0f) {
+      //     sc.position.x = sc.position.x + fix;
+      //     bz.play(Buzzer::CANCEL);
+      //   }
+      // }
+      // prev_wall[i] = wd.wall[i];
     }
 #endif
   }
@@ -174,8 +183,8 @@ private:
         sc.position.x = 90 - value - ahead_length;
         bz.play(Buzzer::SELECT);
       }
-      sc.position.x = std::min(sc.position.x, 0.0f);
-      printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
+      // sc.position.x = std::min(sc.position.x, 0.0f);
+      // printf("FrontWallCalib: %.2f => %.2f\n", x, sc.position.x);
     }
 #endif
   }
@@ -242,7 +251,8 @@ private:
                            ref_dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      wall_avoid(distance);
+      wall_avoid();
+      wall_cut(ref.v);
       int_y += sc.position.y;
       sc.position.th += int_y * 0.00000001f;
     }
@@ -263,6 +273,7 @@ private:
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      wall_cut(ref.v);
     }
     sc.set_target(velocity, 0);
     const auto net = sd.get_net_curve();
@@ -331,7 +342,6 @@ private:
 #define SEARCH_ST_FB_GAIN 40
           float th = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.th;
           sc.set_target(v, SEARCH_ST_FB_GAIN * th);
-          wall_avoid(0);
         }
       }
       struct Operation operation = q.front();

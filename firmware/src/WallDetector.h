@@ -65,25 +65,20 @@ public:
     calibrationEndSemaphore = xSemaphoreCreateBinary();
     calibrationFrontStartSemaphore = xSemaphoreCreateBinary();
     calibrationFrontEndSemaphore = xSemaphoreCreateBinary();
-    if (task_handle != NULL) {
-      log_w("WallDetector is already running!");
-    }
     xTaskCreate([](void *obj) { static_cast<WallDetector *>(obj)->task(); },
                 "WallDetector", WALL_DETECTOR_STACK_SIZE, this,
-                WALL_DETECTOR_TASK_PRIORITY, &task_handle);
+                WALL_DETECTOR_TASK_PRIORITY, NULL);
     if (!restore())
       return false;
     return true;
   }
   bool backup() {
-    uint32_t us = micros();
     File file = SPIFFS.open(WALL_DETECTOR_BACKUP_PATH, FILE_WRITE);
     if (!file) {
       log_e("Can't open file!");
       return false;
     }
     file.write((const uint8_t *)(&(wall_ref)), sizeof(WallDetector::WallValue));
-    log_d("Backup: %d [us]", micros() - us);
     return true;
   }
   bool restore() {
@@ -121,6 +116,9 @@ public:
           distance.front[0], distance.front[1], distance.side[1],
           wall[0] ? 'X' : '.', wall[2] ? 'X' : '.', wall[1] ? 'X' : '.');
   }
+  void printDiff() {
+    std::cout << diff.side[0] << "," << diff.side[1] << std::endl;
+  }
   void csv() {
     std::cout << "0";
     for (int i = 0; i < 4; ++i)
@@ -134,7 +132,6 @@ public:
   bool wall[3];
 
 private:
-  xTaskHandle task_handle;
   SemaphoreHandle_t calibrationStartSemaphore;
   SemaphoreHandle_t calibrationEndSemaphore;
   SemaphoreHandle_t calibrationFrontStartSemaphore;

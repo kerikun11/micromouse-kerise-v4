@@ -70,7 +70,7 @@ public:
   bool wallAvoid45Flag = true;
   bool wallCutFlag = true;
   bool V90Enabled = true;
-  float fanDuty = 0.0f;
+  float fanDuty = 0.4f;
 
   void start() {
     createTask("FastRun", FAST_RUN_TASK_PRIORITY, FAST_RUN_STACK_SIZE);
