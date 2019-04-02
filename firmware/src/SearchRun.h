@@ -229,9 +229,9 @@ private:
     const float v_start = sc.ref_v.tra;
     TrajectoryTracker tt(tt_gain);
     tt.reset(v_start);
-    portTickType xLastWakeTime = xTaskGetTickCount();
     AccelDesigner ad(jerk, accel, v_start, v_max, v_end, distance);
     float int_y = 0;
+    portTickType xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
       auto est_q = sc.position;
       auto ref_q = Position(ad.x(t), 0);
