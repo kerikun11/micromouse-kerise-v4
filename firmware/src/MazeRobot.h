@@ -147,7 +147,7 @@ private:
     right = wd.wall[1];
     front = wd.wall[2];
     back = false;
-    bz.play(Buzzer::SHORT);
+    // bz.play(Buzzer::SHORT);
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override {

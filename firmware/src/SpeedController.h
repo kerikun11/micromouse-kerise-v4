@@ -72,13 +72,11 @@ public:
     if (reset_position)
       position.clear();
     enabled = true;
-    printf("Speed Controller Enabled\n");
   }
   void disable() {
     enabled = false;
     delay(2);
     mt.free();
-    printf("Speed Controller disabled\n");
   }
   void set_target(const Polar dq, const Polar ddq) {
     ref_v = dq;
@@ -91,12 +89,14 @@ public:
     ref_a.tra = tra_a;
     ref_a.rot = rot_a;
   }
+  void fix_position(const Position fix) { this->fix += fix; }
 
 private:
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<Polar, acc_num> accel;
+  Position fix;
 
   void reset() {
     ref_v.clear();
@@ -105,6 +105,7 @@ private:
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
     accel.clear(Polar(imu.accel.y, imu.angular_accel));
+    fix.clear();
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -161,6 +162,22 @@ private:
       position.th += est_v.rot * Ts;
       position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
       position.y += est_v.tra * std::sin(position.th + slip_angle) * Ts;
+      /* Fix Position */
+      const float delta = 0.3;
+      if (fix.x > delta) {
+        position.x += delta;
+        fix.x -= delta;
+      } else if (fix.x < -delta) {
+        position.x -= delta;
+        fix.x += delta;
+      }
+      if (fix.y > delta) {
+        position.y += delta;
+        fix.y -= delta;
+      } else if (fix.y < -delta) {
+        position.y -= delta;
+        fix.y += delta;
+      }
     }
   }
 };

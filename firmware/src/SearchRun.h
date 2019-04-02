@@ -13,7 +13,7 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 1
+#define SEARCH_WALL_CUT_ENABLED 0
 #define SEARCH_WALL_FRONT_ENABLED 0
 #define SEARCH_WALL_AVOID_ENABLED 1
 
@@ -101,7 +101,7 @@ public:
 private:
   std::queue<struct Operation> q;
   volatile bool isRunningFlag = false;
-  bool prev_wall[2];
+  Position offset;
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
@@ -150,26 +150,23 @@ private:
   }
   void wall_cut(const float velocity) {
 #if SEARCH_WALL_CUT_ENABLED
-#define SEARCH_WALL_CUT_OFFSET_X_ 66
     if (velocity < 120)
       return;
     for (int i = 0; i < 2; i++) {
       const float normal_th = sc.position.th / (M_PI / 2);
       const float frac_part = normal_th - roundf(normal_th);
       const float diff_thr = velocity * 2.0f;
-      if (wd.diff.side[i] < -diff_thr && std::abs(frac_part) < 0.05f) {
+      if (wd.diff.side[i] < -diff_thr && std::abs(frac_part) < 0.02f) {
         bz.play(Buzzer::SHORT);
+        const float wall_cut_x = -18;
+        auto th = roundf(sc.position.th / (M_PI / 2)) * M_PI / 2;
+        auto offset_x = offset.rotate(-offset.th - th).x;
+        auto fixed = sc.position.rotate(-th);
+        auto x = offset_x + fixed.x;
+        auto fixed_x = roundf((x - wall_cut_x) / 90) * 90 + wall_cut_x;
+        fixed.x = fixed_x - offset_x;
+        sc.position = fixed.rotate(th);
       }
-      // if (prev_wall[i] && !wd.wall[i] && sc.position.x > 30.0f) {
-      //   const float prev_x = sc.position.x;
-      //   float fix = -((int)sc.position.x) % SEGMENT_WIDTH +
-      //               SEARCH_WALL_CUT_OFFSET_X_ - ahead_length;
-      //   if (distance > SEGMENT_WIDTH - 1 && fix < 0.0f) {
-      //     sc.position.x = sc.position.x + fix;
-      //     bz.play(Buzzer::CANCEL);
-      //   }
-      // }
-      // prev_wall[i] = wd.wall[i];
     }
 #endif
   }
@@ -230,6 +227,7 @@ private:
     sc.set_target(0, 0);
     sc.position.th -= angle; //< 移動した量だけ位置を更新
     sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
+    offset += Position(0, 0, angle).rotate(offset.th);
     printPosition("Turn End");
   }
   void straight_x(const float distance, const float v_max, const float v_end) {
@@ -254,11 +252,12 @@ private:
       wall_avoid();
       wall_cut(ref.v);
       int_y += sc.position.y;
-      sc.position.th += int_y * 0.00000001f;
+      // sc.position.th += int_y * 0.00000001f;
     }
     if (v_end < 1.0f)
       sc.set_target(0, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
+    offset += Position(distance, 0, 0).rotate(offset.th);
   }
   void trace(slalom::Trajectory &sd, const float velocity) {
     TrajectoryTracker tt(tt_gain);
@@ -278,6 +277,7 @@ private:
     sc.set_target(velocity, 0);
     const auto net = sd.get_net_curve();
     sc.position = (sc.position - net).rotate(-net.th);
+    offset += net.rotate(offset.th);
   }
   void put_back() {
     const int max_v = 150;
@@ -361,6 +361,8 @@ private:
       case START_STEP:
         sc.position.clear();
         imu.angle = 0;
+        offset = Position(SEGMENT_WIDTH / 2,
+                          MACHINE_TAIL_LENGTH + WALL_THICKNESS / 2, M_PI / 2);
         straight_x(SEGMENT_WIDTH - MACHINE_TAIL_LENGTH - WALL_THICKNESS / 2 +
                        ahead_length,
                    velocity, velocity);
