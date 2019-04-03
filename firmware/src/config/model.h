@@ -16,4 +16,4 @@ static constexpr float M_PI = 3.14159265358979323846f;
 #define WALL_THICKNESS 6.0f
 
 /* Trajectory Tracking Gain */
-static constexpr const float tt_gain = 10;
+static constexpr const float tt_gain = 5;

@@ -5,11 +5,17 @@
 using namespace ctrl;
 
 static const auto SS_SL90 = ctrl::slalom::Shape(
-    ctrl::Position(45, 45, 1.5708), ctrl::Position(39.9935, 40.0008, 1.5708),
-    5.00647, 4.99916, 366.548);
+    ctrl::Position(45, 45, 1.5708), ctrl::Position(43.993, 44.0003, 1.5708),
+    1.00703, 0.999664, 403.209);
 static const auto SS_SR90 = ctrl::slalom::Shape(
-    ctrl::Position(45, -45, -1.5708),
-    ctrl::Position(39.9935, -40.0008, -1.5708), 5.00647, 4.99916, 366.548);
+    ctrl::Position(45, -45, -1.5708), ctrl::Position(43.993, -44.0003, -1.5708),
+    1.00703, 0.999664, 403.209);
+// static const auto SS_SL90 = ctrl::slalom::Shape(
+//     ctrl::Position(45, 45, 1.5708), ctrl::Position(39.9935, 40.0008, 1.5708),
+//     5.00647, 4.99916, 366.548);
+// static const auto SS_SR90 = ctrl::slalom::Shape(
+//     ctrl::Position(45, -45, -1.5708),
+//     ctrl::Position(39.9935, -40.0008, -1.5708), 5.00647, 4.99916, 366.548);
 static const auto SS_FL45 = ctrl::slalom::Shape(
     ctrl::Position(90, 45, 0.785398), ctrl::Position(60.3485, 25, 0.785398),
     9.65155, 28.2843, 571.663);

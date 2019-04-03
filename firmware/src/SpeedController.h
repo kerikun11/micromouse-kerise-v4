@@ -141,7 +141,7 @@ private:
       // Polar Kp = Polar(0, 0);
       // Polar Ki = Polar(0, 0);
       Polar Kp = Polar(0.001f, 0.04f);
-      Polar Ki = Polar(0.1f, 3.0f);
+      Polar Ki = Polar(0.2f, 6.0f);
       // Polar Kp = Polar(0.0f, 0.04f);
       // Polar Ki = Polar(0.0f, 3.0f);
       Polar Kd = Polar(0, 0);

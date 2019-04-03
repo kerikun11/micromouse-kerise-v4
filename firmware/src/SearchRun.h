@@ -111,9 +111,9 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       SpeedController::WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
-        const float Kp = 72.0f;
-        const float Ki = 6.0f;
-        const float satu = 120.0f; //< [mm/s]
+        const float Kp = 120.0f;
+        const float Ki = 3.0f;
+        const float satu = 180.0f; //< [mm/s]
         const float end = 0.4f;
         SpeedController::WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
