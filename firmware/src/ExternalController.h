@@ -53,10 +53,10 @@ private:
       case '7':
       case '8':
       case '9': {
-        float duty = (c - '0');
-        duty /= 10.0f;
-        // mt.drive(duty, 0);
-        fan.drive(duty);
+        // float duty = (c - '0');
+        // duty /= 10.0f;
+        // // mt.drive(duty, 0);
+        // fan.drive(duty);
       } break;
       }
     }

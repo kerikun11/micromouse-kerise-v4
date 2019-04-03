@@ -156,10 +156,9 @@ private:
   }
   void startDequeue() override { sr.enable(); }
   void calibration() override {
-    bz.play(Buzzer::CONFIRM);
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     enc.clearOffset();
-    bz.play(Buzzer::CANCEL);
   }
   void calcNextDirsPreCallback() override {}
   void calcNextDirsPostCallback(SearchAlgorithm::State prevState,
@@ -265,7 +264,7 @@ private:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      fr.V90Enabled = false;
+      // fr.V90Enabled = false; //< for debug
     }
     // 最短
     while (1) {

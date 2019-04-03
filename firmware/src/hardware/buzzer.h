@@ -32,6 +32,7 @@ public:
     COMPLETE,
     MAZE_BACKUP,
     MAZE_RESTORE,
+    CALIBRATION,
   };
   void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
 
@@ -132,6 +133,11 @@ private:
         sound(NOTE_C, 7, 100);
         sound(NOTE_E, 7, 100);
         sound(NOTE_G, 7, 100);
+        mute(100);
+        break;
+      case CALIBRATION:
+        sound(NOTE_C, 7, 100);
+        sound(NOTE_E, 7, 100);
         mute(100);
         break;
       default:

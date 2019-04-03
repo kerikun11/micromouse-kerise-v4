@@ -356,9 +356,8 @@ public:
     const float v_max = runParameter.max_speed;
     // キャリブレーション
     delay(500);
-    bz.play(Buzzer::CONFIRM);
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    bz.play(Buzzer::CANCEL);
     // 壁に背中を確実につける
     mt.drive(-0.2f, -0.2f);
     delay(200);

@@ -67,16 +67,28 @@ public:
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &spi_handle));
     return reset();
   }
+  void device_reset() { writeReg(107, 0x81); /**< PowerManagement 1 */ }
+  void device_config() {
+    writeReg(26, 0x00); /**< Config; DLPF=250[Hz] */
+    writeReg(27, 0x18); /**< Gyro Config; FS=2000[dps], FCHOICE=8[kHz] */
+    writeReg(28, 0x18); /**< Accel Config; FS=16[g] */
+    writeReg(29, 0x00); /**< Accel Config 2; F_CHOICE=1[kHz], DLPF=218.1[Hz] */
+    // writeReg(17, 0xc9);  /**< ??? for Accel */
+    writeReg(107, 0x01); /**< PowerManagement 1 */
+  }
   bool reset() {
-    writeReg(107, 0x81);
+    device_reset();
     delay(100);
-    writeReg(17, 0xc9);
-    writeReg(26, 0x00);
-    writeReg(27, 0x18);
-    writeReg(28, 0x18);
-    writeReg(29, 0x04);
-    writeReg(107, 0x01);
+    device_config();
     return whoami();
+  }
+  bool whoami() {
+    uint8_t v = readReg(117); /**< Who am I */
+    if (v != 0x12) {
+      log_e("whoami failed:( 0x%X", v);
+      return false;
+    }
+    return true;
   }
   void update() {
     union {
@@ -109,10 +121,8 @@ public:
     gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.z;
   }
   void calibration() {
-    reset();
-    delay(100);
-    const int ave_count = 250;
-    for (int j = 0; j < 4; j++) {
+    const int ave_count = 100;
+    for (int j = 0; j < 2; j++) {
       portTickType xLastWakeTime = xTaskGetTickCount();
       MotionParameter accel_sum, gyro_sum;
       for (int i = 0; i < ave_count; i++) {
@@ -130,14 +140,6 @@ private:
   spi_device_handle_t spi_handle;
   MotionParameter accel_offset, gyro_offset;
 
-  bool whoami() {
-    uint8_t v = readReg(117);
-    if (v != 0x12) {
-      log_e("whoami failed:( 0x%X", v);
-      return false;
-    }
-    return true;
-  }
   void writeReg(uint8_t reg, uint8_t data) {
     static spi_transaction_t tx;
     tx.flags |= SPI_TRANS_USE_TXDATA;

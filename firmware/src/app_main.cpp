@@ -39,6 +39,7 @@ void printTask(void *arg) {
     // wd.print();
     // wd.printDiff();
     // wd.csv();
+    // std::cout << "0,98,-98," << imu.accel.y << std::endl;
   }
 }
 

@@ -124,9 +124,8 @@ public:
     if (!ui.waitForCover())
       return;
     led = 6;
-    bz.play(Buzzer::CONFIRM);
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    bz.play(Buzzer::CANCEL);
     led = 9;
     sc.enable();
     sc.set_target(0, 0);
@@ -248,9 +247,8 @@ public:
           ui.getBatteryVoltage(),
       });
     };
-    bz.play(Buzzer::SELECT);
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    bz.play(Buzzer::CANCEL);
     fan.drive(0.5f);
     delay(500);
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -294,6 +292,7 @@ public:
           sc.pwm_value.rot,
       });
     };
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     fan.drive(0.4);
     delay(500);
@@ -323,9 +322,8 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
-    bz.play(Buzzer::CONFIRM);
+    bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    bz.play(Buzzer::CANCEL);
     sr.set_action(SearchRun::START_STEP);
     sr.set_action(SearchRun::TURN_RIGHT_90);
     sr.set_action(SearchRun::TURN_LEFT_90);
