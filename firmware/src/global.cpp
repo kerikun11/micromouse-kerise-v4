@@ -5,6 +5,7 @@
 #include "global.h"
 
 #include "config/io_mapping.h"
+#include "config/model.h"
 
 /* Driver */
 Buzzer bz(BUZZER_PIN, LEDC_CH_BUZZER);

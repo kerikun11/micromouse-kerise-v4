@@ -22,8 +22,8 @@
 
 static constexpr const float ahead_length = 0.0f;
 
-#define SEARCH_RUN_VELOCITY 180.0f
-#define SEARCH_RUN_V_MAX 600.0f
+#define SEARCH_RUN_VELOCITY 240.0f
+#define SEARCH_RUN_V_MAX 450.0f
 
 class SearchRun : TaskBase {
 public:
@@ -111,8 +111,8 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
-        const float Kp = 120.0f;
-        const float Ki = 3.0f;
+        const float Kp = 60.0f;
+        const float Ki = 6.0f;
         const float satu = 180.0f; //< [mm/s]
         const float end = 0.4f;
         WheelParameter wp;

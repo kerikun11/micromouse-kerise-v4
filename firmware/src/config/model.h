@@ -18,11 +18,11 @@ static constexpr float M_PI = 3.14159265358979323846f;
 /* Model */
 #include "Position.h"
 #include "ctrl/FeedbackController.h"
-static const struct ctrl::FeedbackController<ctrl::Polar>::Model
+static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
   .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.2517f, 0.09089f),
 };
-static const struct ctrl::FeedbackController<ctrl::Polar>::Gain
+static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
   .Kp = ctrl::Polar(0.001f, 0.04f), .Ki = ctrl::Polar(0.2f, 6.0f),
   .Kd = ctrl::Polar(0, 0),

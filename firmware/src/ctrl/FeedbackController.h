@@ -14,7 +14,7 @@ public:
     T Kd;
   };
   struct Breakdown {
-    T ff, fbp, fbi, fbd, fb;
+    T ff, fbp, fbi, fbd, fb, u;
   };
 
 public:
@@ -31,15 +31,15 @@ public:
     bd.fbd = G.Kd * (dr - dy);
     bd.fb = bd.fbp + bd.fbi + bd.fbd;
     /* calculate control input value */
-    auto ctrl_input = bd.ff + bd.fb;
+    auto u = bd.ff + bd.fb;
     /* integral error */
     e_int += (r - y) * Ts;
     /* complete */
-    return ctrl_input;
+    return u;
   }
-  const struct Model getModel() const { return M; }
-  const struct Gain getGain() const { return G; }
-  const struct Breakdown getBreakdown() const { return bd; }
+  const struct Model &getModel() const { return M; }
+  const struct Gain &getGain() const { return G; }
+  const struct Breakdown &getBreakdown() const { return bd; }
 
 protected:
   Model M;

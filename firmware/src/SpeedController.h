@@ -45,14 +45,11 @@ public:
   Polar ref_a;
   Polar est_v;
   Polar est_a;
-  Polar e_int;
   WheelParameter enc_v;
   Position position;
-  Polar ff;
-  Polar fb;
-  Polar fbp;
-  Polar fbi;
-  Polar pwm_value;
+  const struct ctrl::FeedbackController<ctrl::Polar>::Model &M;
+  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G;
+  FeedbackController<Polar> fbc;
 
 public:
   SpeedController(const struct ctrl::FeedbackController<ctrl::Polar>::Model &M,
@@ -89,9 +86,6 @@ public:
   void fix_position(const Position fix) { this->fix += fix; }
 
 private:
-  const struct ctrl::FeedbackController<ctrl::Polar>::Model &M;
-  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G;
-  FeedbackController<Polar> fbc;
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
@@ -101,11 +95,11 @@ private:
   void reset() {
     ref_v.clear();
     est_v.clear();
-    e_int.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
     accel.clear(Polar(imu.accel.y, imu.angular_accel));
     fix.clear();
+    fbc.reset();
   }
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -131,25 +125,8 @@ private:
       est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
       /* estimated acceleration */
       est_a = accel[0];
-      /* error integral */
-      e_int += (ref_v - est_v) * Ts;
-      /* feedforward */
-      Polar K1 = Polar(5789, 49.74f);
-      Polar T1 = Polar(0.2517f, 0.09089f);
-      ff = (T1 * ref_a + ref_v) / K1;
-      /* feedback */
-      // Polar Kp = Polar(0, 0);
-      // Polar Ki = Polar(0, 0);
-      Polar Kp = Polar(0.001f, 0.04f);
-      Polar Ki = Polar(0.2f, 6.0f);
-      // Polar Kp = Polar(0.0f, 0.04f);
-      // Polar Ki = Polar(0.0f, 3.0f);
-      Polar Kd = Polar(0, 0);
-      fbp = Kp * (ref_v - est_v);
-      fbi = Ki * e_int;
-      fb = Kp * (ref_v - est_v) + Ki * e_int + Kd * (ref_a - est_a);
       /* calculate pwm value */
-      pwm_value = ff + fb;
+      auto pwm_value = fbc.update(ref_v, est_v, ref_a, est_a, Ts);
       float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
       float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
       /* drive the motors */

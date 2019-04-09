@@ -271,25 +271,26 @@ public:
     delay(500);
     lgr.clear();
     auto printLog = []() {
+      auto &bd = sc.fbc.getBreakdown();
       lgr.push({
           sc.ref_v.tra,
           sc.est_v.tra,
           sc.ref_a.tra,
           sc.est_a.tra,
-          sc.ff.tra,
-          sc.fb.tra,
-          sc.fbp.tra,
-          sc.fbi.tra,
-          sc.pwm_value.tra,
+          bd.ff.tra,
+          bd.fb.tra,
+          bd.fbp.tra,
+          bd.fbi.tra,
+          bd.u.tra,
           sc.ref_v.rot,
           sc.est_v.rot,
           sc.ref_a.rot,
           sc.est_a.rot,
-          sc.ff.rot,
-          sc.fb.rot,
-          sc.fbp.rot,
-          sc.fbi.rot,
-          sc.pwm_value.rot,
+          bd.ff.rot,
+          bd.fb.rot,
+          bd.fbp.rot,
+          bd.fbi.rot,
+          bd.u.rot,
       });
     };
     bz.play(Buzzer::CALIBRATION);
