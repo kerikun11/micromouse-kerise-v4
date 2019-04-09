@@ -17,13 +17,13 @@ Fan fan(FAN_PIN);
 /* Sensor */
 Button btn(BUTTON_PIN);
 IMU imu;
-Encoder enc(MACHINE_GEAR_RATIO, MACHINE_WHEEL_DIAMETER);
+Encoder enc(model::GearRatio, model::WheelDiameter);
 Reflector ref(PR_TX_PINS, PR_RX_PINS);
 ToF tof(I2C_PORT_NUM_TOF);
 
 /* Supporter */
 UserInterface ui;
-SpeedController sc(SpeedControllerModel, SpeedControllerGain);
+SpeedController sc(model::SpeedControllerModel, model::SpeedControllerGain);
 WallDetector wd;
 
 /* Conductor */

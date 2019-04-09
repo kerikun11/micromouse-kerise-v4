@@ -56,8 +56,8 @@ void turn_test() {
   if (!ui.waitForCover())
     return;
   delay(500);
-  const float jerk = 540 * PI;
   const float angle = -PI;
+  const float jerk = 540 * PI;
   const float omega = 4 * PI;
   const float d_omega = 48 * PI;
   imu.calibration();
@@ -103,7 +103,7 @@ void traj_test() {
   const float distance = 90 * 16;
   const float v_start = 0;
   AccelDesigner ad(jerk, accel, v_start, v_max, 0, distance);
-  TrajectoryTracker tt(tt_gain);
+  TrajectoryTracker tt(model::tt_gain);
   tt.reset(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -171,7 +171,7 @@ void slalom_test() {
   const float accel = 4800;
   const float vel = 360;
   const float v_start = 0;
-  TrajectoryTracker tt(tt_gain);
+  TrajectoryTracker tt(model::tt_gain);
   tt.reset(v_start);
   portTickType xLastWakeTime = xTaskGetTickCount();
   Position offset;

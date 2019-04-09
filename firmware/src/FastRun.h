@@ -96,9 +96,9 @@ public:
     return (sc.position - origin).rotate(-origin.th);
   }
   void updateOrigin(Position passed) { origin += passed.rotate(origin.th); }
-  void setPosition(Position pos = Position(SEGMENT_WIDTH / 2,
-                                           WALL_THICKNESS / 2 +
-                                               MACHINE_TAIL_LENGTH,
+  void setPosition(Position pos = Position(field::SegWidthFull / 2,
+                                           field::WallThickness / 2 +
+                                               model::TailLength,
                                            M_PI / 2)) {
     origin = pos;
     sc.position = pos;
@@ -188,7 +188,7 @@ private:
           if (prev_wall[i] && !wd.wall[i]) {
             Position prev = sc.position;
             Position fix = sc.position.rotate(-origin.th);
-            fix.x = round2(fix.x, SEGMENT_WIDTH) + WALL_CUT_OFFSET_X_;
+            fix.x = round2(fix.x, field::SegWidthFull) + WALL_CUT_OFFSET_X_;
             fix = fix.rotate(origin.th);
             if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
                 15.0f) {
@@ -213,9 +213,9 @@ private:
       float pos = 90 - dist - SS_FLS90.straight_prev;
       Position prev = sc.position;
       Position fix = sc.position.rotate(-origin.th);
-      fix.x =
-          floor((fix.x + SEGMENT_WIDTH / 2) / SEGMENT_WIDTH) * SEGMENT_WIDTH +
-          pos;
+      fix.x = floor((fix.x + field::SegWidthFull / 2) / field::SegWidthFull) *
+                  field::SegWidthFull +
+              pos;
       fix = fix.rotate(origin.th);
       if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) < 15.0f)
         sc.position = fix;
@@ -230,7 +230,7 @@ private:
     const float jerk = 500000;
     const float accel = runParameter.accel;
     const float v_start = sc.ref_v.tra;
-    TrajectoryTracker tt(tt_gain);
+    TrajectoryTracker tt(model::tt_gain);
     tt.reset(v_start);
     AccelDesigner ad(jerk, accel, v_start, v_max, v_end, distance);
     float int_y = 0;
@@ -258,7 +258,7 @@ private:
     updateOrigin(Position(distance, 0, 0));
   }
   void trace(slalom::Trajectory &sd, const float velocity) {
-    TrajectoryTracker tt(tt_gain);
+    TrajectoryTracker tt(model::tt_gain);
     tt.reset(velocity);
     slalom::State s;
     const float Ts = 0.001f;
@@ -368,8 +368,8 @@ public:
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
     setPosition();
-    float straight =
-        SEGMENT_WIDTH / 2 - MACHINE_TAIL_LENGTH - WALL_THICKNESS / 2;
+    float straight = field::SegWidthFull / 2 - model::TailLength -
+                     field::WallThickness / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {
       printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
       switch (path[path_index]) {
@@ -422,14 +422,14 @@ public:
         SlalomProcess(SS_FR180, straight, false, runParameter);
         break;
       case FAST_GO_STRAIGHT:
-        straight += SEGMENT_WIDTH;
+        straight += field::SegWidthFull;
         break;
       case FAST_GO_HALF:
-        straight += SEGMENT_WIDTH / 2;
+        straight += field::SegWidthFull / 2;
         break;
       case FAST_DIAGONAL_LEFT:
       case FAST_DIAGONAL_RIGHT:
-        straight += SEGMENT_DIAGONAL_WIDTH / 2;
+        straight += field::SegWidthDiag / 2;
         break;
       }
     }

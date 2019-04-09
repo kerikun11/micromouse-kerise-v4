@@ -21,11 +21,11 @@ public:
 public:
   WheelParameter() { clear(); }
   void pole2wheel() {
-    wheel[0] = tra - MACHINE_ROTATION_RADIUS * rot;
-    wheel[1] = tra + MACHINE_ROTATION_RADIUS * rot;
+    wheel[0] = tra - model::RotationRadius * rot;
+    wheel[1] = tra + model::RotationRadius * rot;
   }
   void wheel2pole() {
-    rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
+    rot = (wheel[1] - wheel[0]) / 2 / model::RotationRadius;
     tra = (wheel[1] + wheel[0]) / 2;
   }
   void clear() {
