@@ -22,7 +22,7 @@ ToF tof(I2C_PORT_NUM_TOF);
 
 /* Supporter */
 UserInterface ui;
-SpeedController sc;
+SpeedController sc(SpeedControllerModel, SpeedControllerGain);
 WallDetector wd;
 
 /* Conductor */

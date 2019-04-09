@@ -5,6 +5,7 @@
 
 #include "Accumulator.h"
 #include "Position.h"
+#include "ctrl/FeedbackController.h"
 #include <cmath>
 
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
@@ -12,38 +13,32 @@
 
 namespace ctrl {
 
+struct WheelParameter {
+public:
+  float tra;      //< tralation [mm]
+  float rot;      //< rotation [rad]
+  float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
+public:
+  WheelParameter() { clear(); }
+  void pole2wheel() {
+    wheel[0] = tra - MACHINE_ROTATION_RADIUS * rot;
+    wheel[1] = tra + MACHINE_ROTATION_RADIUS * rot;
+  }
+  void wheel2pole() {
+    rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
+    tra = (wheel[1] + wheel[0]) / 2;
+  }
+  void clear() {
+    tra = 0;
+    rot = 0;
+    wheel[0] = 0;
+    wheel[1] = 0;
+  }
+};
+
 class SpeedController {
 public:
   constexpr static const float Ts = 0.001f;
-  struct WheelParameter {
-  public:
-    float tra;      //< tralation [mm]
-    float rot;      //< rotation [rad]
-    float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
-  public:
-    WheelParameter() { clear(); }
-    void pole2wheel() {
-      wheel[0] = tra - MACHINE_ROTATION_RADIUS * rot;
-      wheel[1] = tra + MACHINE_ROTATION_RADIUS * rot;
-    }
-    void wheel2pole() {
-      rot = (wheel[1] - wheel[0]) / 2 / MACHINE_ROTATION_RADIUS;
-      tra = (wheel[1] + wheel[0]) / 2;
-    }
-    void clear() {
-      tra = 0;
-      rot = 0;
-      wheel[0] = 0;
-      wheel[1] = 0;
-    }
-  };
-  struct Model {
-    Polar K1;
-    Polar T1;
-    Polar Kp;
-    Polar Ki;
-    Polar Kd;
-  };
 
 public:
   Polar ref_v;
@@ -60,7 +55,9 @@ public:
   Polar pwm_value;
 
 public:
-  SpeedController() {
+  SpeedController(const struct ctrl::FeedbackController<ctrl::Polar>::Model &M,
+                  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G)
+      : M(M), G(G), fbc(M, G) {
     enabled = false;
     reset();
     xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
@@ -92,6 +89,9 @@ public:
   void fix_position(const Position fix) { this->fix += fix; }
 
 private:
+  const struct ctrl::FeedbackController<ctrl::Polar>::Model &M;
+  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G;
+  FeedbackController<Polar> fbc;
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
