@@ -297,7 +297,8 @@ void driveTask(void *arg) {
     case 14: /* テスト */
       // Machine::accel_test();
       // Machine::sysid();
-      slalom_test();
+      // slalom_test();
+      traj_test();
       // turn_test();
       break;
     case 15: /* ログの表示 */
