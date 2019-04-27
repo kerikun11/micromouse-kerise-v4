@@ -15,7 +15,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 3
+#define GOAL 1
 #if GOAL == 0
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \

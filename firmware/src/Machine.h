@@ -76,7 +76,7 @@ public:
     int preset = ui.waitForSelect(16);
     if (preset < 0)
       return;
-    float gains[4] = {0.5, 0.6, 0.7, 0.8};
+    float gains[4] = {0.9, 1.0, 1.1, 1.2};
     float vmaxs[4] = {600, 600, 720, 720};
     float accels[4] = {1200, 2400, 3600, 7200};
     fr.runParameter =
