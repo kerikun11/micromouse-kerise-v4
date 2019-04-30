@@ -107,10 +107,10 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
-        const float Kp = 120.0f;
-        const float Ki = 6.0f;
+        const float Kp = 240.0f;
+        const float Ki = 3.0f;
         const float satu = 120.0f; //< [mm/s]
-        const float end = 0.1f;
+        const float end = 0.05f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
