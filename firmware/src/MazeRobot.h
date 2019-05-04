@@ -254,7 +254,8 @@ private:
     }
     // 探索
     if (isForceSearch || !calcShortestDirs()) {
-      getMaze().resetLastWall(5);
+      getMaze().resetLastWall(5); //< クラッシュ後を想定して少し消す
+      forceGoingToGoal();
       mt.drive(-0.2f, -0.2f);
       delay(500);
       mt.free();
