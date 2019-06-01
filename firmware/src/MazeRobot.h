@@ -15,20 +15,20 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 4
 #if GOAL == 0
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
-  { Vector(8, 8) }
+  { Vector(15, 15) }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
   { Vector(4, 4), Vector(5, 5), Vector(5, 4), Vector(4, 5) }
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
-  { Vector(15, 15) }
+  { Vector(9, 9), Vector(10, 10), Vector(10, 9), Vector(9, 10) }
 #elif GOAL == 5
 #define MAZE_GOAL                                                              \
   {                                                                            \
@@ -113,7 +113,7 @@ private:
   int backupCounter = 0;
 
   void waitForEndAction() override {
-    // delay(400); // for debug
+    // delay(1200); // for debug
     while (sr.isRunning()) {
       delay(1);
     }

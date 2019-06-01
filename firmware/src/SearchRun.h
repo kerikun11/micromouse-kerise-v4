@@ -108,7 +108,7 @@ private:
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 240.0f;
-        const float Ki = 3.0f;
+        const float Ki = 12.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.1f;
         WheelParameter wp;
@@ -323,6 +323,8 @@ private:
         portTickType xLastWakeTime = xTaskGetTickCount();
         while (q.empty()) {
           vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+          if (v > 0)
+            v -= 3;
           xLastWakeTime = xTaskGetTickCount();
           Position cur = sc.position;
 #define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)

@@ -185,7 +185,7 @@ public:
       mr.set_goal({Vector(1, 0)});
       break;
     case 2:
-      mr.set_goal({Vector(8, 8)});
+      mr.set_goal({Vector(9, 9), Vector(10, 10), Vector(10, 9), Vector(9, 10)});
       break;
     case 3:
       mr.set_goal({Vector(3, 3)});
