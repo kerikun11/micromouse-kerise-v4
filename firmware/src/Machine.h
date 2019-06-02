@@ -56,6 +56,7 @@ public:
       bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
+    delay(3000);
     led = 9;
     mr.start();
     while (mr.isRunning()) {

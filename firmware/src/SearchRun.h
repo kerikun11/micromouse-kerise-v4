@@ -20,7 +20,7 @@
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
 
-#define SEARCH_RUN_VELOCITY 240.0f
+#define SEARCH_RUN_VELOCITY 270.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 class SearchRun : TaskBase {
@@ -108,7 +108,7 @@ private:
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 120.0f;
-        const float Ki = 3.0f;
+        const float Ki = 1.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.05f;
         WheelParameter wp;
