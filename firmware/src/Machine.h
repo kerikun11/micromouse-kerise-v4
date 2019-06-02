@@ -47,7 +47,7 @@ public:
     return true;
   }
   static void driveNormally() {
-    if (mr.isComplete() && !mr.calcShortestDirs()) {
+    if (mr.isComplete() && !mr.calcShortestDirs(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWall(4);
       return;

@@ -15,7 +15,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 4
+#define GOAL 0
 #if GOAL == 0
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
@@ -253,7 +253,7 @@ private:
       bz.play(Buzzer::COMPLETE);
     }
     // 探索
-    if (isForceSearch || !calcShortestDirs()) {
+    if (isForceSearch || !calcShortestDirs(true)) {
       getMaze().resetLastWall(5); //< クラッシュ後を想定して少し消す
       forceGoingToGoal();
       mt.drive(-0.2f, -0.2f);

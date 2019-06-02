@@ -41,8 +41,8 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    RunParameter(const float curve_gain = 1.0, const float max_speed = 600,
-                 const float accel = 2400, const float decel = 2400)
+    RunParameter(const float curve_gain = 0.9, const float max_speed = 600,
+                 const float accel = 1200, const float decel = 1200)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
           decel(decel) {}
     RunParameter(std::array<float, 4> params)
@@ -368,8 +368,8 @@ public:
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
     setPosition();
-    float straight = field::SegWidthFull / 2 - model::TailLength -
-                     field::WallThickness / 2;
+    float straight =
+        field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {
       printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
       switch (path[path_index]) {

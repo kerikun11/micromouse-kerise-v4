@@ -100,7 +100,7 @@ private:
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
     if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
-        (wd.distance.front[0] > 10 && wd.distance.front[1] > 10)) {
+        (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       bz.play(Buzzer::SHORT);
       tof.disable();
       delay(10);
@@ -108,7 +108,7 @@ private:
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 240.0f;
-        const float Ki = 12.0f;
+        const float Ki = 24.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.1f;
         WheelParameter wp;
