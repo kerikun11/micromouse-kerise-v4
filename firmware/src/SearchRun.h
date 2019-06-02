@@ -14,7 +14,7 @@
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
 #define SEARCH_WALL_CUT_ENABLED 0
-#define SEARCH_WALL_FRONT_ENABLED 0
+#define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
 
 #define SEARCH_RUN_TASK_PRIORITY 3
@@ -107,10 +107,10 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
-        const float Kp = 240.0f;
-        const float Ki = 24.0f;
+        const float Kp = 120.0f;
+        const float Ki = 1.0f;
         const float satu = 120.0f; //< [mm/s]
-        const float end = 0.1f;
+        const float end = 0.05f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
@@ -173,11 +173,13 @@ private:
     if (wd.wall[2] && tof.passedTimeMs() < 100) {
       float value =
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-      value = value * std::cos(sc.position.th);
+      value = value / std::cos(sc.position.th);
       if (value > 60 && value < 120) {
-        sc.position.x = 90 - value;
-        // sc.position.x = std::min(sc.position.x, 0.0f);
-        bz.play(Buzzer::SELECT);
+        const float fixed_x = 90 - value + 5;
+        if (fixed_x < 0) {
+          sc.position.x = fixed_x;
+          bz.play(Buzzer::SHORT);
+        }
       }
     }
 #endif
