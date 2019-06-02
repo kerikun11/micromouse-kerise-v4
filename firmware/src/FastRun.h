@@ -123,7 +123,7 @@ private:
     uint8_t led_flags = 0;
     // 90 [deg] の倍数
     if (wallAvoidFlag && (int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.0016f;
+      const float gain = 0.008f;
       if (wd.wall[0]) {
         sc.position +=
             Position(0, wd.distance.side[0] * gain, 0).rotate(origin.th);

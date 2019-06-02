@@ -108,7 +108,7 @@ private:
       WheelParameter wi;
       for (int i = 0; i < 3000; i++) {
         const float Kp = 120.0f;
-        const float Ki = 1.0f;
+        const float Ki = 3.0f;
         const float satu = 120.0f; //< [mm/s]
         const float end = 0.05f;
         WheelParameter wp;
@@ -176,9 +176,9 @@ private:
       value = value / std::cos(sc.position.th);
       if (value > 60 && value < 120) {
         const float fixed_x = 90 - value + 5;
-        if (fixed_x < 0) {
+        if (fixed_x < 5) {
           sc.position.x = fixed_x;
-          bz.play(Buzzer::SHORT);
+          // bz.play(Buzzer::SHORT);
         }
       }
     }
