@@ -47,7 +47,6 @@ public:
     return true;
   }
   static void driveNormally(const bool pi_enabled = false) {
-    tof.enable(); /*< EmergencyStopのタイミング次第でdisabledの場合がある */
     if (mr.isComplete() && !mr.calcShortestDirs(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWall(4);
@@ -66,6 +65,7 @@ public:
         fan.free();
         delay(1000);
         mt.emergencyRelease();
+        tof.enable(); /*< EmergencyStopのタイミング次第でdisabledの場合がある */
         if (!pi_enabled)
           break;
         mr.start(false, true); /*< Position Identification Run */
