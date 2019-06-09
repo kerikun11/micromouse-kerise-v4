@@ -82,7 +82,7 @@ public:
     float accels[4] = {1200, 2400, 3600, 7200};
     fr.runParameter =
         FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
-                              accels[preset & 3], accels[preset & 3] / 2);
+                              accels[preset & 3], accels[preset & 3]);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectParamManually() {

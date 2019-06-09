@@ -110,8 +110,10 @@ private:
   bool isForceSearch = false;
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
+  bool prevIsForceGoingToGoal = false;
   int backupCounter = 0;
 
+protected:
   void waitForEndAction() override {
     // delay(1200); // for debug
     while (sr.isRunning()) {
@@ -147,7 +149,7 @@ private:
     right = wd.wall[1];
     front = wd.wall[2];
     back = false;
-    // bz.play(Buzzer::SHORT);
+    bz.play(Buzzer::SHORT);
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override {
@@ -160,19 +162,23 @@ private:
     imu.calibration();
     enc.clearOffset();
   }
-  void calcNextDirsPreCallback() override {}
+  void calcNextDirsPreCallback() override {
+    prevIsForceGoingToGoal = isForceGoingToGoal;
+  }
   void calcNextDirsPostCallback(SearchAlgorithm::State prevState,
                                 SearchAlgorithm::State newState) override {
-    if (newState != prevState &&
-        newState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
+    if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
+      bz.play(Buzzer::CONFIRM);
+    }
+    if (newState == prevState)
+      return;
+    if (newState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
       bz.play(Buzzer::SUCCESSFUL);
     }
-    if (newState != prevState &&
-        newState == SearchAlgorithm::BACKING_TO_START) {
+    if (newState == SearchAlgorithm::BACKING_TO_START) {
       bz.play(Buzzer::COMPLETE);
     }
-    if (newState != prevState &&
-        prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
+    if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
       bz.play(Buzzer::COMPLETE);
     }
   }
@@ -246,7 +252,7 @@ private:
       }
       readyToStartWait();
       forceGoingToGoal();
-      if (!positionIdentifyRun()) {
+      if (!positionIdentifyRun(Dir::East)) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
@@ -254,7 +260,7 @@ private:
     }
     // 探索
     if (isForceSearch || !calcShortestDirs(true)) {
-      getMaze().resetLastWall(5); //< クラッシュ後を想定して少し消す
+      getMaze().resetLastWall(6); //< クラッシュ後を想定して少し消す
       forceGoingToGoal();
       mt.drive(-0.2f, -0.2f);
       delay(500);

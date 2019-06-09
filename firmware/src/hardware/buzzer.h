@@ -120,8 +120,8 @@ private:
         mute(100);
         break;
       case SHORT:
-        sound(NOTE_C, 7, 50);
-        mute(50);
+        sound(NOTE_C, 7, 25);
+        mute(25);
         break;
       case MAZE_BACKUP:
         sound(NOTE_G, 7, 100);
