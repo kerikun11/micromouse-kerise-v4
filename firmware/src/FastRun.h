@@ -42,20 +42,17 @@ public:
   };
   struct RunParameter {
     RunParameter(const float curve_gain = 0.9, const float max_speed = 600,
-                 const float accel = 2400, const float decel = 2400)
-        : curve_gain(curve_gain), max_speed(max_speed), accel(accel),
-          decel(decel) {}
+                 const float accel = 2400)
+        : curve_gain(curve_gain), max_speed(max_speed), accel(accel) {}
     RunParameter(std::array<float, 4> params)
-        : curve_gain(params[0]), max_speed(params[1]), accel(params[2]),
-          decel(params[3]) {}
+        : curve_gain(params[0]), max_speed(params[1]), accel(params[2]) {}
     float curve_gain;
     float max_speed;
-    float accel, decel;
+    float accel;
     const RunParameter &operator=(const RunParameter &obj) {
       curve_gain = obj.curve_gain;
       max_speed = obj.max_speed;
       accel = obj.accel;
-      decel = obj.decel;
       return *this;
     }
   };

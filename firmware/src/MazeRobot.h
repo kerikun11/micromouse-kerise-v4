@@ -279,7 +279,6 @@ protected:
       fr.runParameter.curve_gain *= 1.1f;
       fr.runParameter.max_speed *= 1.1f;
       fr.runParameter.accel *= 1.1f;
-      fr.runParameter.decel *= 1.1f;
       fr.V90Enabled = true;
     }
   }

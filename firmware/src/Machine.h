@@ -81,9 +81,8 @@ public:
     float gains[4] = {0.9, 1.0, 1.1, 1.2};
     float vmaxs[4] = {600, 600, 720, 720};
     float accels[4] = {1200, 2400, 3600, 7200};
-    fr.runParameter =
-        FastRun::RunParameter(gains[(preset >> 2) & 3], vmaxs[preset & 3],
-                              accels[preset & 3], accels[preset & 3]);
+    fr.runParameter = FastRun::RunParameter(
+        gains[(preset >> 2) & 3], vmaxs[preset & 3], accels[preset & 3]);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectParamManually() {
@@ -106,7 +105,7 @@ public:
     if (value < 0)
       return;
     const float accel = 600.0f * value;
-    fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel, accel);
+    fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectFanGain() {
