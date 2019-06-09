@@ -91,7 +91,7 @@ public:
       log_e("Can't open file!");
       return false;
     }
-    getMaze().reset();
+    maze.reset();
     backupCounter = 0;
     while (file.available()) {
       WallLog wl;
@@ -99,7 +99,7 @@ public:
       Vector v = Vector(wl.x, wl.y);
       Dir d = Dir(wl.d);
       bool b = wl.b;
-      getMaze().updateWall(v, d, b);
+      maze.updateWall(v, d, b);
       backupCounter++;
     }
     return true;
@@ -250,7 +250,6 @@ protected:
         bz.play(Buzzer::ERROR);
         waitForever();
       }
-      forceGoingToGoal();
       if (!positionIdentifyRun(Dir::East)) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -259,8 +258,7 @@ protected:
     }
     // 探索
     if (isForceSearch || !calcShortestDirs(true)) {
-      getMaze().resetLastWall(6); //< クラッシュ後を想定して少し消す
-      forceGoingToGoal();
+      maze.resetLastWall(6); //< クラッシュ後を想定して少し消す
       mt.drive(-0.2f, -0.2f);
       delay(500);
       mt.free();

@@ -44,7 +44,7 @@ void timeKeepTask(void *arg) {
   while (millis() < searching_time_ms)
     delay(1000);
   bz.play(Buzzer::LOW_BATTERY);
-  mr.forceBackToStart();
+  mr.setForceBackToStart();
   vTaskDelay(portMAX_DELAY);
 }
 

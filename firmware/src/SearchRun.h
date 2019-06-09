@@ -99,7 +99,7 @@ private:
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
+    if ((force && tof.getDistance() < 240) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       bz.play(Buzzer::SHORT);
       tof.disable();
