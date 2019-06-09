@@ -46,7 +46,7 @@ public:
       bz.play(Buzzer::ERROR);
     return true;
   }
-  static void driveNormally() {
+  static void driveNormally(const bool pi_enabled = false) {
     if (mr.isComplete() && !mr.calcShortestDirs(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWall(4);
@@ -56,7 +56,6 @@ public:
       bz.play(Buzzer::SUCCESSFUL);
     if (!ui.waitForCover())
       return;
-    delay(3000);
     led = 9;
     mr.start();
     while (mr.isRunning()) {
@@ -66,8 +65,9 @@ public:
         fan.free();
         delay(1000);
         mt.emergencyRelease();
-        // break; //< for debug
-        mr.start(false, true);
+        if (!pi_enabled)
+          break;
+        mr.start(false, true); /*< Position Identification Run */
       }
       delay(100);
     }

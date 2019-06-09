@@ -32,14 +32,10 @@ void printTask(void *arg) {
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    // enc.print();
     // ref.csv();
-    // tof.csv(); delay(100);
-    // imu.print();
+    // tof.csv();
     // wd.print();
-    // wd.printDiff();
     // wd.csv();
-    // std::cout << "0,98,-98," << imu.accel.y << std::endl;
   }
 }
 
@@ -285,6 +281,9 @@ void driveTask(void *arg) {
     case 9: /* プチコン */
       Machine::petitcon();
       break;
+    case 10: /* 自己位置同定 */
+      Machine::driveNormally(true);
+      break;
     case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
       break;
@@ -292,7 +291,6 @@ void driveTask(void *arg) {
       break;
     case 13: /* 迷路の表示 */
       mr.print();
-      // ESP.restart();
       break;
     case 14: /* テスト */
       // Machine::accel_test();

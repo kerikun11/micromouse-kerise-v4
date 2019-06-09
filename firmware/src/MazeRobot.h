@@ -250,7 +250,6 @@ protected:
         bz.play(Buzzer::ERROR);
         waitForever();
       }
-      readyToStartWait();
       forceGoingToGoal();
       if (!positionIdentifyRun(Dir::East)) {
         bz.play(Buzzer::ERROR);
