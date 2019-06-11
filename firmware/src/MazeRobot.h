@@ -250,7 +250,7 @@ protected:
         bz.play(Buzzer::ERROR);
         waitForever();
       }
-      if (!positionIdentifyRun(Dir::East)) {
+      if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
@@ -258,8 +258,8 @@ protected:
     }
     // 探索
     if (isForceSearch || !calcShortestDirs(true)) {
-      maze.resetLastWall(6); //< クラッシュ後を想定して少し消す
-      mt.drive(-0.2f, -0.2f);
+      maze.resetLastWall(6);  //< クラッシュ後を想定して少し消す
+      mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
       if (!searchRun()) {

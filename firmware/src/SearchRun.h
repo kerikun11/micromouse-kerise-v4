@@ -78,8 +78,7 @@ public:
   bool positionRecovery() {
     sc.enable();
     for (int i = 0; i < 4; ++i) {
-      if (wd.wall[2])
-        wall_attach(true);
+      wall_attach(true);
       turn(PI / 2);
     }
     while (1) {
@@ -99,22 +98,23 @@ private:
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if ((force && tof.getDistance() < 240) || tof.getDistance() < 90 ||
+    if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       bz.play(Buzzer::SHORT);
       tof.disable();
       delay(10);
       portTickType xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
-      for (int i = 0; i < 3000; i++) {
+      for (int i = 0; i < 2000; i++) {
         const float Kp = 120.0f;
         const float Ki = 1.0f;
-        const float satu = 120.0f; //< [mm/s]
+        const float satu = 180.0f; //< [mm/s]
         const float end = 0.05f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
           wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
+          wi.wheel[j] = std::max(std::min(wi.wheel[j], end), -end);
           wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j];
           wp.wheel[j] = std::max(std::min(wp.wheel[j], satu), -satu);
         }

@@ -46,24 +46,43 @@ public:
       bz.play(Buzzer::ERROR);
     return true;
   }
-  static void driveNormally(const bool pi_enabled = false) {
+  static void driveNormally() {
     if (mr.isComplete() && !mr.calcShortestDirs(true)) {
       bz.play(Buzzer::ERROR);
-      mr.resetLastWall(4);
+      mr.resetLastWall(3);
       return;
     }
     if (mr.isComplete())
-      bz.play(Buzzer::SUCCESSFUL);
+      bz.play(Buzzer::MAZE_RESTORE);
+    else
+      bz.play(Buzzer::MAZE_BACKUP);
+    int mode = ui.waitForSelect(4);
+    bool pi_enabled = true;
+    bool forceSearch = false;
+    bool posIdAtStart = false;
+    switch (mode) {
+    case 0:
+      break;
+    case 1:
+      pi_enabled = false;
+      break;
+    case 2:
+      posIdAtStart = true;
+      break;
+    case 3:
+      forceSearch = true;
+      break;
+    }
     if (!ui.waitForCover())
       return;
     led = 9;
-    mr.start();
+    mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
         mr.terminate();
         fan.free();
-        delay(1000);
+        delay(500);
         mt.emergencyRelease();
         tof.enable(); /*< EmergencyStopのタイミング次第でdisabledの場合がある */
         if (!pi_enabled)
@@ -344,6 +363,16 @@ public:
         break;
       }
       delay(100);
+    }
+  }
+  static void position_recovery(const bool pi_enabled = false) {
+    while (1) {
+      if (!ui.waitForCover(true))
+        return;
+      led = 0;
+      if (!sr.positionRecovery())
+        bz.play(Buzzer::ERROR);
+      led = 15;
     }
   }
 };

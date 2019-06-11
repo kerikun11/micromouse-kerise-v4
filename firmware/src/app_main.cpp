@@ -270,7 +270,7 @@ void driveTask(void *arg) {
       break;
     case 6: /* データ消去 */
       bz.play(Buzzer::MAZE_BACKUP);
-      mr.resetLastWall(10);
+      mr.resetLastWall(6);
       break;
     case 7: /* 宴会芸 */
       Machine::partyStunt();
@@ -281,20 +281,16 @@ void driveTask(void *arg) {
     case 9: /* プチコン */
       Machine::petitcon();
       break;
-    case 10: /* 自己位置同定 */
-      Machine::driveNormally(true);
-      break;
     case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
-      break;
-    case 12: /* マス直線 */
       break;
     case 13: /* 迷路の表示 */
       mr.print();
       break;
     case 14: /* テスト */
       // Machine::accel_test();
-      Machine::sysid();
+      // Machine::sysid();
+      Machine::position_recovery();
       // slalom_test();
       // traj_test();
       // turn_test();
