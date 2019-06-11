@@ -82,7 +82,7 @@ public:
         bz.play(Buzzer::EMERGENCY);
         mr.terminate();
         fan.free();
-        delay(500);
+        delay(1000);
         mt.emergencyRelease();
         tof.enable(); /*< EmergencyStopのタイミング次第でdisabledの場合がある */
         if (!pi_enabled)

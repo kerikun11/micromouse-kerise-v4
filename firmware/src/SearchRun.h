@@ -107,14 +107,15 @@ private:
       WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
         const float Kp = 120.0f;
-        const float Ki = 1.0f;
+        const float Ki = 0.5f;
+        const float int_satu = 1.0f;
         const float satu = 180.0f; //< [mm/s]
         const float end = 0.05f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
           wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
-          wi.wheel[j] = std::max(std::min(wi.wheel[j], end), -end);
+          wi.wheel[j] = std::max(std::min(wi.wheel[j], int_satu), -int_satu);
           wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j];
           wp.wheel[j] = std::max(std::min(wp.wheel[j], satu), -satu);
         }
@@ -173,7 +174,7 @@ private:
     if (wd.wall[2] && tof.passedTimeMs() < 100) {
       float value =
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-      value = value / std::cos(sc.position.th);
+      // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
       if (value > 60 && value < 120) {
         const float fixed_x = 90 - value + 5;
         if (fixed_x < 5) {

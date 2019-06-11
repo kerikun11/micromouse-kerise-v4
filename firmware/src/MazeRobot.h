@@ -268,7 +268,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      // fr.V90Enabled = false; //< for debug
+      fr.V90Enabled = false;
     }
     // 最短
     while (1) {
