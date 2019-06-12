@@ -255,6 +255,9 @@ protected:
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
+      fr.runParameter.curve_gain /= 1.05f;
+      fr.runParameter.max_speed /= 1.05f;
+      fr.runParameter.accel /= 1.1025f;
     }
     // 探索
     if (isForceSearch || !calcShortestDirs(true)) {
@@ -276,9 +279,11 @@ protected:
         waitForever();
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      fr.runParameter.curve_gain *= 1.1f;
-      fr.runParameter.max_speed *= 1.1f;
-      fr.runParameter.accel *= 1.1f;
+      if (fr.V90Enabled) {
+        fr.runParameter.curve_gain *= 1.1f;
+        fr.runParameter.max_speed *= 1.1f;
+        fr.runParameter.accel *= 1.21f;
+      }
       fr.V90Enabled = true;
     }
   }

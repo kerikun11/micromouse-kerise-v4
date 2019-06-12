@@ -41,11 +41,9 @@ public:
     FAST_TURN_RIGHT_180 = 'U',
   };
   struct RunParameter {
-    RunParameter(const float curve_gain = 0.9, const float max_speed = 600,
-                 const float accel = 2400)
+    RunParameter(const float curve_gain = 1.0, const float max_speed = 600,
+                 const float accel = 4800)
         : curve_gain(curve_gain), max_speed(max_speed), accel(accel) {}
-    RunParameter(std::array<float, 4> params)
-        : curve_gain(params[0]), max_speed(params[1]), accel(params[2]) {}
     float curve_gain;
     float max_speed;
     float accel;
@@ -54,6 +52,21 @@ public:
       max_speed = obj.max_speed;
       accel = obj.accel;
       return *this;
+    }
+    static float getCurveGains(const int value) {
+      float vals_p[] = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
+      float vals_n[] = {1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f};
+      return value > 0 ? vals_p[value] : vals_n[-value];
+    }
+    static float getMaxSpeeds(const int value) {
+      float vals_p[] = {600, 720, 840, 960, 1080, 1200};
+      float vals_n[] = {600, 480, 360, 240, 180, 120, 60};
+      return value > 0 ? vals_p[value] : vals_n[-value];
+    }
+    static float getAccels(const int value) {
+      float vals_p[] = {4800, 6000, 7200, 8400, 9600, 10800};
+      float vals_n[] = {4800, 3600, 2400, 1200, 600, 600};
+      return value > 0 ? vals_p[value] : vals_n[-value];
     }
   };
 #ifndef M_PI

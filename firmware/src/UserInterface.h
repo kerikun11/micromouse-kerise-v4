@@ -43,7 +43,7 @@ public:
    * @return int 0 ~ range-1: 選択された番号
    * @return int -1: キャンセルされた
    */
-  static int waitForSelect(int range = 16) {
+  static int waitForSelect(const int range = 16) {
     float prev_enc = enc.position(0) + enc.position(1);
     uint8_t value = 0;
     led = value;

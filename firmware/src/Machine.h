@@ -95,39 +95,91 @@ public:
     mr.terminate();
   }
   static void selectParamPreset() {
-    int preset = ui.waitForSelect(16);
-    if (preset < 0)
-      return;
-    float gains[4] = {0.9, 1.0, 1.1, 1.2};
-    float vmaxs[4] = {600, 600, 720, 720};
-    float accels[4] = {1200, 2400, 3600, 7200};
-    fr.runParameter = FastRun::RunParameter(
-        gains[(preset >> 2) & 3], vmaxs[preset & 3], accels[preset & 3]);
-    bz.play(Buzzer::SUCCESSFUL);
-  }
-  static void selectParamManually() {
     int value;
+
     for (int i = 0; i < 1; i++)
       bz.play(Buzzer::SHORT);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
-    const float curve_gain = 0.1f * value;
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.curve_gain = fr.runParameter.getCurveGains(value);
+
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
-    const float v_max = 300.0f * value;
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.max_speed = fr.runParameter.getMaxSpeeds(value);
+
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
-    const float accel = 600.0f * value;
-    fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel);
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.accel = fr.runParameter.getAccels(value);
+
     bz.play(Buzzer::SUCCESSFUL);
   }
+  static void selectParamManually() {
+    int value;
+
+    for (int i = 0; i < 1; i++)
+      bz.play(Buzzer::SHORT);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.curve_gain *= std::pow(1.1f, value);
+
+    for (int i = 0; i < 2; i++)
+      bz.play(Buzzer::SHORT);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.max_speed *= std::pow(1.1f, value);
+
+    for (int i = 0; i < 3; i++)
+      bz.play(Buzzer::SHORT);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    fr.runParameter.accel *= std::pow(1.21f, value);
+    bz.play(Buzzer::SUCCESSFUL);
+  }
+  // static void selectParamManually() {
+  //   int value;
+  //   for (int i = 0; i < 1; i++)
+  //     bz.play(Buzzer::SHORT);
+  //   value = ui.waitForSelect(16);
+  //   if (value < 0)
+  //     return;
+  //   const float curve_gain = 0.1f * value;
+  //   for (int i = 0; i < 2; i++)
+  //     bz.play(Buzzer::SHORT);
+  //   value = ui.waitForSelect(16);
+  //   if (value < 0)
+  //     return;
+  //   const float v_max = 300.0f * value;
+  //   for (int i = 0; i < 3; i++)
+  //     bz.play(Buzzer::SHORT);
+  //   value = ui.waitForSelect(16);
+  //   if (value < 0)
+  //     return;
+  //   const float accel = 600.0f * value;
+  //   fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel);
+  //   bz.play(Buzzer::SUCCESSFUL);
+  // }
   static void selectFanGain() {
     fan.drive(0.5f);
     delay(100);
