@@ -23,6 +23,8 @@
 #define SEARCH_RUN_VELOCITY 270.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
+#define SEARCH_RUN_CENTER_SHIFT 5.0f
+
 class SearchRun : TaskBase {
 public:
   enum ACTION {
@@ -360,7 +362,8 @@ private:
                    velocity, velocity);
         break;
       case START_INIT:
-        straight_x(field::SegWidthFull / 2, velocity, 0);
+        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
+                   0);
         wall_attach();
         turn(M_PI / 2);
         wall_attach();
@@ -376,7 +379,8 @@ private:
                    velocity);
         break;
       case GO_HALF:
-        straight_x(field::SegWidthFull / 2 * num, velocity, velocity);
+        straight_x(field::SegWidthFull / 2 * num - SEARCH_RUN_CENTER_SHIFT,
+                   velocity, velocity);
         break;
       case TURN_LEFT_90:
         for (int i = 0; i < num; i++) {
@@ -401,15 +405,18 @@ private:
         }
         break;
       case TURN_BACK:
-        straight_x(field::SegWidthFull / 2, velocity, 0);
+        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
+                   0);
         uturn();
-        straight_x(field::SegWidthFull / 2, velocity, velocity);
+        straight_x(field::SegWidthFull / 2 - SEARCH_RUN_CENTER_SHIFT, velocity,
+                   velocity);
         break;
       case RETURN:
         uturn();
         break;
       case STOP:
-        straight_x(field::SegWidthFull / 2, velocity, 0);
+        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
+                   0);
         turn(0);
         sc.disable();
         isRunningFlag = false;

@@ -167,16 +167,16 @@ protected:
   }
   void calcNextDirsPostCallback(SearchAlgorithm::State prevState,
                                 SearchAlgorithm::State newState) override {
-    if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
-      bz.play(Buzzer::CONFIRM);
-    }
+    // if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
+    //   bz.play(Buzzer::CONFIRM);
+    // }
     if (newState == prevState)
       return;
-    if (newState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
-      bz.play(Buzzer::SUCCESSFUL);
+    if (prevState == SearchAlgorithm::GOING_TO_GOAL) {
+      bz.play(Buzzer::CONFIRM);
     }
-    if (newState == SearchAlgorithm::BACKING_TO_START) {
-      bz.play(Buzzer::COMPLETE);
+    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
+      bz.play(Buzzer::SUCCESSFUL);
     }
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
       bz.play(Buzzer::COMPLETE);

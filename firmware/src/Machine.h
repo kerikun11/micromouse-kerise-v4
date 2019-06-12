@@ -76,6 +76,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
+    delay(3000);
     mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {
