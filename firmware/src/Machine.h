@@ -76,7 +76,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    delay(3000);
+    // delay(3000);
     mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {
@@ -398,14 +398,14 @@ public:
     delay(500);
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    sr.set_action(SearchRun::START_STEP);
-    sr.set_action(SearchRun::TURN_RIGHT_90);
-    sr.set_action(SearchRun::TURN_LEFT_90);
-    sr.set_action(SearchRun::TURN_LEFT_90);
-    sr.set_action(SearchRun::TURN_RIGHT_90);
-    sr.set_action(SearchRun::TURN_RIGHT_90);
-    sr.set_action(SearchRun::GO_STRAIGHT);
-    sr.set_action(SearchRun::STOP);
+    // sr.set_action(SearchRun::START_STEP);
+    // sr.set_action(SearchRun::TURN_RIGHT_90);
+    // sr.set_action(SearchRun::TURN_LEFT_90);
+    // sr.set_action(SearchRun::TURN_LEFT_90);
+    // sr.set_action(SearchRun::TURN_RIGHT_90);
+    // sr.set_action(SearchRun::TURN_RIGHT_90);
+    // sr.set_action(SearchRun::GO_STRAIGHT);
+    // sr.set_action(SearchRun::STOP);
     sr.enable();
     while (sr.isRunning()) {
       if (mt.isEmergency()) {

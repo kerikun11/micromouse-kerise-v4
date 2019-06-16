@@ -23,32 +23,11 @@
 #define SEARCH_RUN_VELOCITY 270.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
-#define SEARCH_RUN_CENTER_SHIFT 5.0f
+#include <RobotBase.h>
+using namespace MazeLib;
 
 class SearchRun : TaskBase {
 public:
-  enum ACTION {
-    START_STEP,
-    START_INIT,
-    GO_STRAIGHT,
-    GO_HALF,
-    TURN_LEFT_90,
-    TURN_RIGHT_90,
-    TURN_BACK,
-    RETURN,
-    STOP,
-  };
-  const char *action_string(enum ACTION action) {
-    static const char name[][32] = {
-        "start_step",    "start_init", "go_straight", "go_half", "turn_left_90",
-        "turn_right_90", "turn_back",  "return",      "stop",
-    };
-    return name[action];
-  }
-  struct Operation {
-    enum ACTION action;
-    int num;
-  };
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
 #endif
@@ -67,37 +46,106 @@ public:
       q.pop();
     }
   }
-  void set_action(enum ACTION action, int num = 1) {
-    struct Operation operation;
-    operation.action = action;
-    operation.num = num;
-    q.push(operation);
+  void set_action(enum RobotBase::Action action) {
+    q.push(action);
     isRunningFlag = true;
   }
   bool isRunning() { return isRunningFlag; }
-  //   int actions() const { return q.size(); }
-  //   void waitForEnd() const { xSemaphoreTake(wait, portMAX_DELAY); }
   bool positionRecovery() {
     sc.enable();
+#if 0
+    {
+      static constexpr float m_dddth = 4800 * M_PI;
+      static constexpr float m_ddth = 48 * M_PI;
+      static constexpr float m_dth = 2 * M_PI;
+      const float angle = 4 * M_PI;
+      const int table_size = 360;
+      std::array<float, table_size> table;
+      AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
+      portTickType xLastWakeTime = xTaskGetTickCount();
+      const float back_gain = 10.0f;
+      int index = 0;
+      for (float t = 0; t < ad.t_end(); t += 0.001f) {
+        float delta = sc.position.x * std::cos(-sc.position.th) -
+                      sc.position.y * std::sin(-sc.position.th);
+        sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        if (ad.x(t) > 2 * PI * index / table_size) {
+          index++;
+          table[index % table_size] = tof.getDistance();
+        }
+        std::array<float, table_size> table_diff;
+        for (int i = 0; i < table_size; ++i) {
+          const int width = 6;
+          table_diff[i] = table[(i + width / 2) % table_size] -
+                          table[(table_size + i - width / 2) % table_size];
+        }
+        /* 壁を探す */
+        for (int i = 0; i < table_size; ++i) {
+          if (table[i] < 30)
+            if (std::abs(table_diff[i]) < 5)
+              turn(2 * M_PI * i / table_size);
+        }
+      }
+    }
+#endif
+    // {
+    //   TrajectoryTracker tt(model::tt_gain);
+    //   AccelCurve ad(500000, 6000, 0, 180);
+    //   tt.reset(0);
+    //   float int_y = 0;
+    //   portTickType xLastWakeTime = xTaskGetTickCount();
+    //   for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    //     auto est_q = sc.position;
+    //     auto ref_q = Position(ad.x(t), 0);
+    //     auto ref_dq = Position(ad.v(t), 0);
+    //     auto ref_ddq = Position(ad.a(t), 0);
+    //     auto ref_dddq = Position(ad.j(t), 0);
+    //     auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq,
+    //     ref_ddq,
+    //                          ref_dddq);
+    //     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+    //     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    //     wall_avoid();
+    //     int_y += sc.position.y;
+    //     sc.position.th += int_y * 0.00000001f;
+    //     if (tof.getDistance() < 90)
+    //       break;
+    //   }
+    // }
+    // straight_x(45 + model::CenterShift, sc.ref_v.tra, 0);
+    // for (int j = 0; j < 2; ++j) {
+    //   for (int i = 0; i < 2; ++i) {
+    //     wall_attach(true);
+    //     if (std::abs(wd.distance.front[0]) < 1)
+    //       if (std::abs(wd.distance.front[1]) < 1)
+    //         break;
+    //     turn(M_PI / 2);
+    //   }
+    //   turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
+    // }
     for (int i = 0; i < 4; ++i) {
       wall_attach(true);
-      turn(PI / 2);
+      turn(M_PI / 2);
     }
     while (1) {
       if (!wd.wall[2])
         break;
       wall_attach();
-      turn(-PI / 2);
+      turn(-M_PI / 2);
     }
     sc.disable();
     return true;
   }
 
 private:
-  std::queue<struct Operation> q;
+  std::queue<enum RobotBase::Action> q;
   volatile bool isRunningFlag = false;
   Position offset;
 
+  static auto saturate(auto src, auto sat) {
+    return std::max(std::min(src, sat), -sat);
+  }
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
     if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
@@ -110,23 +158,23 @@ private:
       for (int i = 0; i < 2000; i++) {
         const float Kp = 120.0f;
         const float Ki = 0.5f;
-        const float int_satu = 1.0f;
-        const float satu = 180.0f; //< [mm/s]
+        const float sat_integral = 1.0f;
         const float end = 0.05f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
           wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
-          wi.wheel[j] = std::max(std::min(wi.wheel[j], int_satu), -int_satu);
+          wi.wheel[j] = saturate(wi.wheel[j], sat_integral);
           wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j];
-          wp.wheel[j] = std::max(std::min(wp.wheel[j], satu), -satu);
         }
         if (std::pow(wp.wheel[0], 2) + std::pow(wp.wheel[1], 2) +
                 std::pow(wi.wheel[0], 2) + std::pow(wi.wheel[1], 2) <
             end)
           break;
         wp.wheel2pole();
-        sc.set_target(wp.tra, wp.rot);
+        const float sat_tra = 180.0f;   //< [mm/s]
+        const float sat_rot = M_PI / 2; //< [rad/s]
+        sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
       sc.set_target(0, 0);
@@ -317,41 +365,35 @@ private:
   void task() override {
     const float velocity = SEARCH_RUN_VELOCITY;
     const float v_max = SEARCH_RUN_V_MAX;
-    // スタート
+    /* スタート */
     sc.enable();
     while (1) {
-      //** SearchActionがキューされるまで直進で待つ
       if (q.empty())
         isRunningFlag = false;
-      {
-        float v = velocity;
-        portTickType xLastWakeTime = xTaskGetTickCount();
-        while (q.empty()) {
-          vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-          if (v > 0)
-            v -= 3;
-          xLastWakeTime = xTaskGetTickCount();
-          Position cur = sc.position;
-#define SEARCH_ST_LOOK_AHEAD(v) (5 + 20 * v / 240)
-#define SEARCH_ST_FB_GAIN 40
-          float th = atan2f(-cur.y, SEARCH_ST_LOOK_AHEAD(velocity)) - cur.th;
-          sc.set_target(v, SEARCH_ST_FB_GAIN * th);
-        }
+      /* Actionがキューされるまで直進で待つ */
+      float v = sc.ref_v.tra;
+      portTickType xLastWakeTime = xTaskGetTickCount();
+      while (q.empty()) {
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        if (v > 0)
+          v -= 3;
+        xLastWakeTime = xTaskGetTickCount();
+        Position cur = sc.position;
+        float th = atan2f(-cur.y, (2 + 20 * velocity / 240)) - cur.th;
+        sc.set_target(v, 40 * th);
       }
-      struct Operation operation = q.front();
+      const auto action = q.front();
       q.pop();
+      int num = 1;
       while (!q.empty()) {
         auto next = q.front();
-        if (operation.action != next.action)
+        if (action != RobotBase::Action::ST_FULL || action != next)
           break;
-        operation.num += next.num;
+        num++;
         q.pop();
       }
-      enum ACTION action = operation.action;
-      int num = operation.num;
-      std::printf("Action: %d %s\n", num, action_string(action));
       switch (action) {
-      case START_STEP:
+      case RobotBase::Action::START_STEP:
         sc.position.clear();
         imu.angle = 0;
         offset =
@@ -361,9 +403,8 @@ private:
                        field::WallThickness / 2,
                    velocity, velocity);
         break;
-      case START_INIT:
-        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
-                   0);
+      case RobotBase::Action::START_INIT:
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0);
         wall_attach();
         turn(M_PI / 2);
         wall_attach();
@@ -372,51 +413,41 @@ private:
         mt.free();
         isRunningFlag = false;
         vTaskDelay(portMAX_DELAY);
-      case GO_STRAIGHT:
+      case RobotBase::Action::ST_FULL:
         if (wd.wall[2])
           stop();
         straight_x(field::SegWidthFull * num, num > 1 ? v_max : velocity,
                    velocity);
         break;
-      case GO_HALF:
-        straight_x(field::SegWidthFull / 2 * num - SEARCH_RUN_CENTER_SHIFT,
-                   velocity, velocity);
-        break;
-      case TURN_LEFT_90:
-        for (int i = 0; i < num; i++) {
-          if (wd.wall[0])
-            stop();
-          wall_calib(velocity);
-          slalom::Trajectory st(SS_SL90);
-          straight_x(st.get_straight_prev(), velocity, velocity);
-          trace(st, velocity);
-          straight_x(st.get_straight_post(), velocity, velocity);
-        }
-        break;
-      case TURN_RIGHT_90:
-        for (int i = 0; i < num; i++) {
-          if (wd.wall[1])
-            stop();
-          wall_calib(velocity);
-          slalom::Trajectory st(SS_SR90);
-          straight_x(st.get_straight_prev(), velocity, velocity);
-          trace(st, velocity);
-          straight_x(st.get_straight_post(), velocity, velocity);
-        }
-        break;
-      case TURN_BACK:
-        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
-                   0);
-        uturn();
-        straight_x(field::SegWidthFull / 2 - SEARCH_RUN_CENTER_SHIFT, velocity,
+      case RobotBase::Action::ST_HALF:
+        straight_x(field::SegWidthFull / 2 * num - model::CenterShift, velocity,
                    velocity);
         break;
-      case RETURN:
+      case RobotBase::Action::TURN_L: {
+        if (wd.wall[0])
+          stop();
+        wall_calib(velocity);
+        slalom::Trajectory st(SS_SL90);
+        straight_x(st.get_straight_prev(), velocity, velocity);
+        trace(st, velocity);
+        straight_x(st.get_straight_post(), velocity, velocity);
+        break;
+      }
+      case RobotBase::Action::TURN_R: {
+        if (wd.wall[1])
+          stop();
+        wall_calib(velocity);
+        slalom::Trajectory st(SS_SR90);
+        straight_x(st.get_straight_prev(), velocity, velocity);
+        trace(st, velocity);
+        straight_x(st.get_straight_post(), velocity, velocity);
+        break;
+      }
+      case RobotBase::Action::ROTATE_180:
         uturn();
         break;
-      case STOP:
-        straight_x(field::SegWidthFull / 2 + SEARCH_RUN_CENTER_SHIFT, velocity,
-                   0);
+      case RobotBase::Action::ST_HALF_STOP:
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0);
         turn(0);
         sc.disable();
         isRunningFlag = false;

@@ -5,7 +5,6 @@
 
 #include "AccelDesigner.h"
 #include "TaskBase.h"
-#include <algorithm> //< std::replace
 #include <cmath>
 #include <queue>
 #include <string>
@@ -18,28 +17,6 @@
 
 class FastRun : TaskBase {
 public:
-  enum FAST_ACTION : char {
-    FAST_GO_STRAIGHT = 's',
-    FAST_GO_HALF = 'x',
-    FAST_DIAGONAL_LEFT = 'w',
-    FAST_DIAGONAL_RIGHT = 'W',
-    FAST_TURN_LEFT_45 = 'z',
-    FAST_TURN_RIGHT_45 = 'c',
-    FAST_TURN_LEFT_45R = 'Z',
-    FAST_TURN_RIGHT_45R = 'C',
-    FAST_TURN_LEFT_90 = 'l',
-    FAST_TURN_RIGHT_90 = 'r',
-    FAST_TURN_LEFT_V90 = 'p',
-    FAST_TURN_RIGHT_V90 = 'P',
-    FAST_TURN_LEFT_S90 = 'q',
-    FAST_TURN_RIGHT_S90 = 'Q',
-    FAST_TURN_LEFT_135 = 'a',
-    FAST_TURN_RIGHT_135 = 'd',
-    FAST_TURN_LEFT_135R = 'A',
-    FAST_TURN_RIGHT_135R = 'D',
-    FAST_TURN_LEFT_180 = 'u',
-    FAST_TURN_RIGHT_180 = 'U',
-  };
   struct RunParameter {
     RunParameter(const float curve_gain = 1.0, const float max_speed = 600,
                  const float accel = 4800)
@@ -92,9 +69,8 @@ public:
   }
   bool isRunning() { return path != ""; }
   void set_path(std::string path) { this->path = path; }
-  void set_action(FAST_ACTION action, const int num = 1) {
-    for (int i = 0; i < num; i++)
-      path += (char)action;
+  void set_action(MazeLib::RobotBase::FastAction action) {
+    path += (char)action;
   }
   void printPosition(const char *name) const {
     printf("%s\tRel:(%06.1f, %06.1f, %06.3f)\t", name, getRelativePosition().x,
@@ -127,11 +103,11 @@ private:
   }
 
   void wallAvoid(bool diag, float remain) {
-    // 一定速より小さかったら行わない
+    /* 一定速より小さかったら行わない */
     if (sc.est_v.tra < 100.0f)
       return;
     uint8_t led_flags = 0;
-    // 90 [deg] の倍数
+    /* 90 [deg] の倍数 */
     if (wallAvoidFlag && (int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 2) {
       const float gain = 0.008f;
       if (wd.wall[0]) {
@@ -145,20 +121,20 @@ private:
         led_flags |= 1;
       }
     }
-    // 45 [deg] の倍数
-    // if (diag && wallAvoid45Flag && remain > SEGMENT_DIAGONAL_WIDTH / 3 &&
-    //     (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2) {
-    //   const float shift = 0.01f;
-    //   const float threashold = -50;
-    //   if (wd.distance.front[0] > threashold) {
-    //     sc.position += Position(0, shift, 0).rotate(origin.th);
-    //     led_flags |= 4;
-    //   }
-    //   if (wd.distance.front[1] > threashold) {
-    //     sc.position -= Position(0, shift, 0).rotate(origin.th);
-    //     led_flags |= 2;
-    //   }
-    // }
+    /* 45 [deg] の倍数 */
+    if (diag && wallAvoid45Flag && remain > field::SegWidthFull / 3 &&
+        (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2) {
+      const float shift = 0.02f;
+      const float threashold = -50;
+      if (wd.distance.front[0] > threashold) {
+        sc.position += Position(0, shift, 0).rotate(origin.th);
+        led_flags |= 4;
+      }
+      if (wd.distance.front[1] > threashold) {
+        sc.position -= Position(0, shift, 0).rotate(origin.th);
+        led_flags |= 2;
+      }
+    }
     led = led_flags;
   }
   void wallCut(bool diag) {
@@ -193,7 +169,7 @@ private:
         //     bz.play(Buzzer::SHORT);
         //   }
         // }
-        // 90 [deg] の倍数
+        /* 90 [deg] の倍数 */
         if ((int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 4) {
           if (prev_wall[i] && !wd.wall[i]) {
             Position prev = sc.position;
@@ -288,64 +264,6 @@ private:
     sc.set_target(velocity, 0);
     updateOrigin(sd.get_net_curve());
   }
-  std::string replace(std::string &src, std::string from, std::string to) {
-    if (from.empty())
-      return src;
-    auto pos = src.find(from);
-    auto toLen = to.length();
-    while ((pos = src.find(from, pos)) != std::string::npos) {
-      src.replace(pos, from.length(), to);
-      pos += toLen;
-    }
-    return src;
-  }
-  std::string pathConvertSearchToFast(std::string src, bool diag) {
-    // スタートとゴールの半区画分を追加
-    if (src[0] != 'x' && src[0] != 'c' && src[0] != 'z') {
-      src = "x" + src + "x";
-    }
-    // 最短走行用にパターンを置換
-    printf("Input Path: %s\n", src.c_str());
-    if (diag) {
-      replace(src, "s", "xx");
-      replace(src, "l", "LL");
-      replace(src, "r", "RR");
-
-      replace(src, "RLLLLR", "RLpLR");
-      replace(src, "LRRRRL", "LRPRL");
-
-      replace(src, "xLLR", "zLR");
-      replace(src, "xRRL", "cRL");
-      replace(src, "LRRx", "LRC");
-      replace(src, "RLLx", "RLZ");
-
-      replace(src, "xLLLLR", "aLR");
-      replace(src, "xRRRRL", "dRL");
-      replace(src, "RLLLLx", "RLA");
-      replace(src, "LRRRRx", "LRD");
-
-      replace(src, "xLLLLx", "u");
-      replace(src, "xRRRRx", "U");
-
-      replace(src, "RLLR", "RLwLR");
-      replace(src, "LRRL", "LRWRL");
-
-      replace(src, "RL", "");
-      replace(src, "LR", "");
-      replace(src, "xRRx", "r");
-      replace(src, "xLLx", "l");
-    } else {
-      replace(src, "s", "xx");
-
-      replace(src, "xllx", "u");
-      replace(src, "xrrx", "U");
-
-      replace(src, "l", "q");
-      replace(src, "r", "Q");
-    }
-    printf("Running Path: %s\n", src.c_str());
-    return src;
-  }
   void SlalomProcess(const slalom::Shape &shape, float &straight,
                      const bool reverse, const RunParameter &rp) {
     slalom::Trajectory st(shape);
@@ -362,7 +280,7 @@ private:
 public:
   void task() override {
     // 最短走行用にパターンを置換
-    path = pathConvertSearchToFast(path, V90Enabled);
+    path = MazeLib::RobotBase::pathConvertSearchToFast(path, V90Enabled);
     const float v_max = runParameter.max_speed;
     // キャリブレーション
     delay(500);
@@ -372,7 +290,6 @@ public:
     mt.drive(-0.2f, -0.2f);
     delay(200);
     mt.free();
-    imu.angle = 0;
     // 走行開始
     fan.drive(fanDuty);
     delay(500);  //< ファンの回転数が一定なるのを待つ
@@ -383,62 +300,61 @@ public:
     for (int path_index = 0; path_index < path.length(); path_index++) {
       printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
       switch (path[path_index]) {
-      case FAST_TURN_LEFT_45:
+      case MazeLib::RobotBase::FastAction::FL45:
         SlalomProcess(SS_FL45, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_45:
+      case MazeLib::RobotBase::FastAction::FR45:
         SlalomProcess(SS_FR45, straight, false, runParameter);
         break;
-      case FAST_TURN_LEFT_45R:
+      case MazeLib::RobotBase::FastAction::FL45P:
         SlalomProcess(SS_FL45, straight, true, runParameter);
         break;
-      case FAST_TURN_RIGHT_45R:
+      case MazeLib::RobotBase::FastAction::FR45P:
         SlalomProcess(SS_FR45, straight, true, runParameter);
         break;
-      case FAST_TURN_LEFT_V90:
+      case MazeLib::RobotBase::FastAction::FLV90:
         SlalomProcess(SS_FLV90, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_V90:
+      case MazeLib::RobotBase::FastAction::FRV90:
         SlalomProcess(SS_FRV90, straight, false, runParameter);
         break;
-      case FAST_TURN_LEFT_S90:
+      case MazeLib::RobotBase::FastAction::FLS90:
         SlalomProcess(SS_FLS90, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_S90:
+      case MazeLib::RobotBase::FastAction::FRS90:
         SlalomProcess(SS_FRS90, straight, false, runParameter);
         break;
-      case FAST_TURN_LEFT_90:
+      case MazeLib::RobotBase::FastAction::FL90:
         SlalomProcess(SS_FL90, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_90:
+      case MazeLib::RobotBase::FastAction::FR90:
         SlalomProcess(SS_FR90, straight, false, runParameter);
         break;
-      case FAST_TURN_LEFT_135:
+      case MazeLib::RobotBase::FastAction::FL135:
         SlalomProcess(SS_FL135, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_135:
+      case MazeLib::RobotBase::FastAction::FR135:
         SlalomProcess(SS_FR135, straight, false, runParameter);
         break;
-      case FAST_TURN_LEFT_135R:
+      case MazeLib::RobotBase::FastAction::FL135P:
         SlalomProcess(SS_FL135, straight, true, runParameter);
         break;
-      case FAST_TURN_RIGHT_135R:
+      case MazeLib::RobotBase::FastAction::FR135P:
         SlalomProcess(SS_FR135, straight, true, runParameter);
         break;
-      case FAST_TURN_LEFT_180:
+      case MazeLib::RobotBase::FastAction::FL180:
         SlalomProcess(SS_FL180, straight, false, runParameter);
         break;
-      case FAST_TURN_RIGHT_180:
+      case MazeLib::RobotBase::FastAction::FR180:
         SlalomProcess(SS_FR180, straight, false, runParameter);
         break;
-      case FAST_GO_STRAIGHT:
+      case MazeLib::RobotBase::FastAction::ST_ALONG_FULL:
         straight += field::SegWidthFull;
         break;
-      case FAST_GO_HALF:
+      case MazeLib::RobotBase::FastAction::ST_ALONG_HALF:
         straight += field::SegWidthFull / 2;
         break;
-      case FAST_DIAGONAL_LEFT:
-      case FAST_DIAGONAL_RIGHT:
+      case MazeLib::RobotBase::FastAction::ST_DIAG:
         straight += field::SegWidthDiag / 2;
         break;
       }

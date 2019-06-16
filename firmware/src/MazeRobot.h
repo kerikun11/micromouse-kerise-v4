@@ -15,8 +15,10 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 0
 #if GOAL == 0
+#define MAZE_GOAL                                                              \
+  { Vector(7, 8) }
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -121,28 +123,7 @@ protected:
     }
   }
   void queueAction(const Action action) override {
-    switch (action) {
-    case RobotBase::START_STEP:
-      return sr.set_action(SearchRun::START_STEP);
-    case RobotBase::START_INIT:
-      return sr.set_action(SearchRun::START_INIT);
-    case RobotBase::STOP_HALF:
-      return sr.set_action(SearchRun::STOP);
-    case RobotBase::TURN_LEFT_90:
-      return sr.set_action(SearchRun::TURN_LEFT_90);
-    case RobotBase::TURN_RIGHT_90:
-      return sr.set_action(SearchRun::TURN_RIGHT_90);
-    case RobotBase::ROTATE_LEFT_90:
-      return;
-    case RobotBase::ROTATE_RIGHT_90:
-      return;
-    case RobotBase::ROTATE_180:
-      return sr.set_action(SearchRun::RETURN);
-    case RobotBase::STRAIGHT_FULL:
-      return sr.set_action(SearchRun::GO_STRAIGHT);
-    case RobotBase::STRAIGHT_HALF:
-      return sr.set_action(SearchRun::GO_HALF);
-    }
+    return sr.set_action(action);
   }
   void findWall(bool &left, bool &front, bool &right, bool &back) override {
     left = wd.wall[0];
@@ -198,13 +179,13 @@ protected:
       v = v.next(nextDir);
       switch (Dir(nextDir - d)) {
       case Dir::Front:
-        fr.set_action(FastRun::FAST_GO_STRAIGHT);
+        fr.set_action(MazeLib::RobotBase::FastAction::ST_ALONG_FULL);
         break;
       case Dir::Left:
-        fr.set_action(FastRun::FAST_TURN_LEFT_90);
+        fr.set_action(MazeLib::RobotBase::FastAction::FLS90);
         break;
       case Dir::Right:
-        fr.set_action(FastRun::FAST_TURN_RIGHT_90);
+        fr.set_action(MazeLib::RobotBase::FastAction::FRS90);
         break;
       default:
         return false; //< あってはならない
@@ -271,7 +252,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      fr.V90Enabled = false;
+      // fr.V90Enabled = false;
     }
     // 最短
     while (1) {
