@@ -22,8 +22,8 @@ namespace model {
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.67f;
-static constexpr float TailLength = 16.4f;
 static constexpr float CenterShift = 5.0f;
+static constexpr float TailLength = 16.4f + CenterShift;
 
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model

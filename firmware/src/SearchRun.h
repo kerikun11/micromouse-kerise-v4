@@ -181,7 +181,7 @@ private:
       sc.position.x = 0;  //< 直進方向の補正
       sc.position.th = 0; //< 回転方向の補正
       tof.enable();
-      bz.play(Buzzer::SHORT);
+      // bz.play(Buzzer::SHORT);
     }
 #endif
   }
@@ -350,7 +350,6 @@ private:
     }
   }
   void stop() {
-    // bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::ERROR);
     float v = sc.est_v.tra;
     while (v > 0) {
@@ -360,6 +359,16 @@ private:
     }
     sc.disable();
     mt.emergencyStop();
+    vTaskDelay(portMAX_DELAY);
+  }
+  void start_init() {
+    wall_attach();
+    turn(M_PI / 2);
+    wall_attach();
+    turn(M_PI / 2);
+    put_back();
+    mt.free();
+    isRunningFlag = false;
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
@@ -405,14 +414,8 @@ private:
         break;
       case RobotBase::Action::START_INIT:
         straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0);
-        wall_attach();
-        turn(M_PI / 2);
-        wall_attach();
-        turn(M_PI / 2);
-        put_back();
-        mt.free();
-        isRunningFlag = false;
-        vTaskDelay(portMAX_DELAY);
+        start_init();
+        break;
       case RobotBase::Action::ST_FULL:
         if (wd.wall[2])
           stop();

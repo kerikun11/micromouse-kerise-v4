@@ -299,65 +299,9 @@ public:
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {
       printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
-      switch (path[path_index]) {
-      case MazeLib::RobotBase::FastAction::FL45:
-        SlalomProcess(SS_FL45, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR45:
-        SlalomProcess(SS_FR45, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FL45P:
-        SlalomProcess(SS_FL45, straight, true, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR45P:
-        SlalomProcess(SS_FR45, straight, true, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FLV90:
-        SlalomProcess(SS_FLV90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FRV90:
-        SlalomProcess(SS_FRV90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FLS90:
-        SlalomProcess(SS_FLS90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FRS90:
-        SlalomProcess(SS_FRS90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FL90:
-        SlalomProcess(SS_FL90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR90:
-        SlalomProcess(SS_FR90, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FL135:
-        SlalomProcess(SS_FL135, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR135:
-        SlalomProcess(SS_FR135, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FL135P:
-        SlalomProcess(SS_FL135, straight, true, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR135P:
-        SlalomProcess(SS_FR135, straight, true, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FL180:
-        SlalomProcess(SS_FL180, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::FR180:
-        SlalomProcess(SS_FR180, straight, false, runParameter);
-        break;
-      case MazeLib::RobotBase::FastAction::ST_ALONG_FULL:
-        straight += field::SegWidthFull;
-        break;
-      case MazeLib::RobotBase::FastAction::ST_ALONG_HALF:
-        straight += field::SegWidthFull / 2;
-        break;
-      case MazeLib::RobotBase::FastAction::ST_DIAG:
-        straight += field::SegWidthDiag / 2;
-        break;
-      }
+      const auto action =
+          static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+      fast_run_switch(action, straight, runParameter);
     }
     if (straight > 1.0f) {
       straight_x(straight, v_max, 0);
@@ -370,5 +314,67 @@ public:
     bz.play(Buzzer::COMPLETE);
     path = "";
     vTaskDelay(portMAX_DELAY);
+  }
+  void fast_run_switch(const MazeLib::RobotBase::FastAction action,
+                       float &straight, const RunParameter runParameter) {
+    switch (action) {
+    case MazeLib::RobotBase::FastAction::FL45:
+      SlalomProcess(SS_FL45, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR45:
+      SlalomProcess(SS_FR45, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FL45P:
+      SlalomProcess(SS_FL45, straight, true, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR45P:
+      SlalomProcess(SS_FR45, straight, true, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FLV90:
+      SlalomProcess(SS_FLV90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FRV90:
+      SlalomProcess(SS_FRV90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FLS90:
+      SlalomProcess(SS_FLS90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FRS90:
+      SlalomProcess(SS_FRS90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FL90:
+      SlalomProcess(SS_FL90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR90:
+      SlalomProcess(SS_FR90, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FL135:
+      SlalomProcess(SS_FL135, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR135:
+      SlalomProcess(SS_FR135, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FL135P:
+      SlalomProcess(SS_FL135, straight, true, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR135P:
+      SlalomProcess(SS_FR135, straight, true, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FL180:
+      SlalomProcess(SS_FL180, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::FR180:
+      SlalomProcess(SS_FR180, straight, false, runParameter);
+      break;
+    case MazeLib::RobotBase::FastAction::ST_ALONG_FULL:
+      straight += field::SegWidthFull;
+      break;
+    case MazeLib::RobotBase::FastAction::ST_ALONG_HALF:
+      straight += field::SegWidthFull / 2;
+      break;
+    case MazeLib::RobotBase::FastAction::ST_DIAG:
+      straight += field::SegWidthDiag / 2;
+      break;
+    }
   }
 };
