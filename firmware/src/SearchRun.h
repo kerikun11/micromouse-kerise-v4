@@ -9,6 +9,7 @@
 #include "TaskBase.h"
 #include <AccelDesigner.h>
 #include <cmath>
+#include <memory>
 #include <queue>
 #include <vector>
 
@@ -53,14 +54,16 @@ public:
   bool isRunning() { return isRunningFlag; }
   bool positionRecovery() {
     sc.enable();
-#if 0
+#if 1
     {
       static constexpr float m_dddth = 4800 * M_PI;
       static constexpr float m_ddth = 48 * M_PI;
       static constexpr float m_dth = 2 * M_PI;
-      const float angle = 4 * M_PI;
-      const int table_size = 360;
+      const float angle = 2 * M_PI;
+      constexpr int table_size = 180;
       std::array<float, table_size> table;
+      for (auto &t : table)
+        t = 255;
       AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
       portTickType xLastWakeTime = xTaskGetTickCount();
       const float back_gain = 10.0f;
@@ -74,60 +77,97 @@ public:
           index++;
           table[index % table_size] = tof.getDistance();
         }
-        std::array<float, table_size> table_diff;
-        for (int i = 0; i < table_size; ++i) {
-          const int width = 6;
-          table_diff[i] = table[(i + width / 2) % table_size] -
-                          table[(table_size + i - width / 2) % table_size];
-        }
-        /* 壁を探す */
-        for (int i = 0; i < table_size; ++i) {
-          if (table[i] < 30)
-            if (std::abs(table_diff[i]) < 5)
-              turn(2 * M_PI * i / table_size);
+      }
+      float min_dist = 999;
+      int min_index = 0;
+      for (int i = 0; i < table_size; ++i) {
+        if (min_dist > table[i]) {
+          min_dist = table[i];
+          min_index = i;
         }
       }
+      sc.position.clear();
+      turn(2 * M_PI * min_index / table_size);
+      sc.position.clear();
+
+      // float min_dist = 999;
+      // int min_index = 0;
+      // int width = table_size / 4;
+      // for (int i = 0; i < table_size; ++i) {
+      //   float sum = 0;
+      //   for (int j = -width / 2; j < width / 2; ++j)
+      //     sum += table[(table_size + i + j) % table_size];
+      //   const float mean = sum / width;
+      //   float var = 0;
+      //   for (int j = -width / 2; j < width / 2; ++j)
+      //     var += std::pow(table[(table_size + i + j) % table_size] - mean,
+      //     2);
+      //   var /= table_size;
+      //   if (min_dist > var) {
+      //     min_dist = var;
+      //     min_index = i;
+      //   }
+      // }
+      // sc.position.clear();
+      // turn(2 * M_PI * min_index / table_size);
+      // sc.position.clear();
+
+      // float min_dist = 999;
+      // int min_index = 0;
+      // for (int i = 0; i < table_size; ++i) {
+      //   if (min_dist > table[i]) {
+      //     min_dist = table[i];
+      //     min_index = i;
+      //   }
+      // }
+      // sc.position.clear();
+      // turn(2 * M_PI * min_index / table_size);
+      // sc.position.clear();
+      // const float rho_max = 180;
+      // float map[table_size][table_size] = {0};
+      //   const auto p_map = std::make_unique<
+      //       std::array<std::array<int16_t, table_size>, table_size>>();
+      //   auto &map = *p_map;
+      //   for (auto &a : map)
+      //     for (auto &b : a)
+      //       b = 0;
+      //   for (int i = 0; i < table_size; ++i) {
+      //     const auto x = table[i] * std::cos(2 * M_PI * i / table_size);
+      //     const auto y = table[i] * std::sin(2 * M_PI * i / table_size);
+      //     for (int j = 0; j < table_size; ++j) {
+      //       const float th = 2 * M_PI * j / table_size;
+      //       const float rho = x * std::cos(th) + y * std::sin(th);
+      //       int rho_index = rho / rho_max * table_size;
+      //       rho_index = std::min(rho_index, table_size - 1);
+      //       if (rho_index >= 0)
+      //         map[j][rho_index]++;
+      //     }
+      //   }
+      //   int max_th = 0;
+      //   int max_rho = 0;
+      //   int max_map = 0;
+      //   for (int i = 0; i < table_size; ++i)
+      //     for (int j = 0; j < table_size; ++j)
+      //       if (max_map < map[i][j]) {
+      //         max_map = map[i][j];
+      //         max_th = i;
+      //         max_rho = j;
+      //       }
+      //   sc.position.clear();
+      //   turn(2 * M_PI * max_th / table_size);
+      //   sc.position.clear();
     }
+    wall_attach(true);
+    turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
+    wall_attach(true);
+    delay(50);
 #endif
-    // {
-    //   TrajectoryTracker tt(model::tt_gain);
-    //   AccelCurve ad(500000, 6000, 0, 180);
-    //   tt.reset(0);
-    //   float int_y = 0;
-    //   portTickType xLastWakeTime = xTaskGetTickCount();
-    //   for (float t = 0; t < ad.t_end(); t += 0.001f) {
-    //     auto est_q = sc.position;
-    //     auto ref_q = Position(ad.x(t), 0);
-    //     auto ref_dq = Position(ad.v(t), 0);
-    //     auto ref_ddq = Position(ad.a(t), 0);
-    //     auto ref_dddq = Position(ad.j(t), 0);
-    //     auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq,
-    //     ref_ddq,
-    //                          ref_dddq);
-    //     sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-    //     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    //     wall_avoid();
-    //     int_y += sc.position.y;
-    //     sc.position.th += int_y * 0.00000001f;
-    //     if (tof.getDistance() < 90)
-    //       break;
-    //   }
-    // }
-    // straight_x(45 + model::CenterShift, sc.ref_v.tra, 0);
-    // for (int j = 0; j < 2; ++j) {
-    //   for (int i = 0; i < 2; ++i) {
-    //     wall_attach(true);
-    //     if (std::abs(wd.distance.front[0]) < 1)
-    //       if (std::abs(wd.distance.front[1]) < 1)
-    //         break;
-    //     turn(M_PI / 2);
-    //   }
-    //   turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
-    // }
+#if 0
     for (int i = 0; i < 4; ++i) {
       wall_attach(true);
       turn(M_PI / 2);
     }
+#endif
     while (1) {
       if (!wd.wall[2])
         break;
@@ -150,6 +190,7 @@ private:
 #if SEARCH_WALL_ATTACH_ENABLED
     if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
+      led = 6;
       bz.play(Buzzer::SHORT);
       tof.disable();
       delay(10);
@@ -182,6 +223,7 @@ private:
       sc.position.th = 0; //< 回転方向の補正
       tof.enable();
       // bz.play(Buzzer::SHORT);
+      led = 0;
     }
 #endif
   }

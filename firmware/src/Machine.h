@@ -57,6 +57,8 @@ public:
     else
       bz.play(Buzzer::MAZE_BACKUP);
     int mode = ui.waitForSelect(4);
+    if (mode < 0)
+      return;
     bool pi_enabled = true;
     bool forceSearch = false;
     bool posIdAtStart = false;
@@ -423,6 +425,7 @@ public:
       if (!ui.waitForCover(true))
         return;
       led = 0;
+      delay(1000);
       if (!sr.positionRecovery())
         bz.play(Buzzer::ERROR);
       led = 15;
