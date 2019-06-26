@@ -21,7 +21,7 @@ rawdata = dlmread([pathname filename]);
 %% Triming and Preprocess
 rawdata = rawdata';
 % rawdata = rawdata(:, 1:600);
-rawdata = rawdata(:, 1:1800);
+% rawdata = rawdata(:, 1:1200);
 
 %% extract data
 dt = 1e-3;
@@ -70,8 +70,8 @@ ylabel('Battery Voltage [V]');
 
 %% filter design
 diff_enc = (diff(enc(1, :))+diff(enc(2, :))) / dt / 2;
-machine_rotation_radius = 15;
-omega_enc = (diff(enc(2, :))-diff(enc(1, :))) / dt / 2 / (machine_rotation_radius*2);
+machine_rotation_radius = 17;
+omega_enc = (diff(enc(2, :))-diff(enc(1, :))) / dt / (machine_rotation_radius*2);
 
 % IIR Complementary Filtered
 alpha = 0.75;
@@ -82,8 +82,8 @@ omega_filtered(1) = gyro(1);
 for i = 2 : length(diff_enc)
     v_filtered(i) = alpha * (v_filtered(i-1) + accel(i) * dt) + (1-alpha) * diff_enc(i);
 end
-k_enc  = 0.25;
-k_gyro = 0.25;
+k_enc  = 1;
+k_gyro = 0;
 for i = 2 : length(gyro)-1
 %     omega_filtered(i) = alpha * (omega_filtered(i-1) + ang_accel(i) * dt) + (1-alpha) * gyro(i);
     omega_filtered(i) = (omega_filtered(i-1) + ang_accel(i) * dt)*(1-k_enc-k_gyro) + k_gyro * gyro(i) + k_enc*omega_enc(i);

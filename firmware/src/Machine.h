@@ -42,8 +42,8 @@ public:
     if (!wd.begin())
       bz.play(Buzzer::ERROR);
 
-    if (!ec.begin())
-      bz.play(Buzzer::ERROR);
+    // if (!ec.begin())
+    //   bz.play(Buzzer::ERROR);
     return true;
   }
   static void driveNormally() {

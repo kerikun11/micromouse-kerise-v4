@@ -25,6 +25,7 @@ static constexpr float WheelDiameter = 12.67f;
 static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 
+#if 1
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -35,8 +36,21 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kp = ctrl::Polar(0.001f, 0.04f), .Ki = ctrl::Polar(0.2f, 6.0f),
   .Kd = ctrl::Polar(0, 0),
 };
-
 /* Trajectory Tracking Gain */
 static constexpr float tt_gain = 10.0f;
+#else
+/* Model */
+static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
+    SpeedControllerModel = {
+  .K1 = ctrl::Polar(5906, 84.01f), .T1 = ctrl::Polar(0.3235f, 0.1798),
+};
+static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
+    SpeedControllerGain = {
+  .Kp = ctrl::Polar(0.001f, 0.04f), .Ki = ctrl::Polar(0.2f, 6.0f),
+  .Kd = ctrl::Polar(0, 0),
+};
+/* Trajectory Tracking Gain */
+static constexpr float tt_gain = 5.0f;
+#endif
 
 }; // namespace model

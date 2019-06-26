@@ -42,6 +42,7 @@ private:
       case 'f':
         bz.play(Buzzer::CANCEL);
         mt.free();
+        fan.drive(0);
         break;
       case '0':
       case '1':
@@ -53,9 +54,9 @@ private:
       case '7':
       case '8':
       case '9': {
-        // float duty = (c - '0');
-        // duty /= 10.0f;
-        // // mt.drive(duty, 0);
+        float duty = (c - '0');
+        duty /= 10.0f;
+        mt.drive(duty, duty);
         // fan.drive(duty);
       } break;
       }

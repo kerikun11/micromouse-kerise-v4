@@ -289,8 +289,8 @@ void driveTask(void *arg) {
       break;
     case 14: /* テスト */
       // Machine::accel_test();
-      // Machine::sysid();
-      Machine::position_recovery();
+      Machine::sysid();
+      // Machine::position_recovery();
       // slalom_test();
       // traj_test();
       // turn_test();
