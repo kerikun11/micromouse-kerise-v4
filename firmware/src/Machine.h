@@ -191,8 +191,10 @@ public:
       return;
     fr.fanDuty = 0.1f * value;
     fan.drive(fr.fanDuty);
+    // mt.drive(fr.fanDuty, fr.fanDuty);
     ui.waitForSelect(1);
     fan.drive(0);
+    mt.drive(0, 0);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void partyStunt() {
