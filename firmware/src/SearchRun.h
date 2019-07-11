@@ -21,7 +21,7 @@
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
 
-#define SEARCH_RUN_VELOCITY 270.0f
+#define SEARCH_RUN_VELOCITY 240.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 #include <RobotBase.h>

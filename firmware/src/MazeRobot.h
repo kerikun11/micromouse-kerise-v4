@@ -18,7 +18,7 @@ using namespace MazeLib;
 #define GOAL 0
 #if GOAL == 0
 #define MAZE_GOAL                                                              \
-  { Vector(6, 0), Vector(7, 0), Vector(6, 1), Vector(7, 1) }
+  { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }
 #elif GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -30,7 +30,7 @@ using namespace MazeLib;
   { Vector(4, 4), Vector(5, 5), Vector(5, 4), Vector(4, 5) }
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
-  { Vector(9, 9), Vector(10, 10), Vector(10, 9), Vector(9, 10) }
+  { Vector(7, 0), Vector(8, 0), Vector(7, 1), Vector(8, 1) }
 #elif GOAL == 5
 #define MAZE_GOAL                                                              \
   {                                                                            \
@@ -252,7 +252,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      // fr.V90Enabled = false;
+      fr.V90Enabled = false;
     }
     // 最短
     while (1) {
