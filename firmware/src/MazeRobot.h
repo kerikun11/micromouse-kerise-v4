@@ -15,16 +15,13 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 0
-#if GOAL == 0
-#define MAZE_GOAL                                                              \
-  { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }
-#elif GOAL == 1
+#define GOAL 2
+#if GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
-  { Vector(15, 15) }
+  { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
   { Vector(4, 4), Vector(5, 5), Vector(5, 4), Vector(4, 5) }
@@ -131,6 +128,11 @@ protected:
     front = wd.wall[2];
     back = false;
     bz.play(Buzzer::SHORT);
+#if 0
+    /* 前1区画先の壁を読める場合 */
+    if (!front)
+      updateWall(curVec.next(curDir), curDir, tof.getDistance() < 210);
+#endif
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override {
@@ -236,9 +238,6 @@ protected:
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
-      fr.runParameter.curve_gain /= 1.05f;
-      fr.runParameter.max_speed /= 1.05f;
-      fr.runParameter.accel /= 1.1025f;
     }
     // 探索
     if (isForceSearch || !calcShortestDirs(true)) {
@@ -261,9 +260,9 @@ protected:
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       if (fr.V90Enabled) {
-        fr.runParameter.curve_gain *= 1.1f;
-        fr.runParameter.max_speed *= 1.1f;
-        fr.runParameter.accel *= 1.21f;
+        fr.runParameter.curve_gain *= fr.runParameter.cg_gain;
+        fr.runParameter.max_speed *= fr.runParameter.ms_gain;
+        fr.runParameter.accel *= fr.runParameter.ac_gain;
       }
       fr.V90Enabled = true;
     }

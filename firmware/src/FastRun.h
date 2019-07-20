@@ -24,6 +24,9 @@ public:
     float curve_gain;
     float max_speed;
     float accel;
+    const float cg_gain = 1.05f;
+    const float ms_gain = 1.2f;
+    const float ac_gain = 1.1f;
     const RunParameter &operator=(const RunParameter &obj) {
       curve_gain = obj.curve_gain;
       max_speed = obj.max_speed;
@@ -101,30 +104,39 @@ private:
   static auto saturate(auto src, auto sat) {
     return std::max(std::min(src, sat), -sat);
   }
+  bool isAlong() {
+    return (int)(std::abs(origin.th) * 180.0f / PI + 1) % 90 < 2;
+  }
+  bool isDiag() {
+    return (int)(std::abs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2;
+  }
 
-  void wallAvoid(bool diag, float remain) {
+  void wallAvoid(float remain) {
     /* 一定速より小さかったら行わない */
     if (sc.est_v.tra < 100.0f)
       return;
+    /* 曲線なら前半しか使わない */
+    if (std::abs(sc.position.th - origin.th) > M_PI * 0.1f)
+      return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
-    if (wallAvoidFlag && (int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 2) {
-      const float gain = 0.008f;
-      if (wd.wall[0]) {
+    if (wallAvoidFlag && isAlong()) {
+      const float gain = 0.01f;
+      const float wall_diff_thr = 10;
+      if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position +=
             Position(0, wd.distance.side[0] * gain, 0).rotate(origin.th);
         led_flags |= 8;
       }
-      if (wd.wall[1]) {
+      if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
         sc.position -=
             Position(0, wd.distance.side[1] * gain, 0).rotate(origin.th);
         led_flags |= 1;
       }
     }
     /* 45 [deg] の倍数 */
-    if (diag && wallAvoid45Flag && remain > field::SegWidthFull / 3 &&
-        (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2) {
-      const float shift = 0.02f;
+    if (wallAvoid45Flag && isDiag() && remain > field::SegWidthFull / 3) {
+      const float shift = 0.04f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
         sc.position += Position(0, shift, 0).rotate(origin.th);
@@ -137,74 +149,69 @@ private:
     }
     led = led_flags;
   }
-  void wallCut(bool diag) {
+  void wallCut() {
+    if (!wallCutFlag)
+      return;
+    if (!V90Enabled)
+      return;
+    /* 曲線なら前半しか使わない */
+    if (std::abs(sc.position.th - origin.th) > M_PI * 0.1f)
+      return;
 #if FAST_RUN_WALL_CUT_ENABLED
-#define WALL_CUT_OFFSET_X_ (-30)
-    if (wallCutFlag && fabs(origin.th - sc.position.th) < PI / 48) {
-      for (int i = 0; i < 2; i++) {
-        // 45 [deg] + 90 [deg] の倍数
-        // if (diag && (int)(fabs(origin.th) * 180.0f / PI + 45 + 1) % 90 <
-        // 4) {
-        //   if (prev_wall[i] && !wd.wall[i]) {
-        //     Position prev = sc.position;
-        //     Position fix = sc.position.rotate(-origin.th);
-        //     const float extra = 36;
-        //     if (i == 0) {
-        //       fix.x = round2(fix.x - extra - SEGMENT_DIAGONAL_WIDTH / 2,
-        //                      SEGMENT_DIAGONAL_WIDTH) +
-        //               SEGMENT_DIAGONAL_WIDTH / 2 + extra;
-        //     } else {
-        //       fix.x = round2(fix.x - extra, SEGMENT_DIAGONAL_WIDTH) + extra;
-        //     }
-        //     fix = fix.rotate(origin.th);
-        //     if (fabs(prev.rotate(-origin.th).x -
-        //              fix.rotate(-origin.th).x) < 10.0f) {
-        //       sc.position = fix;
-        //       printf("WallCutDiag[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, "
-        //              "%.1f)\n",
-        //              i, prev.x, prev.y, prev.th * 180.0f / PI,
-        //              sc.position.x, sc.position.y, sc.position.th * 180 /
-        //              PI);
-        //     }
-        //     bz.play(Buzzer::SHORT);
-        //   }
-        // }
+    for (int i = 0; i < 2; i++) {
+      if (prev_wall[i] && !wd.wall[i]) {
         /* 90 [deg] の倍数 */
-        if ((int)(fabs(origin.th) * 180.0f / PI + 1) % 90 < 4) {
-          if (prev_wall[i] && !wd.wall[i]) {
-            Position prev = sc.position;
-            Position fix = sc.position.rotate(-origin.th);
-            fix.x = round2(fix.x, field::SegWidthFull) + WALL_CUT_OFFSET_X_;
-            fix = fix.rotate(origin.th);
-            if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
-                15.0f) {
-              sc.position = fix;
-              printf(
-                  "WallCut[%d] X_ (%.1f, %.1f, %.1f) => (%.1f, %.1f, %.1f)\n",
-                  i, prev.x, prev.y, prev.th * 180.0f / PI, sc.position.x,
-                  sc.position.y, sc.position.th * 180 / PI);
-              bz.play(Buzzer::SHORT);
-            }
+        if (isAlong()) {
+          Position prev = sc.position;
+          Position fix = sc.position.rotate(-origin.th);
+          const float wall_cut_offset = -15; /*< from wall_cut_line */
+          fix.x = round2(fix.x, field::SegWidthFull) + wall_cut_offset;
+          fix = fix.rotate(origin.th);
+          const float diff =
+              fix.rotate(-origin.th).x - prev.rotate(-origin.th).x;
+          if (-30 < diff && diff < 5) {
+            sc.position = fix;
+            bz.play(Buzzer::SHORT);
           }
         }
-        prev_wall[i] = wd.wall[i];
+        /* 45 [deg] + 90 [deg] の倍数 */
+        if (isDiag()) {
+          Position prev = sc.position;
+          Position fix = sc.position.rotate(-origin.th);
+          const float extra = 31;
+          if (i == 0) {
+            fix.x = round2(fix.x - extra - field::SegWidthDiag / 2,
+                           field::SegWidthDiag) +
+                    field::SegWidthDiag / 2 + extra;
+          } else {
+            fix.x = round2(fix.x - extra, field::SegWidthDiag) + extra;
+          }
+          fix = fix.rotate(origin.th);
+          if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
+              10.0f) {
+            // sc.position = fix;
+            bz.play(Buzzer::SHORT);
+          }
+        }
       }
+      prev_wall[i] = wd.wall[i];
     }
 #endif
   }
-  void wall_calib(const float velocity) {
-    if (wd.wall[2]) {
-      float dist =
-          tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-      float pos = 90 - dist - SS_FLS90.straight_prev;
-      Position prev = sc.position;
-      Position fix = sc.position.rotate(-origin.th);
-      fix.x = floor((fix.x + field::SegWidthFull / 2) / field::SegWidthFull) *
-                  field::SegWidthFull +
-              pos;
-      fix = fix.rotate(origin.th);
-      if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) < 15.0f)
-        sc.position = fix;
+  /* wall_dist = 90 - st_prev */
+  void wall_calib(const float velocity, const float wall_dist) {
+    /* 一定よりずれが大きければ処理を行わない */
+    if (std::abs(tof.getDistance() - wall_dist) > 20)
+      return;
+    float dist =
+        tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
+    float pos = wall_dist - dist;
+    Position prev = sc.position;
+    Position fix = sc.position.rotate(-origin.th);
+    fix.x = round2(fix.x, field::SegWidthFull) + pos;
+    fix = fix.rotate(origin.th);
+    if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) < 15.0f) {
+      sc.position = fix;
       bz.play(Buzzer::SHORT);
     }
   }
@@ -234,8 +241,8 @@ private:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       float extra = distance - est_q.x;
-      wallAvoid(true, extra);
-      wallCut(true);
+      wallAvoid(extra);
+      wallCut();
       int_y += getRelativePosition().y;
       sc.position.th += int_y * 0.00000001f;
     }
@@ -256,10 +263,8 @@ private:
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      if (fabs(getRelativePosition().th) < 0.01f * PI) {
-        wallAvoid(false, 0);
-        wallCut(false);
-      }
+      wallAvoid(0);
+      wallCut();
     }
     sc.set_target(velocity, 0);
     updateOrigin(sd.get_net_curve());

@@ -269,7 +269,7 @@ private:
       // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
       if (value > 60 && value < 120) {
         const float fixed_x = 90 - value + 5;
-        if (fixed_x < 5) {
+        if (fixed_x < 10) {
           sc.position.x = fixed_x;
           // bz.play(Buzzer::SHORT);
         }

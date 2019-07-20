@@ -138,7 +138,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.curve_gain *= std::pow(1.1f, value);
+    fr.runParameter.curve_gain *= std::pow(fr.runParameter.cg_gain, value);
 
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
@@ -147,7 +147,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.max_speed *= std::pow(1.1f, value);
+    fr.runParameter.max_speed *= std::pow(fr.runParameter.ms_gain, value);
 
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT);
@@ -156,32 +156,9 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.accel *= std::pow(1.21f, value);
+    fr.runParameter.accel *= std::pow(fr.runParameter.ms_gain, value);
     bz.play(Buzzer::SUCCESSFUL);
   }
-  // static void selectParamManually() {
-  //   int value;
-  //   for (int i = 0; i < 1; i++)
-  //     bz.play(Buzzer::SHORT);
-  //   value = ui.waitForSelect(16);
-  //   if (value < 0)
-  //     return;
-  //   const float curve_gain = 0.1f * value;
-  //   for (int i = 0; i < 2; i++)
-  //     bz.play(Buzzer::SHORT);
-  //   value = ui.waitForSelect(16);
-  //   if (value < 0)
-  //     return;
-  //   const float v_max = 300.0f * value;
-  //   for (int i = 0; i < 3; i++)
-  //     bz.play(Buzzer::SHORT);
-  //   value = ui.waitForSelect(16);
-  //   if (value < 0)
-  //     return;
-  //   const float accel = 600.0f * value;
-  //   fr.runParameter = FastRun::RunParameter(curve_gain, v_max, accel);
-  //   bz.play(Buzzer::SUCCESSFUL);
-  // }
   static void selectFanGain() {
     fan.drive(0.5f);
     delay(100);
@@ -262,7 +239,7 @@ public:
       mr.set_goal({Vector(1, 0)});
       break;
     case 2:
-      mr.set_goal({Vector(9, 9), Vector(10, 10), Vector(10, 9), Vector(9, 10)});
+      mr.set_goal({Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10)});
       break;
     case 3:
       mr.set_goal({Vector(3, 3)});

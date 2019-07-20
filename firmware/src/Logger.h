@@ -24,7 +24,6 @@ public:
         os << value;
       }
       os << std::endl;
-      // taskYIELD();
       vTaskDelay(1);
     }
   }
