@@ -15,7 +15,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -225,7 +225,7 @@ protected:
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
-    // 自己位置同定
+    /* 自己位置同定 */
     if (isPositionIdentifying) {
       readyToStartWait();
       isPositionIdentifying = false;
@@ -239,7 +239,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
     }
-    // 探索
+    /* 探索 */
     if (isForceSearch || !calcShortestDirs(true)) {
       maze.resetLastWall(6);  //< クラッシュ後を想定して少し消す
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
@@ -251,9 +251,9 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      fr.V90Enabled = false;
+      // fr.V90Enabled = false;
     }
-    // 最短
+    /* 最短 */
     while (1) {
       if (!fastRun())
         waitForever();
