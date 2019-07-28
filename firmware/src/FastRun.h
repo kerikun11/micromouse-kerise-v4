@@ -85,17 +85,11 @@ public:
     return (sc.position - origin).rotate(-origin.th);
   }
   void updateOrigin(Position passed) { origin += passed.rotate(origin.th); }
-  void setPosition(Position pos = Position(field::SegWidthFull / 2,
-                                           field::WallThickness / 2 +
-                                               model::TailLength,
-                                           M_PI / 2)) {
-    origin = pos;
-    sc.position = pos;
-  }
 
 private:
   Position origin;
   std::string path;
+  int path_index;
   bool prev_wall[2];
 
   static auto round2(auto value, auto div) {
@@ -115,7 +109,7 @@ private:
     /* 一定速より小さかったら行わない */
     if (sc.est_v.tra < 100.0f)
       return;
-    /* 曲線なら前半しか使わない */
+    /* 曲線なら前半しか行わない */
     if (std::abs(sc.position.th - origin.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
@@ -282,7 +276,7 @@ private:
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
 
-public:
+private:
   void task() override {
     // 最短走行用にパターンを置換
     path = MazeLib::RobotBase::pathConvertSearchToFast(path, V90Enabled);
@@ -299,7 +293,12 @@ public:
     fan.drive(fanDuty);
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
-    setPosition();
+    /* 初期位置を設定 */
+    sc.position =
+        Position(field::SegWidthFull / 2,
+                 field::WallThickness / 2 + model::TailLength, M_PI / 2);
+    origin = sc.position;
+    /* 最初の直線を追加 */
     float straight =
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
     for (int path_index = 0; path_index < path.length(); path_index++) {
@@ -308,6 +307,7 @@ public:
           static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
       fast_run_switch(action, straight, runParameter);
     }
+    /* 最後の直線を消化 */
     if (straight > 1.0f) {
       straight_x(straight, v_max, 0);
       straight = 0;
@@ -371,14 +371,16 @@ public:
     case MazeLib::RobotBase::FastAction::FR180:
       SlalomProcess(SS_FR180, straight, false, runParameter);
       break;
-    case MazeLib::RobotBase::FastAction::ST_ALONG_FULL:
+    case MazeLib::RobotBase::FastAction::F_ST_FULL:
       straight += field::SegWidthFull;
       break;
-    case MazeLib::RobotBase::FastAction::ST_ALONG_HALF:
+    case MazeLib::RobotBase::FastAction::F_ST_HALF:
       straight += field::SegWidthFull / 2;
       break;
-    case MazeLib::RobotBase::FastAction::ST_DIAG:
+    case MazeLib::RobotBase::FastAction::F_ST_DIAG:
       straight += field::SegWidthDiag / 2;
+      break;
+    default:
       break;
     }
   }

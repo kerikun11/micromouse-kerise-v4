@@ -63,8 +63,33 @@
     2. Control
 3. Conduction
 
-## Main
+## Main Task
 
 - DriveTask
 - PrintTask
 - TimeKeepTask
+
+## Settings
+
+### Maze
+
+- Restore
+- Backup
+- Erase Partially
+
+### Algorithm
+
+- The number of path
+
+### SearchRun
+
+- Run Speed
+- Max Speed
+- KnwonDiag
+- WallCut
+
+### FastRun
+
+- Diag or Along
+- CurveGain
+- WallCut

@@ -181,7 +181,7 @@ protected:
       v = v.next(nextDir);
       switch (Dir(nextDir - d)) {
       case Dir::Front:
-        fr.set_action(MazeLib::RobotBase::FastAction::ST_ALONG_FULL);
+        fr.set_action(MazeLib::RobotBase::FastAction::F_ST_FULL);
         break;
       case Dir::Left:
         fr.set_action(MazeLib::RobotBase::FastAction::FLS90);
