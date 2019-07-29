@@ -27,12 +27,12 @@ public:
     const float cg_gain = 1.05f;
     const float ms_gain = 1.2f;
     const float ac_gain = 1.1f;
-    const RunParameter &operator=(const RunParameter &obj) {
-      curve_gain = obj.curve_gain;
-      max_speed = obj.max_speed;
-      accel = obj.accel;
-      return *this;
-    }
+    // const RunParameter &operator=(const RunParameter &obj) {
+    //   curve_gain = obj.curve_gain;
+    //   max_speed = obj.max_speed;
+    //   accel = obj.accel;
+    //   return *this;
+    // }
     static float getCurveGains(const int value) {
       float vals_p[] = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
       float vals_n[] = {1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f};
@@ -75,21 +75,10 @@ public:
   void set_action(MazeLib::RobotBase::FastAction action) {
     path += (char)action;
   }
-  void printPosition(const char *name) const {
-    printf("%s\tRel:(%06.1f, %06.1f, %06.3f)\t", name, getRelativePosition().x,
-           getRelativePosition().y, getRelativePosition().th);
-    printf("Abs:(%06.1f, %06.1f, %06.3f)\n", sc.position.x, sc.position.y,
-           sc.position.th);
-  }
-  Position getRelativePosition() const {
-    return (sc.position - origin).rotate(-origin.th);
-  }
-  void updateOrigin(Position passed) { origin += passed.rotate(origin.th); }
 
 private:
-  Position origin;
+  Position offset;
   std::string path;
-  int path_index;
   bool prev_wall[2];
 
   static auto round2(auto value, auto div) {
@@ -99,10 +88,10 @@ private:
     return std::max(std::min(src, sat), -sat);
   }
   bool isAlong() {
-    return (int)(std::abs(origin.th) * 180.0f / PI + 1) % 90 < 2;
+    return (int)(std::abs(offset.th) * 180.0f / PI + 1) % 90 < 2;
   }
   bool isDiag() {
-    return (int)(std::abs(origin.th) * 180.0f / PI + 45 + 1) % 90 < 2;
+    return (int)(std::abs(offset.th) * 180.0f / PI + 45 + 1) % 90 < 2;
   }
 
   void wallAvoid(float remain) {
@@ -110,7 +99,7 @@ private:
     if (sc.est_v.tra < 100.0f)
       return;
     /* 曲線なら前半しか行わない */
-    if (std::abs(sc.position.th - origin.th) > M_PI * 0.1f)
+    if (std::abs(sc.position.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
@@ -118,13 +107,11 @@ private:
       const float gain = 0.01f;
       const float wall_diff_thr = 10;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
-        sc.position +=
-            Position(0, wd.distance.side[0] * gain, 0).rotate(origin.th);
+        sc.position.y += wd.distance.side[0] * gain;
         led_flags |= 8;
       }
       if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
-        sc.position -=
-            Position(0, wd.distance.side[1] * gain, 0).rotate(origin.th);
+        sc.position.y -= wd.distance.side[1] * gain;
         led_flags |= 1;
       }
     }
@@ -133,25 +120,25 @@ private:
       const float shift = 0.04f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
-        sc.position += Position(0, shift, 0).rotate(origin.th);
+        sc.position.y += shift;
         led_flags |= 4;
       }
       if (wd.distance.front[1] > threashold) {
-        sc.position -= Position(0, shift, 0).rotate(origin.th);
+        sc.position.y -= shift;
         led_flags |= 2;
       }
     }
     led = led_flags;
   }
   void wallCut() {
+#if FAST_RUN_WALL_CUT_ENABLED
     if (!wallCutFlag)
       return;
     if (!V90Enabled)
       return;
     /* 曲線なら前半しか使わない */
-    if (std::abs(sc.position.th - origin.th) > M_PI * 0.1f)
+    if (std::abs(sc.position.th) > M_PI * 0.1f)
       return;
-#if FAST_RUN_WALL_CUT_ENABLED
     for (int i = 0; i < 2; i++) {
       if (prev_wall[i] && !wd.wall[i]) {
         /* 90 [deg] の倍数 */
@@ -192,57 +179,39 @@ private:
     }
 #endif
   }
-  /* wall_dist = 90 - st_prev */
-  void wall_calib(const float velocity, const float wall_dist) {
-    /* 一定よりずれが大きければ処理を行わない */
-    if (std::abs(tof.getDistance() - wall_dist) > 20)
-      return;
-    float dist =
-        tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-    float pos = wall_dist - dist;
-    Position prev = sc.position;
-    Position fix = sc.position.rotate(-origin.th);
-    fix.x = round2(fix.x, field::SegWidthFull) + pos;
-    fix = fix.rotate(origin.th);
-    if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) < 15.0f) {
-      sc.position = fix;
-      bz.play(Buzzer::SHORT);
-    }
-  }
   void straight_x(const float distance, const float v_max, const float v_end) {
-    if (distance < 0) {
-      updateOrigin(Position(distance, 0, 0));
-      return;
+    if (distance - sc.position.x > 0) {
+      const float jerk = 500000;
+      const float accel = runParameter.accel;
+      const float v_start = sc.ref_v.tra;
+      TrajectoryTracker tt(model::tt_gain);
+      tt.reset(v_start);
+      AccelDesigner ad(jerk, accel, v_start, v_max, v_end, distance);
+      float int_y = 0;
+      for (int i = 0; i < 2; i++)
+        prev_wall[i] = wd.wall[i];
+      portTickType xLastWakeTime = xTaskGetTickCount();
+      for (float t = 0; t < ad.t_end(); t += 0.001f) {
+        auto est_q = sc.position;
+        auto ref_q = Position(ad.x(t), 0);
+        auto ref_dq = Position(ad.v(t), 0);
+        auto ref_ddq = Position(ad.a(t), 0);
+        auto ref_dddq = Position(ad.j(t), 0);
+        auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq,
+                             ref_dddq);
+        sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        const float remain = distance - est_q.x;
+        wallAvoid(remain);
+        wallCut();
+        int_y += sc.position.y;
+        sc.position.th += int_y * 0.00000001f;
+      }
+      if (v_end < 1.0f)
+        sc.set_target(0, 0);
     }
-    const float jerk = 500000;
-    const float accel = runParameter.accel;
-    const float v_start = sc.ref_v.tra;
-    TrajectoryTracker tt(model::tt_gain);
-    tt.reset(v_start);
-    AccelDesigner ad(jerk, accel, v_start, v_max, v_end, distance);
-    float int_y = 0;
-    for (int i = 0; i < 2; i++)
-      prev_wall[i] = wd.wall[i];
-    portTickType xLastWakeTime = xTaskGetTickCount();
-    for (float t = 0; t < ad.t_end(); t += 0.001f) {
-      auto est_q = getRelativePosition();
-      auto ref_q = Position(ad.x(t), 0);
-      auto ref_dq = Position(ad.v(t), 0);
-      auto ref_ddq = Position(ad.a(t), 0);
-      auto ref_dddq = Position(ad.j(t), 0);
-      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq,
-                           ref_dddq);
-      sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      float extra = distance - est_q.x;
-      wallAvoid(extra);
-      wallCut();
-      int_y += getRelativePosition().y;
-      sc.position.th += int_y * 0.00000001f;
-    }
-    if (v_end < 1.0f)
-      sc.set_target(0, 0);
-    updateOrigin(Position(distance, 0, 0));
+    sc.position.x -= distance; //< 移動した量だけ位置を更新
+    offset += Position(distance, 0, 0).rotate(offset.th);
   }
   void trace(slalom::Trajectory &sd, const float velocity) {
     TrajectoryTracker tt(model::tt_gain);
@@ -253,7 +222,7 @@ private:
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < sd.t_end(); t += 0.001f) {
       sd.update(&s, Ts);
-      auto est_q = getRelativePosition();
+      auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
@@ -261,7 +230,9 @@ private:
       wallCut();
     }
     sc.set_target(velocity, 0);
-    updateOrigin(sd.get_net_curve());
+    const auto net = sd.get_net_curve();
+    sc.position = (sc.position - net).rotate(-net.th);
+    offset += net.rotate(offset.th);
   }
   void SlalomProcess(const slalom::Shape &shape, float &straight,
                      const bool reverse, const RunParameter &rp) {
@@ -294,10 +265,9 @@ private:
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
     /* 初期位置を設定 */
-    sc.position =
-        Position(field::SegWidthFull / 2,
-                 field::WallThickness / 2 + model::TailLength, M_PI / 2);
-    origin = sc.position;
+    offset = Position(field::SegWidthFull / 2,
+                      field::WallThickness / 2 + model::TailLength, M_PI / 2);
+    sc.position.clear();
     /* 最初の直線を追加 */
     float straight =
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;

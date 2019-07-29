@@ -242,7 +242,7 @@ public:
       mr.set_goal({Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10)});
       break;
     case 3:
-      mr.set_goal({Vector(3, 3)});
+      mr.set_goal({Vector(3, 3), Vector(3, 4), Vector(4, 3), Vector(4, 4)});
       break;
     case 4:
       mr.set_goal({Vector(15, 15)});
