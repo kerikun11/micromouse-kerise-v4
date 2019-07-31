@@ -83,13 +83,55 @@
 
 ### SearchRun
 
+- Force Search
+- Force Back
+- Timer
+
 - Run Speed
 - Max Speed
-- KnwonDiag
-- WallCut
+- Known Diag
+- Wall Cut
 
 ### FastRun
 
 - Diag or Along
-- CurveGain
-- WallCut
+- Curve Gains
+- Wall Cut
+
+```cpp
+class SensorBase {
+public:
+  SensorBase() {}
+  bool enable() {}
+  bool disable() {}
+
+private:
+  void task() {
+    while (1) {
+      /* time sync */
+      /* start sampling */
+      /* mutex lock */
+      /* update */
+      /* mutex unlock */
+      /* semaphore give */
+    }
+  }
+};
+
+class ActuatorBase {
+public:
+  ActuatorBase() {}
+  enum Event {};
+  bool pushEvent() {}
+
+private:
+  /* event queue */
+
+  void task() {
+    while (1) {
+      /* wait for event queue */
+    }
+  }
+};
+
+```
