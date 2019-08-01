@@ -15,7 +15,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 3
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -24,7 +24,7 @@ using namespace MazeLib;
   { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
-  { Vector(4, 4), Vector(5, 5), Vector(5, 4), Vector(4, 5) }
+  { Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4) }
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
   { Vector(7, 0), Vector(8, 0), Vector(7, 1), Vector(8, 1) }
@@ -127,7 +127,7 @@ protected:
     right = wd.wall[1];
     front = wd.wall[2];
     back = false;
-    bz.play(Buzzer::SHORT);
+    // bz.play(Buzzer::SHORT);
 #if 0
     /* 前1区画先の壁を読める場合 */
     if (!front)
@@ -135,10 +135,7 @@ protected:
 #endif
   }
   void backupMazeToFlash() override { backup(); }
-  void stopDequeue() override {
-    sr.disable();
-    backup();
-  }
+  void stopDequeue() override { sr.disable(); }
   void startDequeue() override { sr.enable(); }
   void calibration() override {
     bz.play(Buzzer::CALIBRATION);
@@ -150,15 +147,15 @@ protected:
   }
   void calcNextDirsPostCallback(SearchAlgorithm::State prevState,
                                 SearchAlgorithm::State newState) override {
-    // if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
-    //   bz.play(Buzzer::CONFIRM);
-    // }
+    if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
+      bz.play(Buzzer::CONFIRM);
+    }
     if (newState == prevState)
       return;
     if (prevState == SearchAlgorithm::GOING_TO_GOAL) {
       bz.play(Buzzer::SUCCESSFUL);
     }
-    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
+    if (newState == SearchAlgorithm::REACHED_START) {
       bz.play(Buzzer::COMPLETE);
     }
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {

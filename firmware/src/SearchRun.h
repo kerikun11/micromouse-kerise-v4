@@ -21,7 +21,7 @@
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
 
-#define SEARCH_RUN_VELOCITY 270.0f
+#define SEARCH_RUN_VELOCITY 300.0f
 #define SEARCH_RUN_V_MAX 600.0f
 
 #include <RobotBase.h>
@@ -41,6 +41,7 @@ public:
     const float ac_gain = 1.1f;
     float search_v = SEARCH_RUN_VELOCITY;
     float search_v_max = SEARCH_RUN_V_MAX;
+    float search_accel = 3000;
     bool wallAvoidFlag = true;
     bool wallAvoid45Flag = true;
     bool wallCutFlag = true;
@@ -72,6 +73,7 @@ public:
   virtual ~SearchRun() {}
   void enable() {
     deleteTask();
+    offset = Position(field::SegWidthFull / 2, field::SegWidthFull / 2, 0);
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
   void disable() {
@@ -212,7 +214,7 @@ private:
     if (sc.est_v.tra < 100.0f)
       return;
     /* 曲線なら前半しか行わない */
-    if (std::abs(sc.position.th) > M_PI * 0.1f)
+    if (std::abs(sc.position.th) > M_PI * 0.2f)
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
@@ -313,18 +315,18 @@ private:
     }
 #endif
   }
-  void wall_calib(const float velocity) {
+  void wall_calib(const float velocity, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
-    if (wd.wall[2] && tof.passedTimeMs() < 100) {
+    if (tof.getDistance() < dist_to_wall + 30 && tof.passedTimeMs() < 100) {
       float value =
           tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
       // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
-      if (value > 60 && value < 120) {
-        const float fixed_x = 90 - value + 5;
-        if (fixed_x < 10) {
-          sc.position.x = fixed_x;
-          // bz.play(Buzzer::SHORT);
-        }
+      float fixed_x = dist_to_wall - value + 5;
+      if (-20 < fixed_x && fixed_x < 20) {
+        if (fixed_x > 10)
+          fixed_x = 10;
+        sc.position.x = fixed_x;
+        bz.play(Buzzer::SHORT);
       }
     }
 #endif
@@ -360,10 +362,10 @@ private:
     sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
     offset += Position(0, 0, angle).rotate(offset.th);
   }
-  void straight_x(const float distance, const float v_max, const float v_end) {
+  void straight_x(const float distance, const float v_max, const float v_end,
+                  const float accel) {
     if (distance - sc.position.x > 0) {
       const float jerk = 500000;
-      const float accel = 3000;
       const float v_start = sc.ref_v.tra;
       TrajectoryTracker tt(model::tt_gain);
       tt.reset(v_start);
@@ -386,7 +388,7 @@ private:
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
         int_y += sc.position.y;
-        sc.position.th += int_y * 0.00000001f;
+        sc.position.th += int_y * 0.0000001f;
       }
     }
     if (v_end < 1.0f)
@@ -421,8 +423,17 @@ private:
     const float velocity = st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
     if (straight > 1.0f) {
-      straight_x(straight, rp.max_speed, velocity);
+      straight_x(straight, rp.max_speed, velocity, rp.accel);
       straight = 0;
+    }
+    if (isAlong()) {
+      if (rp.V90Enabled && reverse == false)
+        wall_calib(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
+                                 st.get_straight_prev());
+      if (!rp.V90Enabled)
+        wall_calib(velocity, field::SegWidthFull - st.get_straight_prev());
+    } else {
+      wall_calib(velocity, field::SegWidthDiag * 2 - st.get_straight_prev());
     }
     trace(st, velocity);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
@@ -485,7 +496,7 @@ private:
     /* Actionがキューされるまで直進で待つ */
     float v = sc.ref_v.tra;
     portTickType xLastWakeTime = xTaskGetTickCount();
-    while (q.empty()) {
+    for (int i = 0; q.empty(); ++i) {
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       if (v > 0)
         v -= 6;
@@ -493,6 +504,8 @@ private:
       Position cur = sc.position;
       float th = atan2f(-cur.y, (2 + 20 * v / 240)) - cur.th;
       sc.set_target(v, 40 * th);
+      if (i == 100)
+        bz.play(Buzzer::MAZE_BACKUP);
     }
   }
   void task() override {
@@ -541,7 +554,7 @@ private:
           }
           /* 最後の直線を消化 */
           if (straight > 1.0f) {
-            straight_x(straight, rp.max_speed, rp.search_v);
+            straight_x(straight, rp.max_speed, rp.search_v, rp.search_accel);
             straight = 0;
           }
         }
@@ -567,6 +580,7 @@ private:
                          const int num = 1) {
     const float velocity = rp.search_v;
     const float v_max = rp.search_v_max;
+    const float accel = rp.search_accel;
     switch (action) {
     case RobotBase::Action::START_STEP:
       sc.position.clear();
@@ -575,51 +589,48 @@ private:
                         model::TailLength + field::WallThickness / 2, M_PI / 2);
       straight_x(field::SegWidthFull - model::TailLength -
                      field::WallThickness / 2,
-                 velocity, velocity);
+                 velocity, velocity, accel);
       break;
     case RobotBase::Action::START_INIT:
-      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0);
       start_init();
       break;
     case RobotBase::Action::ST_FULL:
       if (wd.wall[2])
         stop();
       straight_x(field::SegWidthFull * num, num > 1 ? v_max : velocity,
-                 velocity);
+                 velocity, accel);
       break;
     case RobotBase::Action::ST_HALF:
       straight_x(field::SegWidthFull / 2 * num - model::CenterShift, velocity,
-                 velocity);
+                 velocity, accel);
       break;
     case RobotBase::Action::TURN_L: {
       if (wd.wall[0])
         stop();
-      wall_calib(velocity);
+      wall_calib(velocity, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
-      straight_x(st.get_straight_prev(), velocity, velocity);
+      straight_x(st.get_straight_prev(), velocity, velocity, accel);
       trace(st, velocity);
-      straight_x(st.get_straight_post(), velocity, velocity);
+      straight_x(st.get_straight_post(), velocity, velocity, accel);
       break;
     }
     case RobotBase::Action::TURN_R: {
       if (wd.wall[1])
         stop();
-      wall_calib(velocity);
+      wall_calib(velocity, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
-      straight_x(st.get_straight_prev(), velocity, velocity);
+      straight_x(st.get_straight_prev(), velocity, velocity, accel);
       trace(st, velocity);
-      straight_x(st.get_straight_post(), velocity, velocity);
+      straight_x(st.get_straight_post(), velocity, velocity, accel);
       break;
     }
     case RobotBase::Action::ROTATE_180:
       uturn();
       break;
     case RobotBase::Action::ST_HALF_STOP:
-      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0);
+      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
+                 accel);
       turn(0);
-      sc.disable();
-      isRunningFlag = false;
-      vTaskDelay(portMAX_DELAY);
       break;
     }
   }

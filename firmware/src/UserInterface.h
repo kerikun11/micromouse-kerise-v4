@@ -39,13 +39,13 @@ public:
   /**
    * @brief ユーザーに番号を選択させる
    *
-   * @param range 番号の範囲．[0, range)
+   * @param range 番号の範囲．[1, 16]
    * @return int 0 ~ range-1: 選択された番号
    * @return int -1: キャンセルされた
    */
-  static int waitForSelect(const int range = 16) {
+  static int waitForSelect(const int range = 16, const uint8_t init_value = 0) {
     float prev_enc = enc.position(0) + enc.position(1);
-    uint8_t value = 0;
+    uint8_t value = init_value;
     led = value;
     while (1) {
       float now_enc = enc.position(0) + enc.position(1);
