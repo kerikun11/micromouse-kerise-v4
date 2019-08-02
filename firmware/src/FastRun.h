@@ -59,8 +59,8 @@ public:
   bool wallAvoidFlag = true;
   bool wallAvoid45Flag = true;
   bool wallCutFlag = true;
-  bool V90Enabled = true;
-  float fanDuty = 0.4f;
+  bool diag_enabled = true;
+  float fan_duty = 0.4f;
 
   void start() {
     createTask("FastRun", FAST_RUN_TASK_PRIORITY, FAST_RUN_STACK_SIZE);
@@ -134,7 +134,7 @@ private:
 #if FAST_RUN_WALL_CUT_ENABLED
     if (!wallCutFlag)
       return;
-    if (!V90Enabled)
+    if (!diag_enabled)
       return;
     /* 曲線なら前半しか使わない */
     if (std::abs(sc.position.th) > M_PI * 0.1f)
@@ -250,7 +250,7 @@ private:
 private:
   void task() override {
     // 最短走行用にパターンを置換
-    path = MazeLib::RobotBase::pathConvertSearchToFast(path, V90Enabled);
+    path = MazeLib::RobotBase::pathConvertSearchToFast(path, diag_enabled);
     const float v_max = runParameter.max_speed;
     // キャリブレーション
     delay(500);
@@ -261,7 +261,7 @@ private:
     delay(200);
     mt.free();
     // 走行開始
-    fan.drive(fanDuty);
+    fan.drive(fan_duty);
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
     /* 初期位置を設定 */

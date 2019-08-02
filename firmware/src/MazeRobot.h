@@ -52,7 +52,6 @@ public:
   void terminate() {
     deleteTask();
     sr.disable();
-    fr.terminate();
     isRunningFlag = false;
   }
   void print() {
@@ -155,6 +154,9 @@ protected:
     if (prevState == SearchAlgorithm::GOING_TO_GOAL) {
       bz.play(Buzzer::SUCCESSFUL);
     }
+    if (newState == SearchAlgorithm::BACKING_TO_START) {
+      bz.play(Buzzer::COMPLETE);
+    }
     if (newState == SearchAlgorithm::REACHED_START) {
       bz.play(Buzzer::COMPLETE);
     }
@@ -165,38 +167,40 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
   bool fastRun() {
-    if (!calcShortestDirs(fr.V90Enabled)) {
+    if (!calcShortestDirs(sr.rp_fast.diag_enabled)) {
       printf("Couldn't solve the maze!\n");
       bz.play(Buzzer::ERROR);
       return false;
     }
-    auto path = getShortestDirs();
-    path.erase(path.begin());
+    auto shortestDirs = getShortestDirs();
+    shortestDirs.erase(shortestDirs.begin()); /*< 最初の直線を除去 */
+    std::string path;
     Dir d = Dir::North;
     Vector v(0, 1);
-    for (auto nextDir : path) {
+    for (auto nextDir : shortestDirs) {
       v = v.next(nextDir);
       switch (Dir(nextDir - d)) {
       case Dir::Front:
-        fr.set_action(MazeLib::RobotBase::FastAction::F_ST_FULL);
+        path += MazeLib::RobotBase::Action::ST_FULL;
         break;
       case Dir::Left:
-        fr.set_action(MazeLib::RobotBase::FastAction::FLS90);
+        path += MazeLib::RobotBase::Action::TURN_L;
         break;
       case Dir::Right:
-        fr.set_action(MazeLib::RobotBase::FastAction::FRS90);
+        path += MazeLib::RobotBase::Action::TURN_R;
         break;
       default:
         return false; //< あってはならない
       }
       d = nextDir;
     }
+    sr.set_path(path);
     // FastRun
-    fr.start();
-    while (fr.isRunning()) {
+    sr.enable();
+    while (sr.isRunning()) {
       delay(100);
     }
-    fr.terminate();
+    sr.disable();
 
     // 回収されるか待つ
     readyToStartWait();
@@ -248,7 +252,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      // fr.V90Enabled = false;
+      // sr.diag_enabled = false;
     }
     /* 最短 */
     while (1) {
@@ -256,12 +260,12 @@ protected:
         waitForever();
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      if (fr.V90Enabled) {
-        fr.runParameter.curve_gain *= fr.runParameter.cg_gain;
-        fr.runParameter.max_speed *= fr.runParameter.ms_gain;
-        fr.runParameter.accel *= fr.runParameter.ac_gain;
+      if (sr.rp_fast.diag_enabled) {
+        sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
+        sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
+        sr.rp_fast.accel *= sr.rp_fast.ac_gain;
       }
-      fr.V90Enabled = true;
+      sr.rp_fast.diag_enabled = true;
     }
   }
 };

@@ -252,10 +252,8 @@ void driveTask(void *arg) {
       int value = ui.waitForSelect(16);
       if (value < 0)
         break;
-      fr.wallAvoidFlag = value & 0x01;
-      fr.wallAvoid45Flag = value & 0x02;
-      fr.wallCutFlag = value & 0x04;
-      fr.V90Enabled = value & 0x08;
+      sr.rp_search.diag_enabled = value & 0x01;
+      sr.rp_fast.diag_enabled = value & 0x02;
     }
       bz.play(Buzzer::SUCCESSFUL);
       break;

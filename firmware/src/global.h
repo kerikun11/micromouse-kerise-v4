@@ -39,8 +39,6 @@ extern WallDetector wd;
 extern Logger lgr;
 #include "SearchRun.h"
 extern SearchRun sr;
-#include "FastRun.h"
-extern FastRun fr;
 #include "MazeRobot.h"
 extern MazeRobot mr;
 #include "ExternalController.h"

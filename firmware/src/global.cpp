@@ -29,7 +29,6 @@ WallDetector wd;
 /* Conductor */
 Logger lgr;
 SearchRun sr;
-FastRun fr;
 MazeRobot mr;
 
 /* Other */

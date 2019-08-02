@@ -10,6 +10,20 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 
+struct State {
+  int try_count = 0;             /**< 走行回数 */
+  bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
+  bool is_position_recovery = false; /**< 自己位置復帰中かどうか */
+  /**
+   * @brief 探索状態
+   */
+  enum Search {
+    None,
+    FoundAtLeastOnePath,
+    FoundShortestPath,
+  };
+};
+
 class Machine {
 public:
   static bool init() {
@@ -78,7 +92,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    // delay(3000);
+    delay(3000);
     mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {
@@ -106,7 +120,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.curve_gain = fr.runParameter.getCurveGains(value);
+    sr.rp_fast.curve_gain = sr.rp_fast.getCurveGains(value);
 
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
@@ -115,7 +129,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.max_speed = fr.runParameter.getMaxSpeeds(value);
+    sr.rp_fast.max_speed = sr.rp_fast.getMaxSpeeds(value);
 
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT);
@@ -124,7 +138,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.accel = fr.runParameter.getAccels(value);
+    sr.rp_fast.accel = sr.rp_fast.getAccels(value);
 
     bz.play(Buzzer::SUCCESSFUL);
   }
@@ -138,7 +152,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.curve_gain *= std::pow(fr.runParameter.cg_gain, value);
+    sr.rp_fast.curve_gain *= std::pow(sr.rp_fast.cg_gain, value);
 
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT);
@@ -147,7 +161,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.max_speed *= std::pow(fr.runParameter.ms_gain, value);
+    sr.rp_fast.max_speed *= std::pow(sr.rp_fast.ms_gain, value);
 
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT);
@@ -156,7 +170,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    fr.runParameter.accel *= std::pow(fr.runParameter.ms_gain, value);
+    sr.rp_fast.accel *= std::pow(sr.rp_fast.ms_gain, value);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectFanGain() {
@@ -166,9 +180,9 @@ public:
     int value = ui.waitForSelect(11);
     if (value < 0)
       return;
-    fr.fanDuty = 0.1f * value;
-    fan.drive(fr.fanDuty);
-    // mt.drive(fr.fanDuty, fr.fanDuty);
+    sr.rp_fast.fan_duty = 0.1f * value;
+    fan.drive(sr.rp_fast.fan_duty);
+    // mt.drive(sr.fan_duty, sr.fan_duty);
     ui.waitForSelect(1);
     fan.drive(0);
     mt.drive(0, 0);
@@ -254,7 +268,7 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
-    // fr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
+    // sr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
     //             "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
     //             "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
     std::string path;
@@ -268,13 +282,13 @@ public:
       path += "r";
     }
     path += "s";
-    fr.set_path(path);
-    fr.start();
-    while (fr.isRunning()) {
+    sr.set_path(path);
+    sr.enable();
+    while (sr.isRunning()) {
       delay(100);
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
-        fr.terminate();
+        sr.disable();
         fan.free();
         delay(100);
         mt.emergencyRelease();

@@ -37,7 +37,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(0, 0),
 };
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 10.0f;
+static constexpr float tt_gain = 7.5f;
 #else
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model

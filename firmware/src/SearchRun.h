@@ -21,33 +21,24 @@
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
 
-#define SEARCH_RUN_VELOCITY 300.0f
-#define SEARCH_RUN_V_MAX 600.0f
-
 #include <RobotBase.h>
 using namespace MazeLib;
 
 class SearchRun : TaskBase {
 public:
   struct RunParameter {
-    RunParameter(const float curve_gain = 0.8, const float max_speed = 600,
-                 const float accel = 3000)
-        : curve_gain(curve_gain), max_speed(max_speed), accel(accel) {}
-    float curve_gain;
-    float max_speed;
-    float accel;
+    RunParameter() {}
+    float search_v = 300;
+    float curve_gain = 1.0;
+    float max_speed = 600;
+    float accel = 4800;
+    float fan_duty = 0.4f;
+    bool diag_enabled = true;
+
+  public:
     const float cg_gain = 1.05f;
     const float ms_gain = 1.2f;
     const float ac_gain = 1.1f;
-    float search_v = SEARCH_RUN_VELOCITY;
-    float search_v_max = SEARCH_RUN_V_MAX;
-    float search_accel = 3000;
-    bool wallAvoidFlag = true;
-    bool wallAvoid45Flag = true;
-    bool wallCutFlag = true;
-    bool V90Enabled = true;
-    bool KnownDiagEnabled = true;
-    float fanDuty = 0.4f;
     static float getCurveGains(const int value) {
       float vals_p[] = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
       float vals_n[] = {1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f};
@@ -70,24 +61,32 @@ public:
 
 public:
   SearchRun() {}
-  virtual ~SearchRun() {}
+  ~SearchRun() {}
   void enable() {
     deleteTask();
     offset = Position(field::SegWidthFull / 2, field::SegWidthFull / 2, 0);
+    isRunningFlag = true;
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
   void disable() {
     deleteTask();
     sc.disable();
-    while (q.size()) {
+    while (q.size())
       q.pop();
-    }
+    path = "";
+    isRunningFlag = false;
   }
-  void set_action(enum RobotBase::Action action) {
+  void set_action(RobotBase::Action action) {
     q.push(action);
     isRunningFlag = true;
   }
+  void set_path(std::string path) { this->path = path; }
   bool isRunning() { return isRunningFlag; }
+
+public:
+  RunParameter rp_search;
+  RunParameter rp_fast;
+
   bool positionRecovery() {
     sc.enable();
     static constexpr float m_dddth = 4800 * M_PI;
@@ -112,6 +111,28 @@ public:
         table[index % table_size] = tof.getDistance();
       }
     }
+    /* 最小分散を探す */
+    float min_var = 999;
+    int min_i = 0;
+    for (int i = 0; i < table_size; ++i) {
+      const int window = table_size / 12;
+      int sum = 0;
+      for (int j = -window / 2; j < window / 2; ++j)
+        sum += table[(table_size + i + j) % table_size];
+      int ave = sum / window;
+      int var = 0;
+      for (int j = -window / 2; j < window / 2; ++j)
+        var = std::pow(table[(table_size + i + j) % table_size] - ave, 2);
+      if (min_var > var) {
+        min_var = var;
+        min_i = i;
+      }
+    }
+    sc.position.clear();
+    turn(2 * M_PI * min_i / table_size);
+    sc.position.clear();
+#if 0
+    /* 最小距離を探す */
     float min_dist = 999;
     int min_index = 0;
     for (int i = 0; i < table_size; ++i) {
@@ -123,12 +144,14 @@ public:
     sc.position.clear();
     turn(2 * M_PI * min_index / table_size);
     sc.position.clear();
+#endif
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
     wall_attach(true);
     delay(50);
 #if 0
+/* 単なる回転 */
     for (int i = 0; i < 4; ++i) {
       wall_attach(true);
       turn(M_PI / 2);
@@ -143,9 +166,6 @@ public:
     sc.disable();
     return true;
   }
-
-public:
-  RunParameter rp;
 
 private:
   std::queue<enum RobotBase::Action> q;
@@ -218,7 +238,7 @@ private:
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
-    if (rp.wallAvoidFlag && isAlong()) {
+    if (isAlong()) {
       const float gain = 0.01f;
       const float wall_diff_thr = 100;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
@@ -231,7 +251,7 @@ private:
       }
     }
     /* 45 [deg] の倍数 */
-    if (rp.wallAvoid45Flag && isDiag() && remain > field::SegWidthFull / 3) {
+    if (isDiag() && remain > field::SegWidthFull / 3) {
       const float shift = 0.04f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
@@ -248,27 +268,9 @@ private:
   }
   void wall_cut(const float velocity) {
 #if SEARCH_WALL_CUT_ENABLED
-    // if (velocity < 120)
-    //   return;
-    // for (int i = 0; i < 2; i++) {
-    //   const float normal_th = sc.position.th / (M_PI / 2);
-    //   const float frac_part = normal_th - roundf(normal_th);
-    //   const float diff_thr = velocity * 2.0f;
-    //   if (wd.diff.side[i] < -diff_thr && std::abs(frac_part) < 0.01f) {
-    //     bz.play(Buzzer::SHORT);
-    //     const float wall_cut_x = -18;
-    //     auto th = roundf(sc.position.th / (M_PI / 2)) * M_PI / 2;
-    //     auto offset_x = offset.rotate(-offset.th - th).x;
-    //     auto fixed = sc.position.rotate(-th);
-    //     auto x = offset_x + fixed.x;
-    //     auto fixed_x = roundf((x - wall_cut_x) / 90) * 90 + wall_cut_x;
-    //     fixed.x = fixed_x - offset_x;
-    //     sc.position = fixed.rotate(th);
-    //   }
-    // }
     if (!wallCutFlag)
       return;
-    if (!V90Enabled)
+    if (!diag_enabled)
       return;
     if (velocity < 120)
       return;
@@ -315,7 +317,7 @@ private:
     }
 #endif
   }
-  void wall_calib(const float velocity, const float dist_to_wall) {
+  void wall_front_fix(const float velocity, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
     if (tof.getDistance() < dist_to_wall + 30 && tof.passedTimeMs() < 100) {
       float value =
@@ -363,13 +365,13 @@ private:
     offset += Position(0, 0, angle).rotate(offset.th);
   }
   void straight_x(const float distance, const float v_max, const float v_end,
-                  const float accel) {
+                  const RunParameter &rp) {
     if (distance - sc.position.x > 0) {
       const float jerk = 500000;
       const float v_start = sc.ref_v.tra;
       TrajectoryTracker tt(model::tt_gain);
       tt.reset(v_start);
-      AccelDesigner ad(jerk, accel, v_start, v_max, v_end,
+      AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x);
       float int_y = 0;
       portTickType xLastWakeTime = xTaskGetTickCount();
@@ -423,18 +425,19 @@ private:
     const float velocity = st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
     if (straight > 1.0f) {
-      straight_x(straight, rp.max_speed, velocity, rp.accel);
+      straight_x(straight, rp.max_speed, velocity, rp);
       straight = 0;
     }
     if (isAlong()) {
-      if (rp.V90Enabled && reverse == false)
-        wall_calib(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
-                                 st.get_straight_prev());
-      if (!rp.V90Enabled)
-        wall_calib(velocity, field::SegWidthFull - st.get_straight_prev());
-    } else {
-      wall_calib(velocity, field::SegWidthDiag * 2 - st.get_straight_prev());
+      if (rp.diag_enabled && reverse == false)
+        wall_front_fix(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
+                                     st.get_straight_prev());
+      if (!rp.diag_enabled)
+        wall_front_fix(velocity, field::SegWidthFull - st.get_straight_prev());
     }
+    if (isDiag())
+      wall_front_fix(velocity,
+                     field::SegWidthDiag * 2 - st.get_straight_prev());
     trace(st, velocity);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
@@ -509,6 +512,47 @@ private:
     }
   }
   void task() override {
+    if (q.size())
+      search_run_task();
+    else
+      fast_run_task();
+    vTaskDelay(portMAX_DELAY);
+  }
+  void search_run_known(const RunParameter &rp) {
+    std::string path;
+    while (1) {
+      if (q.empty())
+        break;
+      const auto action = q.front();
+      if (action == MazeLib::RobotBase::Action::ST_HALF ||
+          action == MazeLib::RobotBase::Action::ST_FULL ||
+          action == MazeLib::RobotBase::Action::TURN_L ||
+          action == MazeLib::RobotBase::Action::TURN_R) {
+        path += action;
+        q.pop();
+      } else {
+        break;
+      }
+    }
+    if (path.size()) {
+      /* 既知区間斜めパターンに変換 */
+      path = MazeLib::RobotBase::pathConvertSearchToKnown(path);
+      /* 既知区間走行 */
+      float straight = 0;
+      for (int path_index = 0; path_index < path.length(); path_index++) {
+        const auto action =
+            static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+        fast_run_switch(action, straight, rp);
+      }
+      /* 最後の直線を消化 */
+      if (straight > 0.1f) {
+        straight_x(straight, rp.max_speed, rp.search_v, rp);
+        straight = 0;
+      }
+    }
+  }
+  void search_run_task() {
+    const auto &rp = rp_search;
     /* スタート */
     sc.enable();
     while (1) {
@@ -517,48 +561,8 @@ private:
       /* Actionがキューされるまで直進で待つ */
       queue_wait_decel();
       /* キューを消化 */
-      if (rp.KnownDiagEnabled && q.size() >= 2) {
-        std::string path;
-        while (1) {
-          if (q.empty())
-            break;
-          const auto action = q.front();
-          switch (action) {
-          case RobotBase::Action::ST_HALF:
-            path += RobotBase::FastAction::F_ST_HALF;
-            break;
-          case RobotBase::Action::ST_FULL:
-            path += RobotBase::FastAction::F_ST_FULL;
-            break;
-          case RobotBase::Action::TURN_L:
-            path += RobotBase::FastAction::FLS90;
-            break;
-          case RobotBase::Action::TURN_R:
-            path += RobotBase::FastAction::FRS90;
-            break;
-          default:
-            goto known_diag_break;
-          }
-          q.pop();
-        }
-      known_diag_break:
-        if (path.size()) {
-          path = MazeLib::RobotBase::pathConvertSearchToKnown(path);
-          float straight = 0;
-          for (int path_index = 0; path_index < path.length(); path_index++) {
-            printf("FastRun: %c, st => %.1f\n", path[path_index], straight);
-            const auto action =
-                static_cast<const MazeLib::RobotBase::FastAction>(
-                    path[path_index]);
-            fast_run_switch(action, straight, rp);
-          }
-          /* 最後の直線を消化 */
-          if (straight > 1.0f) {
-            straight_x(straight, rp.max_speed, rp.search_v, rp.search_accel);
-            straight = 0;
-          }
-        }
-      }
+      if (rp.diag_enabled && q.size() >= 2)
+        search_run_known(rp);
       /* 探索走行 */
       if (q.size()) {
         const auto action = q.front();
@@ -574,13 +578,11 @@ private:
         search_run_switch(action, rp, num);
       }
     }
-    vTaskDelay(portMAX_DELAY);
   }
-  void search_run_switch(const RobotBase::Action action, RunParameter rp,
+  void search_run_switch(const RobotBase::Action action, const RunParameter &rp,
                          const int num = 1) {
     const float velocity = rp.search_v;
-    const float v_max = rp.search_v_max;
-    const float accel = rp.search_accel;
+    const float v_max = rp.max_speed;
     switch (action) {
     case RobotBase::Action::START_STEP:
       sc.position.clear();
@@ -589,7 +591,7 @@ private:
                         model::TailLength + field::WallThickness / 2, M_PI / 2);
       straight_x(field::SegWidthFull - model::TailLength -
                      field::WallThickness / 2,
-                 velocity, velocity, accel);
+                 velocity, velocity, rp);
       break;
     case RobotBase::Action::START_INIT:
       start_init();
@@ -598,92 +600,135 @@ private:
       if (wd.wall[2])
         stop();
       straight_x(field::SegWidthFull * num, num > 1 ? v_max : velocity,
-                 velocity, accel);
+                 velocity, rp);
       break;
     case RobotBase::Action::ST_HALF:
       straight_x(field::SegWidthFull / 2 * num - model::CenterShift, velocity,
-                 velocity, accel);
+                 velocity, rp);
       break;
     case RobotBase::Action::TURN_L: {
       if (wd.wall[0])
         stop();
-      wall_calib(velocity, field::SegWidthFull);
+      wall_front_fix(velocity, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
-      straight_x(st.get_straight_prev(), velocity, velocity, accel);
+      straight_x(st.get_straight_prev(), velocity, velocity, rp);
       trace(st, velocity);
-      straight_x(st.get_straight_post(), velocity, velocity, accel);
+      straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;
     }
     case RobotBase::Action::TURN_R: {
       if (wd.wall[1])
         stop();
-      wall_calib(velocity, field::SegWidthFull);
+      wall_front_fix(velocity, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
-      straight_x(st.get_straight_prev(), velocity, velocity, accel);
+      straight_x(st.get_straight_prev(), velocity, velocity, rp);
       trace(st, velocity);
-      straight_x(st.get_straight_post(), velocity, velocity, accel);
+      straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;
     }
     case RobotBase::Action::ROTATE_180:
       uturn();
       break;
     case RobotBase::Action::ST_HALF_STOP:
-      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
-                 accel);
+      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
       turn(0);
       break;
     }
   }
+  void fast_run_task() {
+    /* パラメータを取得 */
+    const auto &rp = rp_fast;
+    /* 最短走行用にパターンを置換 */
+    path = MazeLib::RobotBase::pathConvertSearchToFast(path, rp.diag_enabled);
+    const float v_max = rp.max_speed;
+    /* キャリブレーション */
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    /* 壁に背中を確実につける */
+    mt.drive(-0.2f, -0.2f);
+    delay(200);
+    mt.free();
+    /* 走行開始 */
+    fan.drive(rp.fan_duty);
+    delay(500);  //< ファンの回転数が一定なるのを待つ
+    sc.enable(); //< 速度コントローラ始動
+    /* 初期位置を設定 */
+    offset = Position(field::SegWidthFull / 2,
+                      field::WallThickness / 2 + model::TailLength, M_PI / 2);
+    sc.position.clear();
+    /* 最初の直線を追加 */
+    float straight =
+        field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
+    /* 走行 */
+    for (int path_index = 0; path_index < path.length(); path_index++) {
+      const auto action =
+          static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+      fast_run_switch(action, straight, rp);
+    }
+    /* 最後の直線を消化 */
+    if (straight > 0.1f) {
+      straight_x(straight, v_max, 0, rp);
+      straight = 0;
+    }
+    sc.set_target(0, 0);
+    fan.drive(0);
+    delay(200);
+    sc.disable();
+    bz.play(Buzzer::COMPLETE);
+    path = "";
+    isRunningFlag = false;
+    vTaskDelay(portMAX_DELAY);
+  }
   void fast_run_switch(const MazeLib::RobotBase::FastAction action,
-                       float &straight, const RunParameter runParameter) {
+                       float &straight, const RunParameter &rp) {
     switch (action) {
     case MazeLib::RobotBase::FastAction::FL45:
-      SlalomProcess(SS_FL45, straight, false, runParameter);
+      SlalomProcess(SS_FL45, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45:
-      SlalomProcess(SS_FR45, straight, false, runParameter);
+      SlalomProcess(SS_FR45, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL45P:
-      SlalomProcess(SS_FL45, straight, true, runParameter);
+      SlalomProcess(SS_FL45, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45P:
-      SlalomProcess(SS_FR45, straight, true, runParameter);
+      SlalomProcess(SS_FR45, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLV90:
-      SlalomProcess(SS_FLV90, straight, false, runParameter);
+      SlalomProcess(SS_FLV90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRV90:
-      SlalomProcess(SS_FRV90, straight, false, runParameter);
+      SlalomProcess(SS_FRV90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLS90:
-      SlalomProcess(SS_FLS90, straight, false, runParameter);
+      SlalomProcess(SS_FLS90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRS90:
-      SlalomProcess(SS_FRS90, straight, false, runParameter);
+      SlalomProcess(SS_FRS90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL90:
-      SlalomProcess(SS_FL90, straight, false, runParameter);
+      SlalomProcess(SS_FL90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR90:
-      SlalomProcess(SS_FR90, straight, false, runParameter);
+      SlalomProcess(SS_FR90, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135:
-      SlalomProcess(SS_FL135, straight, false, runParameter);
+      SlalomProcess(SS_FL135, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135:
-      SlalomProcess(SS_FR135, straight, false, runParameter);
+      SlalomProcess(SS_FR135, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135P:
-      SlalomProcess(SS_FL135, straight, true, runParameter);
+      SlalomProcess(SS_FL135, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135P:
-      SlalomProcess(SS_FR135, straight, true, runParameter);
+      SlalomProcess(SS_FR135, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL180:
-      SlalomProcess(SS_FL180, straight, false, runParameter);
+      SlalomProcess(SS_FL180, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR180:
-      SlalomProcess(SS_FR180, straight, false, runParameter);
+      SlalomProcess(SS_FR180, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::F_ST_FULL:
       straight += field::SegWidthFull;
