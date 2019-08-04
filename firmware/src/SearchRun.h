@@ -323,7 +323,7 @@ private:
       /* 壁までの距離を推定 */
       float value = tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
       // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
-      float fixed_x = dist_to_wall - value + 5;
+      float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-20 < fixed_x && fixed_x < 20) {
         if (fixed_x > 10)
           fixed_x = 10;
@@ -420,8 +420,9 @@ private:
       if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0009f &&
           (sd.getShape() == SS_FLV90 || sd.getShape() == SS_FRV90)) {
         float tof_value =
-            tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
-        float fixed_x = field::SegWidthFull - tof_value + 5; /*< 要調整 */
+            tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
+        float fixed_x =
+            field::SegWidthFull - tof_value + 4; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
           bz.play(Buzzer::SHORT);
