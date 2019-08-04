@@ -15,7 +15,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 3
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { Vector(1, 0) }
@@ -151,14 +151,12 @@ protected:
     }
     if (newState == prevState)
       return;
+    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
+        newState != SearchAlgorithm::IMPOSSIBLE) {
+      bz.play(Buzzer::COMPLETE);
+    }
     if (prevState == SearchAlgorithm::GOING_TO_GOAL) {
       bz.play(Buzzer::SUCCESSFUL);
-    }
-    if (newState == SearchAlgorithm::BACKING_TO_START) {
-      bz.play(Buzzer::COMPLETE);
-    }
-    if (newState == SearchAlgorithm::REACHED_START) {
-      bz.play(Buzzer::COMPLETE);
     }
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
       bz.play(Buzzer::COMPLETE);

@@ -26,10 +26,13 @@ public:
   }
   void enable() { enabled = true; }
   void disable() { enabled = false; }
-  uint16_t getDistance() { return distance; }
-  uint16_t passedTimeMs() { return passed_ms; }
-  void print() { log_d("ToF: %d [mm]", getDistance()); }
-  void csv() { printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms); }
+  uint16_t getDistance() const { return distance; }
+  uint16_t passedTimeMs() const { return passed_ms; }
+  bool isValid() const { return passed_ms < 20; }
+  void print() const { log_d("ToF: %d [mm]", getDistance()); }
+  void csv() const {
+    printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
+  }
 
 private:
   VL6180X sensor;

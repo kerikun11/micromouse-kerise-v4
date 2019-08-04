@@ -319,9 +319,9 @@ private:
   }
   void wall_front_fix(const float velocity, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
-    if (tof.getDistance() < dist_to_wall + 30 && tof.passedTimeMs() < 100) {
-      float value =
-          tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
+    if (tof.isValid()) {
+      /* 壁までの距離を推定 */
+      float value = tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
       // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 5;
       if (-20 < fixed_x && fixed_x < 20) {
@@ -372,7 +372,7 @@ private:
       TrajectoryTracker tt(model::tt_gain);
       tt.reset(v_start);
       AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
-                       distance - sc.position.x);
+                       distance - sc.position.x, sc.position.x);
       float int_y = 0;
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -391,6 +391,8 @@ private:
         /* 機体姿勢の補正 */
         int_y += sc.position.y;
         sc.position.th += int_y * 0.0000001f;
+        if (v_end == 0 && sc.est_v.tra < 10.0f)
+          break;
       }
     }
     if (v_end < 1.0f)
@@ -405,6 +407,7 @@ private:
     const float Ts = 0.001f;
     sd.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
+    float front_fix_x = 0;
     for (float t = 0; t < sd.t_end(); t += 0.001f) {
       sd.update(&s, Ts);
       auto est_q = sc.position;
@@ -413,6 +416,22 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       wall_avoid(0);
       wall_cut(ref.v);
+      /* V90ターン中の前壁補正 */
+      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0009f &&
+          (sd.getShape() == SS_FLV90 || sd.getShape() == SS_FRV90)) {
+        float tof_value =
+            tof.getDistance() - (5 + tof.passedTimeMs()) / 1000.0f * velocity;
+        float fixed_x = field::SegWidthFull - tof_value + 5; /*< 要調整 */
+        if (-20 < fixed_x && fixed_x < 20) {
+          front_fix_x = fixed_x;
+          bz.play(Buzzer::SHORT);
+        }
+      }
+    }
+    /* V90ターン中の前壁補正 */
+    if (front_fix_x != 0) {
+      sc.position +=
+          Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
     }
     sc.set_target(velocity, 0);
     const auto net = sd.get_net_curve();
@@ -424,10 +443,12 @@ private:
     slalom::Trajectory st(shape);
     const float velocity = st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
+    /* ターン前の直線を消化 */
     if (straight > 1.0f) {
       straight_x(straight, rp.max_speed, velocity, rp);
       straight = 0;
     }
+    /* 直線前壁補正 */
     if (isAlong()) {
       if (rp.diag_enabled && reverse == false)
         wall_front_fix(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
@@ -435,9 +456,10 @@ private:
       if (!rp.diag_enabled)
         wall_front_fix(velocity, field::SegWidthFull - st.get_straight_prev());
     }
-    if (isDiag())
-      wall_front_fix(velocity,
-                     field::SegWidthDiag * 2 - st.get_straight_prev());
+    /* 斜め前壁補正 */
+    // if (isDiag())
+    //   wall_front_fix(velocity, field::SegWidthDiag - st.get_straight_prev());
+    /* スラローム */
     trace(st, velocity);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
