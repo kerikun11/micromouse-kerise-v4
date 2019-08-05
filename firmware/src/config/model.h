@@ -26,7 +26,7 @@ static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 
 #if 1
-/* Model */
+/* Original Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
   .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.2517f, 0.09089f),
@@ -39,14 +39,14 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
 /* Trajectory Tracking Gain */
 static constexpr float tt_gain = 7.5f;
 #else
-/* Model */
+/* Copy Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5906, 84.01f), .T1 = ctrl::Polar(0.3235f, 0.1798),
+  .K1 = ctrl::Polar(5906, 49.74f), .T1 = ctrl::Polar(0.3235f, 0.07f),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.001f, 0.1f), .Ki = ctrl::Polar(0.2f, 12.0f),
+  .Kp = ctrl::Polar(0.001f, 0.06f), .Ki = ctrl::Polar(0.16f, 1.0f),
   .Kd = ctrl::Polar(0, 0),
 };
 /* Trajectory Tracking Gain */

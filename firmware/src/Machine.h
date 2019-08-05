@@ -334,6 +334,7 @@ public:
     mt.free();
   }
   static void accel_test() {
+    int dir = ui.waitForSelect(2);
     if (!ui.waitForCover())
       return;
     delay(500);
@@ -366,13 +367,26 @@ public:
     fan.drive(0.4);
     delay(500);
     sc.enable();
-    const float jerk = 500000;
-    const float accel = 6000;
-    const float v_max = 1200;
-    AccelDesigner ad(jerk, accel, 0, v_max, 0, 90 * 8);
+    AccelDesigner ad;
+    if (dir == 0) {
+      const float jerk = 500000;
+      const float accel = 6000;
+      const float v_max = 1200;
+      const float dist = 90 * 8;
+      ad.reset(jerk, accel, 0, v_max, 0, dist);
+    } else {
+      const float jerk = 4800 * M_PI;
+      const float accel = 48 * M_PI;
+      const float v_max = 4 * M_PI;
+      const float dist = 4 * M_PI;
+      ad.reset(jerk, accel, 0, v_max, 0, dist);
+    }
     portTickType xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-      sc.set_target(ad.v(t), 0, ad.a(t), 0);
+      if (dir == 0)
+        sc.set_target(ad.v(t), 0, ad.a(t), 0);
+      else
+        sc.set_target(0, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       if ((int)(t * 1000) % 2 == 0)
         printLog();

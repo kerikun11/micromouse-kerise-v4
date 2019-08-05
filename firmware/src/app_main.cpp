@@ -20,6 +20,9 @@ void setup() {
   Serial.begin(2000000);
   std::cout << std::endl;
   std::cout << "**************** KERISE v4 ****************" << std::endl;
+  uint8_t mac[6];
+  esp_efuse_mac_get_default(mac);
+  std::cout << mac[0] << std::endl;
   Machine::init();
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
@@ -29,9 +32,14 @@ void setup() {
 void loop() { delay(1000); }
 
 void printTask(void *arg) {
+  // Accumulator<float, 100> p[2];
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    // for (int i = 0; i < 2; ++i)
+    //   p[i].push(enc.position(i));
+    // std::cout << p[0][0] - p[0][p[0].size() - 1] << "\t"
+    //           << p[1][0] - p[1][p[0].size() - 1] << std::endl;
     // ref.csv();
     // tof.csv();
     // wd.print();
@@ -289,8 +297,8 @@ void driveTask(void *arg) {
       mr.print();
       break;
     case 14: /* テスト */
-      // Machine::accel_test();
-      Machine::sysid();
+      Machine::accel_test();
+      // Machine::sysid();
       // Machine::position_recovery();
       // slalom_test();
       // traj_test();
