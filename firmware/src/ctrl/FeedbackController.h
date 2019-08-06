@@ -31,11 +31,11 @@ public:
     bd.fbd = G.Kd * (dr - dy);
     bd.fb = bd.fbp + bd.fbi + bd.fbd;
     /* calculate control input value */
-    auto u = bd.ff + bd.fb;
+    bd.u = bd.ff + bd.fb;
     /* integral error */
     e_int += (r - y) * Ts;
     /* complete */
-    return u;
+    return bd.u;
   }
   const struct Model &getModel() const { return M; }
   const struct Gain &getGain() const { return G; }

@@ -422,7 +422,7 @@ private:
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
         float fixed_x =
-            field::SegWidthFull - tof_value + 4; /*< 要調整, 大きく:前壁近く*/
+            field::SegWidthFull - tof_value + 6; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
           bz.play(Buzzer::SHORT);
