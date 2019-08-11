@@ -15,7 +15,7 @@ namespace ctrl {
 
 struct WheelParameter {
 public:
-  float tra;      //< tralation [mm]
+  float tra;      //< translation [mm]
   float rot;      //< rotation [rad]
   float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
 public:

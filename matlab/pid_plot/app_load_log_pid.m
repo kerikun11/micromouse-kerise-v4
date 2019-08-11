@@ -4,24 +4,58 @@
 
 %% cleaning
 clear;
-% close all;
 set(groot, 'DefaultTextInterpreter', 'Latex');
 set(groot, 'DefaultLegendInterpreter', 'Latex');
-set(groot, 'DefaultAxesFontSize', 14);
-set(groot, 'DefaultLineLineWidth', 1.5);
 figindex = 1;
 
-%% Select a Log File
+%% settings
+save_fig = 0;
+
+%% Select a Log File with GUI
+%{
 [filename, pathname] = uigetfile({'*'}, 'Select a Log File');
 fprintf('Log File: %s\n', filename);
+%}
 
-%% Load Data
+%% Select a Log File directly
+%{
+pathname = './data/';
+filename = '190811-140250.tab';
+%}
+
+%% Serial
+% %{
+sl = seriallist;
+portname = sl{2};
+s = serial(portname, 'Baudrate', 2000000);
+s.Timeout = 10;
+
+date_time_str = datestr(datetime('now'), 'yymmdd-HHMMSS');
+pathname = './data/';
+filename = [date_time_str '.tab'];
+[~,~] = mkdir(pathname);
+fileID = fopen([pathname filename], 'w');
+
+fopen(s);
+disp('now waiting for serial input...');
+while 1
+    idn = fscanf(s);
+    s.Timeout = 0.1;
+    if idn == ""; break; end
+    fwrite(fileID, idn);
+end
+fclose(fileID);
+fclose(s);
+delete(s);
+clear s;
+%}
+
+%% Parse Data
 rawdata = dlmread([pathname filename]);
 
-%% Triming and Preprocess
+%% Triming
 rawdata = rawdata';
 % rawdata = rawdata(:, 1:600);
-% rawdata = rawdata(:, 1:1150);
 
 %% extract
 dt = 1e-3;
@@ -103,3 +137,23 @@ title('Rotational Control Input');
 xlabel('Time [ms]');
 ylabel('Control Input');
 legend({'FF', 'FB', 'FB p', 'FB i', 'FF+FB'});
+
+%% save the figure
+if save_fig
+    %%
+    for i = 1 : figindex - 1
+        fig = figure(i);
+        fig.Position(3) = 720; fig.Position(4) = 960;
+        fig.PaperPositionMode = 'auto';
+        fig.PaperSize = [fig.PaperPosition(3) fig.PaperPosition(4)];
+        date_time_str = datestr(datetime('now'), 'yymmdd-HHMMSS');
+        outdir = 'figs/';
+        [~, ~] = mkdir(outdir);
+        warning('off', 'all');
+        filename_without_extension = [outdir filename '-' int2str(i)];
+        print(fig, [filename_without_extension '.pdf'], '-dpdf');
+        print(fig, [filename_without_extension '.png'], '-dpng');
+        savefig([filename_without_extension '.fig']);
+        warning('on', 'all');
+    end
+end

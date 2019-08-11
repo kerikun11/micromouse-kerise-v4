@@ -18,7 +18,8 @@ using namespace MazeLib;
 #define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
-  { Vector(1, 0) }
+  { Vector(8, 8) }
+// { Vector(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
   { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }

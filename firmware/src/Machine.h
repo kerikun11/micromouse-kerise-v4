@@ -369,16 +369,16 @@ public:
     sc.enable();
     AccelDesigner ad;
     if (dir == 0) {
-      const float jerk = 500000;
-      const float accel = 6000;
+      const float jerk = 240000;
+      const float accel = 9000;
       const float v_max = 1200;
       const float dist = 90 * 8;
       ad.reset(jerk, accel, 0, v_max, 0, dist);
     } else {
-      const float jerk = 4800 * M_PI;
+      const float jerk = 2400 * M_PI;
       const float accel = 48 * M_PI;
-      const float v_max = 4 * M_PI;
-      const float dist = 4 * M_PI;
+      const float v_max = 6 * M_PI;
+      const float dist = 2 * M_PI;
       ad.reset(jerk, accel, 0, v_max, 0, dist);
     }
     portTickType xLastWakeTime = xTaskGetTickCount();
