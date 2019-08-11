@@ -367,7 +367,7 @@ private:
   void straight_x(const float distance, const float v_max, const float v_end,
                   const RunParameter &rp) {
     if (distance - sc.position.x > 0) {
-      const float jerk = 500000;
+      const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
       TrajectoryTracker tt(model::tt_gain);
       tt.reset(v_start);
