@@ -152,14 +152,13 @@ protected:
     }
     if (newState == prevState)
       return;
-    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
-        newState != SearchAlgorithm::IMPOSSIBLE) {
-      bz.play(Buzzer::COMPLETE);
-    }
-    if (prevState == SearchAlgorithm::GOING_TO_GOAL) {
+    if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL) {
       bz.play(Buzzer::SUCCESSFUL);
     }
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
+      bz.play(Buzzer::COMPLETE);
+    }
+    if (newState == SearchAlgorithm::REACHED_START) {
       bz.play(Buzzer::COMPLETE);
     }
   }
