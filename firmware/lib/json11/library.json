@@ -1,0 +1,22 @@
+{
+    "name": "json11",
+    "description": "A tiny JSON library for C++11.",
+    "keywords": "json",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/dropbox/json11"
+    },
+    "version": "1.0.0",
+    "license": "MIT",
+    "build": {
+        "flags": [
+            "-I json11"
+        ],
+        "srcFilter": "+<json11/*> -<json11/test.cpp>"
+    },
+    "export": {
+        "exclude": [
+            "test.cpp"
+        ]
+    }
+}

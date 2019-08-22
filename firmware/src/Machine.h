@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
+#include <json11.hpp>
 
 struct State {
   int try_count = 0;             /**< 走行回数 */
