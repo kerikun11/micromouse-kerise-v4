@@ -19,7 +19,7 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
   std::cout << std::endl;
-  std::cout << "**************** KERISE v4 ****************" << std::endl;
+  std::cout << "******** KERISE ********" << std::endl;
   uint8_t mac[6];
   esp_efuse_mac_get_default(mac);
   std::cout << mac[0] << std::endl;

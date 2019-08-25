@@ -64,7 +64,8 @@ public:
   ~SearchRun() {}
   void enable() {
     deleteTask();
-    offset = Position(field::SegWidthFull / 2, field::SegWidthFull / 2, 0);
+    offset = Position(field::SegWidthFull / 2 + model::CenterShift,
+                      field::SegWidthFull / 2, 0);
     isRunningFlag = true;
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
@@ -198,8 +199,8 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
-        const float Kp = 120.0f;
-        const float Ki = 0.5f;
+        const float Kp = model::wall_attach_gain_Kp;
+        const float Ki = model::wall_attach_gain_Ki;
         const float sat_integral = 1.0f;
         const float end = 0.05f;
         WheelParameter wp;
@@ -239,7 +240,7 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = 0.01f;
+      const float gain = 0.006f;
       const float wall_diff_thr = 100;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
@@ -390,13 +391,9 @@ private:
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
         int_y += sc.position.y;
-        sc.position.th += int_y * 0.0000001f;
-        if (v_end == 0 && sc.est_v.tra < 10.0f)
-          break;
+        sc.position.th += int_y * 0.00000001f;
       }
     }
-    if (v_end < 1.0f)
-      sc.set_target(0, 0);
     sc.position.x -= distance; //< 移動した量だけ位置を更新
     offset += Position(distance, 0, 0).rotate(offset.th);
   }
@@ -407,7 +404,9 @@ private:
     const float Ts = 0.001f;
     sd.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
+#if SEARCH_WALL_FRONT_ENABLED
     float front_fix_x = 0;
+#endif
     for (float t = 0; t < sd.t_end(); t += 0.001f) {
       sd.update(&s, Ts);
       auto est_q = sc.position;
@@ -416,8 +415,9 @@ private:
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       wall_avoid(0);
       wall_cut(ref.v);
+#if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */
-      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0009f &&
+      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0006f &&
           (sd.getShape() == SS_FLV90 || sd.getShape() == SS_FRV90)) {
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
@@ -428,12 +428,14 @@ private:
           bz.play(Buzzer::SHORT);
         }
       }
+#endif
     }
+#if SEARCH_WALL_FRONT_ENABLED
     /* V90ターン中の前壁補正 */
-    if (front_fix_x != 0) {
+    if (front_fix_x != 0)
       sc.position +=
           Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
-    }
+#endif
     sc.set_target(velocity, 0);
     const auto net = sd.get_net_curve();
     sc.position = (sc.position - net).rotate(-net.th);
@@ -608,13 +610,17 @@ private:
     const float v_max = rp.max_speed;
     switch (action) {
     case RobotBase::Action::START_STEP:
-      sc.position.clear();
       imu.angle = 0;
-      offset = Position(field::SegWidthFull / 2,
-                        model::TailLength + field::WallThickness / 2, M_PI / 2);
-      straight_x(field::SegWidthFull - model::TailLength -
-                     field::WallThickness / 2,
-                 velocity, velocity, rp);
+      sc.position.clear();
+      sc.position.x = model::TailLength + field::WallThickness / 2;
+      offset = Position(field::SegWidthFull / 2, 0, M_PI / 2);
+      straight_x(field::SegWidthFull, velocity, velocity, rp);
+      // offset = Position(field::SegWidthFull / 2,
+      //                   model::TailLength + field::WallThickness / 2, M_PI /
+      //                   2);
+      // straight_x(field::SegWidthFull - model::TailLength -
+      //                field::WallThickness / 2,
+      //            velocity, velocity, rp);
       break;
     case RobotBase::Action::START_INIT:
       start_init();
@@ -677,7 +683,7 @@ private:
     sc.enable(); //< 速度コントローラ始動
     /* 初期位置を設定 */
     offset = Position(field::SegWidthFull / 2,
-                      field::WallThickness / 2 + model::TailLength, M_PI / 2);
+                      model::TailLength + field::WallThickness / 2, M_PI / 2);
     sc.position.clear();
     /* 最初の直線を追加 */
     float straight =
