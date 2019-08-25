@@ -6,6 +6,8 @@
 
 #include "spi.h"
 
+#include "config/model.h"
+
 struct MotionParameter {
   float x, y, z;
   MotionParameter(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z) {}
@@ -166,6 +168,8 @@ private:
   }
 };
 
+#if KERISE_SELECT == 4
+
 #define IMU_STACK_SIZE 2048
 #define IMU_TASK_PRIORITY 5
 
@@ -279,3 +283,92 @@ private:
     }
   }
 };
+
+#elif KERISE_SELECT == 5
+
+#define IMU_STACK_SIZE 2048
+#define IMU_TASK_PRIORITY 5
+
+class IMU {
+public:
+  static constexpr float Ts = 0.001f;
+
+public:
+  IMU() {
+    sampling_end_semaphore = xSemaphoreCreateBinary();
+    calibration_start_semaphore = xSemaphoreCreateBinary();
+    calibration_end_semaphore = xSemaphoreCreateBinary();
+  }
+  bool begin(spi_host_device_t spi_host, gpio_num_t pin_cs) {
+    if (!icm.begin(spi_host, pin_cs)) {
+      log_e("IMU begin failed :(");
+      return false;
+    }
+    xTaskCreate([](void *obj) { static_cast<IMU *>(obj)->task(); }, "IMU",
+                IMU_STACK_SIZE, this, IMU_TASK_PRIORITY, NULL);
+    return true;
+  }
+  void print() {
+    log_d("Rotation angle:\t%f\taccel:\t%f", angle, angular_accel);
+    log_d("Gyro\tx:\t%f\ty:\t%f\tz:\t%f", gyro.x, gyro.y, gyro.z);
+    log_d("Accel\tx:\t%f\ty:\t%f\tz:\t%f", accel.x, accel.y, accel.z);
+  }
+  void csv() { printf("%.1f,%.1f,%.1f\n", accel.x, accel.y, accel.z); }
+  void calibration(bool waitForEnd = true) {
+    // 前のフラグが残っていたら回収
+    xSemaphoreTake(calibration_end_semaphore, 0);
+    xSemaphoreGive(calibration_start_semaphore);
+    if (waitForEnd)
+      calibrationWait();
+  }
+  void calibrationWait() {
+    xSemaphoreTake(calibration_end_semaphore, portMAX_DELAY);
+  }
+  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+    xSemaphoreTake(sampling_end_semaphore, xBlockTime);
+  }
+
+public:
+  MotionParameter gyro, accel;
+  float angle, angular_accel;
+
+private:
+  SemaphoreHandle_t
+      sampling_end_semaphore; //< サンプリング終了を知らせるセマフォ
+  SemaphoreHandle_t
+      calibration_start_semaphore; //< キャリブレーション要求を知らせるセマフォ
+  SemaphoreHandle_t
+      calibration_end_semaphore; //< キャリブレーション終了を知らせるセマフォ
+  ICM20602 icm;
+
+  void update() {
+    icm.update();
+
+    gyro.x = icm.gyro.x;
+    gyro.y = icm.gyro.y;
+    gyro.z = icm.gyro.z;
+    accel.x = icm.accel.x;
+    accel.y = icm.accel.y;
+    accel.z = icm.accel.z;
+
+    angle += gyro.z * Ts;
+  }
+  void task() {
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      xLastWakeTime = xTaskGetTickCount();
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
+      update();                               //< データの更新
+      xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
+
+      // キャリブレーションが要求されていたら行う
+      if (xSemaphoreTake(calibration_start_semaphore, 0) == pdTRUE) {
+        icm.calibration();
+        // キャリブレーション終了を知らせるセマフォ
+        xSemaphoreGive(calibration_end_semaphore);
+      }
+    }
+  }
+};
+
+#endif

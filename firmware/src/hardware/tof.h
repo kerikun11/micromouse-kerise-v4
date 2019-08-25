@@ -3,10 +3,10 @@
 #include "VL6180X.h"
 #include "i2c.h"
 
+#include "config/model.h"
+
 #define TOF_TASK_PRIORITY 1
 #define TOF_TASK_STACK_SIZE 4096
-
-#define TOF_DISTANCE_OFFSET (26)
 
 class ToF {
 public:
@@ -62,7 +62,7 @@ private:
       }
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
       sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-      distance = range + TOF_DISTANCE_OFFSET;
+      distance = range + model::tof_dist_offset;
       if (range != 255) {
         passed_ms = 0;
       }

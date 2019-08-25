@@ -3,15 +3,16 @@
 #include "global.h"
 
 #include <Arduino.h>
-#include <SPIFFS.h>
+
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
 #define WALL_DETECTOR_TASK_PRIORITY 4
 #define WALL_DETECTOR_STACK_SIZE 4096
 
-#define WALL_DETECTOR_BACKUP_PATH "/WallDetector.bin"
+#define WALL_DETECTOR_BACKUP_PATH "/spiffs/WallDetector.bin"
 
 #define WALL_DETECTOR_THRESHOLD_FRONT 120
 #define WALL_DETECTOR_THRESHOLD_SIDE -20
@@ -73,28 +74,25 @@ public:
     return true;
   }
   bool backup() {
-    File file = SPIFFS.open(WALL_DETECTOR_BACKUP_PATH, FILE_WRITE);
-    if (!file) {
+    std::ofstream of(WALL_DETECTOR_BACKUP_PATH, std::ios::binary);
+    if (of.fail()) {
       log_e("Can't open file!");
       return false;
     }
-    file.write((const uint8_t *)(&(wall_ref)), sizeof(WallDetector::WallValue));
+    of.write((const char *)(&(wall_ref)), sizeof(WallDetector::WallValue));
     return true;
   }
   bool restore() {
-    File file = SPIFFS.open(WALL_DETECTOR_BACKUP_PATH, FILE_READ);
-    if (!file) {
+    std::ifstream f(WALL_DETECTOR_BACKUP_PATH, std::ios::binary);
+    if (f.fail()) {
       log_e("Can't open file!");
       return false;
     }
-    if (file.available() == sizeof(WallDetector::WallValue)) {
-      uint8_t data[sizeof(WallDetector::WallValue)];
-      file.read(data, sizeof(WallDetector::WallValue));
-      memcpy((uint8_t *)(&(wall_ref)), data, sizeof(WallDetector::WallValue));
-    } else {
+    if (f.eof()) {
       log_e("File size is invalid!");
       return false;
     }
+    f.read((char *)(&wall_ref), sizeof(WallDetector::WallValue));
     log_i("WallDetector Restore:\t%.1f\t%.1f\t%.1f\t%.1f", wall_ref.side[0],
           wall_ref.front[0], wall_ref.front[1], wall_ref.side[1]);
     return true;

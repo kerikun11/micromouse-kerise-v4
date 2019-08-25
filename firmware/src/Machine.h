@@ -4,7 +4,7 @@
 
 #include "global.h"
 
-#include "config.h"
+#include "config/io_mapping.h"
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -46,10 +46,17 @@ public:
     if (!SPI::busInit(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
                       CONFIG_SPI_MOSI_PIN, CONFIG_SPI_DMA_CHAIN))
       bz.play(Buzzer::ERROR);
+#if KERISE_SELECT == 4
     if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);
     if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN))
       bz.play(Buzzer::ERROR);
+#elif KERISE_SELECT == 5
+    if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PIN))
+      bz.play(Buzzer::ERROR);
+    if (!enc.begin(MA730_SPI_HOST, MA730_CS_PINS))
+      bz.play(Buzzer::ERROR);
+#endif
     if (!ref.begin())
       bz.play(Buzzer::ERROR);
     if (!tof.begin())
@@ -93,7 +100,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    delay(3000);
+    delay(2000);
     mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {

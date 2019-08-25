@@ -8,7 +8,6 @@
 #include "RobotBase.h"
 #include "TaskBase.h"
 #include <Arduino.h>
-#include <SPIFFS.h>
 
 using namespace MazeLib;
 
@@ -36,7 +35,7 @@ using namespace MazeLib;
         Vector(21, 22),                                                        \
   }
 #endif
-#define MAZE_BACKUP_PATH "/maze_backup.bin"
+#define MAZE_BACKUP_PATH "/spiffs/maze_backup.bin"
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
@@ -62,38 +61,37 @@ public:
   void set_goal(const std::vector<Vector> &goal) { replaceGoals(goal); }
   bool backup() {
     {
-      File file = SPIFFS.open(MAZE_BACKUP_PATH, FILE_READ);
-      if (backupCounter < file.size() / sizeof(WallLog)) {
-        file.close();
-        SPIFFS.remove(MAZE_BACKUP_PATH);
-      }
+      std::ifstream f(MAZE_BACKUP_PATH, std::ifstream::ate);
+      const auto size = static_cast<size_t>(f.tellg());
+      if (backupCounter < size / sizeof(WallLog))
+        std::remove(MAZE_BACKUP_PATH);
     }
-    File file = SPIFFS.open(MAZE_BACKUP_PATH, FILE_APPEND);
-    if (!file) {
-      log_e("Can't open file!");
+    std::ofstream f(MAZE_BACKUP_PATH, std::ios::binary | std::ios::app);
+    if (f.fail()) {
+      log_e("can't open file!: ", MAZE_BACKUP_PATH);
       bz.play(Buzzer::ERROR);
       return false;
     }
     const auto &wallLog = getMaze().getWallLogs();
     while (backupCounter < wallLog.size()) {
       const auto &wl = wallLog[backupCounter];
-      file.write((uint8_t *)&wl, sizeof(wl));
+      f.write((const char *)&wl, sizeof(wl));
       backupCounter++;
     }
-    // bz.play(Buzzer::MAZE_BACKUP);
     return true;
   }
   bool restore() {
-    File file = SPIFFS.open(MAZE_BACKUP_PATH, FILE_READ);
-    if (!file) {
-      log_e("Can't open file!");
+    std::ifstream f(MAZE_BACKUP_PATH, std::ios::binary);
+    if (f.fail()) {
+      log_e("can't open file!: ", MAZE_BACKUP_PATH);
+      bz.play(Buzzer::ERROR);
       return false;
     }
     maze.reset();
     backupCounter = 0;
-    while (file.available()) {
+    while (!f.eof()) {
       WallLog wl;
-      file.read((uint8_t *)&wl, sizeof(WallLog));
+      f.read((char *)(&wl), sizeof(WallLog));
       Vector v = Vector(wl.x, wl.y);
       Dir d = Dir(wl.d);
       bool b = wl.b;
