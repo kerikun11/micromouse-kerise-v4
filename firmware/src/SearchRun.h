@@ -116,7 +116,7 @@ public:
     float min_var = 999;
     int min_i = 0;
     for (int i = 0; i < table_size; ++i) {
-      const int window = table_size / 12;
+      const int window = table_size / 6;
       int sum = 0;
       for (int j = -window / 2; j < window / 2; ++j)
         sum += table[(table_size + i + j) % table_size];
@@ -132,32 +132,11 @@ public:
     sc.position.clear();
     turn(2 * M_PI * min_i / table_size);
     sc.position.clear();
-#if 0
-    /* 最小距離を探す */
-    float min_dist = 999;
-    int min_index = 0;
-    for (int i = 0; i < table_size; ++i) {
-      if (min_dist > table[i]) {
-        min_dist = table[i];
-        min_index = i;
-      }
-    }
-    sc.position.clear();
-    turn(2 * M_PI * min_index / table_size);
-    sc.position.clear();
-#endif
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
-    wall_attach(true);
-    delay(50);
-#if 0
-/* 単なる回転 */
-    for (int i = 0; i < 4; ++i) {
-      wall_attach(true);
-      turn(M_PI / 2);
-    }
-#endif
+    // wall_attach(true);
+    delay(50); //< ToFが有効化するのを待つ
     while (1) {
       if (!wd.wall[2])
         break;
@@ -202,7 +181,7 @@ private:
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
         const float sat_integral = 1.0f;
-        const float end = 0.05f;
+        const float end = 0.1f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
@@ -215,8 +194,8 @@ private:
             end)
           break;
         wp.wheel2pole();
-        const float sat_tra = 180.0f;   //< [mm/s]
-        const float sat_rot = M_PI / 2; //< [rad/s]
+        const float sat_tra = 120.0f;   //< [mm/s]
+        const float sat_rot = M_PI / 4; //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
@@ -456,7 +435,7 @@ private:
       if (rp.diag_enabled && reverse == false)
         wall_front_fix(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
                                      st.get_straight_prev());
-      if (!rp.diag_enabled)
+      if (shape == SS_FLS90 || shape == SS_FRS90)
         wall_front_fix(velocity, field::SegWidthFull - st.get_straight_prev());
     }
     /* 斜め前壁補正 */

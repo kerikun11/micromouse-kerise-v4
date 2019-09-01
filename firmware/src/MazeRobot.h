@@ -155,7 +155,7 @@ protected:
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
       bz.play(Buzzer::COMPLETE);
     }
-    if (newState == SearchAlgorithm::REACHED_START) {
+    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
       bz.play(Buzzer::COMPLETE);
     }
   }
@@ -223,8 +223,8 @@ protected:
   void task() override {
     /* 自己位置同定 */
     if (isPositionIdentifying) {
-      readyToStartWait();
       isPositionIdentifying = false;
+      readyToStartWait();
       if (!sr.positionRecovery()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -235,7 +235,7 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
     }
-    /* 探索 */
+    /* 探索 (強制探索モードまたは経路がひとつもない場合) */
     if (isForceSearch || !calcShortestDirs(true)) {
       maze.resetLastWall(6);  //< クラッシュ後を想定して少し消す
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
