@@ -308,7 +308,7 @@ private:
         if (fixed_x > 10)
           fixed_x = 10;
         sc.position.x = fixed_x;
-        bz.play(Buzzer::SHORT);
+        // bz.play(Buzzer::SHORT);
       }
     }
 #endif
@@ -404,7 +404,7 @@ private:
             field::SegWidthFull - tof_value + 6; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
-          bz.play(Buzzer::SHORT);
+          // bz.play(Buzzer::SHORT);
         }
       }
 #endif
