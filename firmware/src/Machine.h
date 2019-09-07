@@ -46,7 +46,7 @@ public:
     if (!SPI::busInit(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
                       CONFIG_SPI_MOSI_PIN, CONFIG_SPI_DMA_CHAIN))
       bz.play(Buzzer::ERROR);
-#if KERISE_SELECT == 4
+#if KERISE_SELECT == 4 || KERISE_SELECT == 3
     if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);
     if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN))

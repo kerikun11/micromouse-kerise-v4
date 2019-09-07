@@ -33,17 +33,19 @@ s.Timeout = 10;
 date_time_str = datestr(datetime('now'), 'yymmdd-HHMMSS');
 pathname = './data/';
 filename = [date_time_str '.tab'];
-[~,~] = mkdir(pathname);
+[~, ~] = mkdir(pathname);
 fileID = fopen([pathname filename], 'w');
 
 fopen(s);
 disp('now waiting for serial input...');
+
 while 1
     idn = fscanf(s);
     s.Timeout = 0.1;
     if idn == ""; break; end
     fwrite(fileID, idn);
 end
+
 fclose(fileID);
 fclose(s);
 delete(s);
@@ -69,24 +71,24 @@ u_rot = rawdata(14:18, :);
 
 % log format
 %{
-        sc.ref_v.tra,
-        sc.est_v.tra,
-        sc.ref_a.tra,
-        sc.est_a.tra,
-        sc.ff.tra,
-        sc.fb.tra,
-        sc.fbp.tra,
-        sc.fbi.tra,
-        sc.pwm_value.tra,
-        sc.ref_v.rot,
-        sc.est_v.rot,
-        sc.ref_a.rot,
-        sc.est_a.rot,
-        sc.ff.rot,
-        sc.fb.rot,
-        sc.fbp.rot,
-        sc.fbi.rot,
-        sc.pwm_value.rot,
+sc.ref_v.tra,
+sc.est_v.tra,
+sc.ref_a.tra,
+sc.est_a.tra,
+sc.ff.tra,
+sc.fb.tra,
+sc.fbp.tra,
+sc.fbi.tra,
+sc.pwm_value.tra,
+sc.ref_v.rot,
+sc.est_v.rot,
+sc.ref_a.rot,
+sc.est_a.rot,
+sc.ff.rot,
+sc.fb.rot,
+sc.fbp.rot,
+sc.fbi.rot,
+sc.pwm_value.rot,
 %}
 
 %% Visualization
@@ -141,7 +143,7 @@ legend({'FF', 'FB', 'FB p', 'FB i', 'FF+FB'});
 %% save the figure
 if save_fig
     %%
-    for i = 1 : figindex - 1
+    for i = 1:figindex - 1
         fig = figure(i);
         fig.Position(3) = 720; fig.Position(4) = 960;
         fig.PaperPositionMode = 'auto';
@@ -156,4 +158,5 @@ if save_fig
         savefig([filename_without_extension '.fig']);
         warning('on', 'all');
     end
+
 end

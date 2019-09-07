@@ -6,7 +6,7 @@
 
 #include "config/model.h"
 
-#if KERISE_SELECT == 4
+#if KERISE_SELECT == 4 || KERISE_SELECT == 3
 
 #define ENCODER_STACK_SIZE 4096
 #define ENCODER_PRIORITY 5
@@ -140,7 +140,6 @@ public:
     gpio_set_level(pin_cs, 1);
     // ESP-IDF SPI device initialization
     static spi_device_interface_config_t dev_cfg;
-    // dev_cfg.command_bits = 1;
     dev_cfg.command_bits = 0;
     dev_cfg.address_bits = 0;
     dev_cfg.dummy_bits = 0;
@@ -148,22 +147,13 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 10000000;
+    dev_cfg.clock_speed_hz = 20000000;
     dev_cfg.input_delay_ns = 0;
-    // dev_cfg.spics_io_num = pin_cs;
-    dev_cfg.spics_io_num = -1;
+    dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
     dev_cfg.queue_size = 1;
-    // dev_cfg.pre_cb = NULL;
-    // dev_cfg.post_cb = NULL;
-    dev_cfg.pre_cb = [](spi_transaction_t *trans) {
-      auto pin_cs = static_cast<MA730 *>(trans->user)->pin_cs;
-      gpio_set_level(pin_cs, 0);
-    };
-    dev_cfg.post_cb = [](spi_transaction_t *trans) {
-      auto pin_cs = static_cast<MA730 *>(trans->user)->pin_cs;
-      gpio_set_level(pin_cs, 1);
-    };
+    dev_cfg.pre_cb = NULL;
+    dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &encoder_spi));
     return true;
   }
@@ -179,14 +169,14 @@ public:
     static spi_transaction_t tx;
     tx.flags = SPI_TRANS_USE_TXDATA;
     tx.user = this;
-    tx.tx_data[0] = 0xFF;
-    tx.tx_data[1] = 0xFF;
+    tx.tx_data[0] = 0x00;
+    tx.tx_data[1] = 0x00;
     tx.rx_buffer = rxbuf;
     tx.length = 16;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< send command
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< read data
 
-    pulses = ((uint16_t)(0x3F & (rxbuf[0])) << 8) | rxbuf[1];
+    pulses = ((uint16_t)rxbuf[0] << 6) | (rxbuf[1] >> 2);
     if (pulses > pulses_prev + MA730_PULSES / 2) {
       pulses_ovf--;
     } else if (pulses < pulses_prev - MA730_PULSES / 2) {
@@ -252,10 +242,8 @@ public:
   }
   void print() { log_d("Encoder L:\t%f\tR:\t%f\n", position(0), position(1)); }
   void csv() {
-    //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES,
-    //      getRaw(0), getRaw(1)); printf("0,%d,%d,%d,%d\n", ENCODER_PULSES,
-    //      -ENCODER_PULSES, getPulses(0), getPulses(1));
-    printf("0,%f,%f\n", position(0), position(1));
+    printf("0,%d,%d,%d,%d\n", MA730::MA730_PULSES, -MA730::MA730_PULSES,
+           getRaw(0), getRaw(1));
   }
   void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_end_semaphore, xBlockTime);

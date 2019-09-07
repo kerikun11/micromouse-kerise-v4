@@ -168,7 +168,7 @@ private:
   }
 };
 
-#if KERISE_SELECT == 4
+#if KERISE_SELECT == 4 || KERISE_SELECT == 3
 
 #define IMU_STACK_SIZE 2048
 #define IMU_TASK_PRIORITY 5

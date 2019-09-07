@@ -121,7 +121,8 @@ private:
       enc_v.wheel2pole();
       /* calculate estimated velocity value with complementary filter */
       Polar noisy_v = Polar(enc_v.tra, imu.gyro.z);
-      Polar alpha = Polar(0.75f, 0.0f);
+      // Polar alpha = Polar(0.9f, 0.0f);
+      Polar alpha = model::alpha;
       est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
       /* estimated acceleration */
       est_a = accel[0];
