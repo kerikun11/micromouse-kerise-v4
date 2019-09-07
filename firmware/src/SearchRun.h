@@ -38,7 +38,7 @@ public:
 
   public:
     const float cg_gain = 1.05f;
-    const float ms_gain = 1.2f;
+    const float ms_gain = 1.21f;
     const float ac_gain = 1.1f;
     static float getCurveGains(const int value) {
       float vals_p[] = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
@@ -304,7 +304,7 @@ private:
       /* 壁までの距離を推定 */
       float value =
           tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
-      // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
+      value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-20 < fixed_x && fixed_x < 20) {
         if (fixed_x > 5) {

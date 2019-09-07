@@ -75,6 +75,8 @@ public:
       return;
     }
     if (mr.isComplete())
+      bz.play(Buzzer::SUCCESSFUL);
+    else if (mr.calcShortestDirections(true))
       bz.play(Buzzer::MAZE_RESTORE);
     else
       bz.play(Buzzer::MAZE_BACKUP);
