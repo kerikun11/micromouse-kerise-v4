@@ -17,22 +17,33 @@ using namespace MazeLib;
 #define GOAL 3
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
-  { Vector(1, 0) }
+  { MazeLib::Position(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
-  { Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10) }
+  {                                                                            \
+    MazeLib::Position(6, 9), MazeLib::Position(6, 10),                         \
+        MazeLib::Position(7, 9), MazeLib::Position(7, 10),                     \
+  }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
-  { Vector(3, 3), Vector(4, 4), Vector(4, 3), Vector(3, 4) }
+  {                                                                            \
+    MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
+        MazeLib::Position(3, 4),                                               \
+  }
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
-  { Vector(7, 0), Vector(8, 0), Vector(7, 1), Vector(8, 1) }
+  {                                                                            \
+    MazeLib::Position(7, 0), MazeLib::Position(8, 0), MazeLib::Position(7, 1), \
+        MazeLib::Position(8, 1),                                               \
+  }
 #elif GOAL == 5
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    Vector(19, 20), Vector(19, 21), Vector(19, 22), Vector(20, 20),            \
-        Vector(20, 21), Vector(20, 22), Vector(21, 20), Vector(21, 21),        \
-        Vector(21, 22),                                                        \
+    MazeLib::Position(19, 20), MazeLib::Position(19, 21),                      \
+        MazeLib::Position(19, 22), MazeLib::Position(20, 20),                  \
+        MazeLib::Position(20, 21), MazeLib::Position(20, 22),                  \
+        MazeLib::Position(21, 20), MazeLib::Position(21, 21),                  \
+        MazeLib::Position(21, 22),                                             \
   }
 #endif
 #define MAZE_BACKUP_PATH "/spiffs/maze_backup.bin"
@@ -58,7 +69,9 @@ public:
     printPath();
   }
   bool isRunning() { return isRunningFlag; }
-  void set_goal(const std::vector<Vector> &goal) { replaceGoals(goal); }
+  void set_goal(const std::vector<MazeLib::Position> &goal) {
+    replaceGoals(goal);
+  }
   bool backup() {
     {
       std::ifstream f(MAZE_BACKUP_PATH, std::ifstream::ate);
@@ -92,10 +105,8 @@ public:
     while (!f.eof()) {
       WallLog wl;
       f.read((char *)(&wl), sizeof(WallLog));
-      Vector v = Vector(wl.x, wl.y);
-      Dir d = Dir(wl.d);
-      bool b = wl.b;
-      maze.updateWall(v, d, b);
+      MazeLib::Position v = MazeLib::Position(wl.x, wl.y);
+      maze.updateWall(v, wl.d, wl.b);
       backupCounter++;
     }
     return true;
@@ -119,11 +130,10 @@ protected:
   void queueAction(const Action action) override {
     return sr.set_action(action);
   }
-  void findWall(bool &left, bool &front, bool &right, bool &back) override {
+  void senseWalls(bool &left, bool &front, bool &right) override {
     left = wd.wall[0];
     right = wd.wall[1];
     front = wd.wall[2];
-    back = false;
     bz.play(Buzzer::SHORT);
 #if 0
     /* 前1区画先の壁を読める場合 */
@@ -139,11 +149,12 @@ protected:
     imu.calibration();
     enc.clearOffset();
   }
-  void calcNextDirsPreCallback() override {
+  void calcNextDirectionsPreCallback() override {
     prevIsForceGoingToGoal = isForceGoingToGoal;
   }
-  void calcNextDirsPostCallback(SearchAlgorithm::State prevState,
-                                SearchAlgorithm::State newState) override {
+  void
+  calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
+                                 SearchAlgorithm::State newState) override {
     if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
       bz.play(Buzzer::CONFIRM);
     }
@@ -162,26 +173,26 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
   bool fastRun() {
-    if (!calcShortestDirs(sr.rp_fast.diag_enabled)) {
+    if (!calcShortestDirections(sr.rp_fast.diag_enabled)) {
       printf("Couldn't solve the maze!\n");
       bz.play(Buzzer::ERROR);
       return false;
     }
-    auto shortestDirs = getShortestDirs();
+    auto shortestDirs = getShortestDirections();
     shortestDirs.erase(shortestDirs.begin()); /*< 最初の直線を除去 */
     std::string path;
-    Dir d = Dir::North;
-    Vector v(0, 1);
-    for (auto nextDir : shortestDirs) {
+    Direction d = Direction::North;
+    MazeLib::Position v(0, 1);
+    for (const auto nextDir : shortestDirs) {
       v = v.next(nextDir);
-      switch (Dir(nextDir - d)) {
-      case Dir::Front:
+      switch (Direction(nextDir - d)) {
+      case Direction::Front:
         path += MazeLib::RobotBase::Action::ST_FULL;
         break;
-      case Dir::Left:
+      case Direction::Left:
         path += MazeLib::RobotBase::Action::TURN_L;
         break;
-      case Dir::Right:
+      case Direction::Right:
         path += MazeLib::RobotBase::Action::TURN_R;
         break;
       default:
@@ -236,7 +247,7 @@ protected:
       bz.play(Buzzer::COMPLETE);
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
-    if (isForceSearch || !calcShortestDirs(true)) {
+    if (isForceSearch || !calcShortestDirections(true)) {
       maze.resetLastWall(6);  //< クラッシュ後を想定して少し消す
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);

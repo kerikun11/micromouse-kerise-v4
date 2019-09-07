@@ -43,7 +43,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(0, 0),
 };
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 20.0f;
+static constexpr float tt_gain = 15.0f;
 
 #elif KERISE_SELECT == 5
 /* KERISE v5 */

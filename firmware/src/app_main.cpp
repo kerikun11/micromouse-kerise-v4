@@ -46,7 +46,7 @@ void printTask(void *arg) {
     // wd.printDiff();
     // wd.csv();
     // tof.print();
-    // vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
   }
 }
 
@@ -79,6 +79,8 @@ void driveTask(void *arg) {
         break;
       sr.rp_search.diag_enabled = value & 0x01;
       sr.rp_fast.diag_enabled = value & 0x02;
+      sr.rp_search.front_wall_fix_enabled = value & 0x04;
+      sr.rp_fast.front_wall_fix_enabled = value & 0x04;
     }
       bz.play(Buzzer::SUCCESSFUL);
       break;

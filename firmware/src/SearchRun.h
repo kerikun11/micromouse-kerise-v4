@@ -32,8 +32,9 @@ public:
     float curve_gain = 1.0;
     float max_speed = 600;
     float accel = 4800;
-    float fan_duty = 0.4f;
+    float fan_duty = 0.3f;
     bool diag_enabled = true;
+    bool front_wall_fix_enabled = true;
 
   public:
     const float cg_gain = 1.05f;
@@ -64,8 +65,8 @@ public:
   ~SearchRun() {}
   void enable() {
     deleteTask();
-    offset = Position(field::SegWidthFull / 2 + model::CenterShift,
-                      field::SegWidthFull / 2, 0);
+    offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
+                            field::SegWidthFull / 2, 0);
     isRunningFlag = true;
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
@@ -150,7 +151,7 @@ public:
 private:
   std::queue<enum RobotBase::Action> q;
   bool isRunningFlag = false;
-  Position offset;
+  ctrl::Position offset;
   std::string path;
   bool prev_wall[2];
 
@@ -297,16 +298,19 @@ private:
     }
 #endif
   }
-  void wall_front_fix(const float velocity, const float dist_to_wall) {
+  void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
-    if (tof.isValid()) {
+    if (rp.front_wall_fix_enabled && tof.isValid()) {
       /* 壁までの距離を推定 */
-      float value = tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
+      float value =
+          tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
       // value = value / std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-20 < fixed_x && fixed_x < 20) {
-        if (fixed_x > 10)
-          fixed_x = 10;
+        if (fixed_x > 5) {
+          fixed_x = 5;
+          // bz.play(Buzzer::SHORT);
+        }
         sc.position.x = fixed_x;
         // bz.play(Buzzer::SHORT);
       }
@@ -342,7 +346,7 @@ private:
     sc.set_target(0, 0);
     sc.position.th -= angle; //< 移動した量だけ位置を更新
     sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
-    offset += Position(0, 0, angle).rotate(offset.th);
+    offset += ctrl::Position(0, 0, angle).rotate(offset.th);
   }
   void straight_x(const float distance, const float v_max, const float v_end,
                   const RunParameter &rp) {
@@ -357,10 +361,10 @@ private:
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; t < ad.t_end(); t += 0.001f) {
         auto est_q = sc.position;
-        auto ref_q = Position(ad.x(t), 0);
-        auto ref_dq = Position(ad.v(t), 0);
-        auto ref_ddq = Position(ad.a(t), 0);
-        auto ref_dddq = Position(ad.j(t), 0);
+        auto ref_q = ctrl::Position(ad.x(t), 0);
+        auto ref_dq = ctrl::Position(ad.v(t), 0);
+        auto ref_ddq = ctrl::Position(ad.a(t), 0);
+        auto ref_dddq = ctrl::Position(ad.j(t), 0);
         auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq,
                              ref_dddq);
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
@@ -374,7 +378,7 @@ private:
       }
     }
     sc.position.x -= distance; //< 移動した量だけ位置を更新
-    offset += Position(distance, 0, 0).rotate(offset.th);
+    offset += ctrl::Position(distance, 0, 0).rotate(offset.th);
   }
   void trace(slalom::Trajectory &sd, const float velocity) {
     TrajectoryTracker tt(model::tt_gain);
@@ -386,6 +390,7 @@ private:
 #if SEARCH_WALL_FRONT_ENABLED
     float front_fix_x = 0;
 #endif
+    s.q.x = sc.position.x; //*< 既に移動した分を反映 */
     for (float t = 0; t < sd.t_end(); t += 0.001f) {
       sd.update(&s, Ts);
       auto est_q = sc.position;
@@ -413,7 +418,7 @@ private:
     /* V90ターン中の前壁補正 */
     if (front_fix_x != 0)
       sc.position +=
-          Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
+          ctrl::Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
 #endif
     sc.set_target(velocity, 0);
     const auto net = sd.get_net_curve();
@@ -433,10 +438,10 @@ private:
     /* 直線前壁補正 */
     if (isAlong()) {
       if (rp.diag_enabled && reverse == false)
-        wall_front_fix(velocity, field::SegWidthFull + field::SegWidthFull / 2 -
-                                     st.get_straight_prev());
+        wall_front_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
+                               st.get_straight_prev());
       if (shape == SS_FLS90 || shape == SS_FRS90)
-        wall_front_fix(velocity, field::SegWidthFull - st.get_straight_prev());
+        wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
     }
     /* 斜め前壁補正 */
     // if (isDiag())
@@ -508,10 +513,10 @@ private:
       if (v > 0)
         v -= 6;
       xLastWakeTime = xTaskGetTickCount();
-      Position cur = sc.position;
+      const auto cur = sc.position;
       float th = atan2f(-cur.y, (2 + 20 * v / 240)) - cur.th;
       sc.set_target(v, 40 * th);
-      if (i == 100)
+      if (i == 60)
         bz.play(Buzzer::MAZE_BACKUP);
     }
   }
@@ -540,7 +545,8 @@ private:
     }
     if (path.size()) {
       /* 既知区間斜めパターンに変換 */
-      path = MazeLib::RobotBase::pathConvertSearchToKnown(path);
+      path =
+          MazeLib::RobotBase::pathConvertSearchToKnown(path, rp.diag_enabled);
       /* 既知区間走行 */
       float straight = 0;
       for (int path_index = 0; path_index < path.length(); path_index++) {
@@ -564,13 +570,14 @@ private:
         isRunningFlag = false;
       /* Actionがキューされるまで直進で待つ */
       queue_wait_decel();
-      /* キューを消化 */
-      if (rp.diag_enabled && q.size() >= 2)
+      /* 既知区間走行 */
+      if (q.size() >= 2)
         search_run_known(rp);
       /* 探索走行 */
       if (q.size()) {
         const auto action = q.front();
         q.pop();
+        /* 連続した直線を追加 */
         int num = 1;
         while (!q.empty()) {
           auto next = q.front();
@@ -592,14 +599,8 @@ private:
       imu.angle = 0;
       sc.position.clear();
       sc.position.x = model::TailLength + field::WallThickness / 2;
-      offset = Position(field::SegWidthFull / 2, 0, M_PI / 2);
+      offset = ctrl::Position(field::SegWidthFull / 2, 0, M_PI / 2);
       straight_x(field::SegWidthFull, velocity, velocity, rp);
-      // offset = Position(field::SegWidthFull / 2,
-      //                   model::TailLength + field::WallThickness / 2, M_PI /
-      //                   2);
-      // straight_x(field::SegWidthFull - model::TailLength -
-      //                field::WallThickness / 2,
-      //            velocity, velocity, rp);
       break;
     case RobotBase::Action::START_INIT:
       start_init();
@@ -617,7 +618,7 @@ private:
     case RobotBase::Action::TURN_L: {
       if (wd.wall[0])
         stop();
-      wall_front_fix(velocity, field::SegWidthFull);
+      wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       trace(st, velocity);
@@ -627,7 +628,7 @@ private:
     case RobotBase::Action::TURN_R: {
       if (wd.wall[1])
         stop();
-      wall_front_fix(velocity, field::SegWidthFull);
+      wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       trace(st, velocity);
@@ -661,8 +662,9 @@ private:
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
     /* 初期位置を設定 */
-    offset = Position(field::SegWidthFull / 2,
-                      model::TailLength + field::WallThickness / 2, M_PI / 2);
+    offset =
+        ctrl::Position(field::SegWidthFull / 2,
+                       model::TailLength + field::WallThickness / 2, M_PI / 2);
     sc.position.clear();
     /* 最初の直線を追加 */
     float straight =

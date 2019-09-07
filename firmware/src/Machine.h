@@ -69,7 +69,7 @@ public:
     return true;
   }
   static void driveNormally() {
-    if (mr.isComplete() && !mr.calcShortestDirs(true)) {
+    if (mr.isComplete() && !mr.calcShortestDirections(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWall(3);
       return;
@@ -254,20 +254,22 @@ public:
     case 0: {
       int x = ui.waitForSelect(16);
       int y = ui.waitForSelect(16);
-      mr.set_goal({Vector(x, y)});
+      mr.set_goal({MazeLib::Position(x, y)});
       break;
     }
     case 1:
-      mr.set_goal({Vector(1, 0)});
+      mr.set_goal({MazeLib::Position(1, 0)});
       break;
     case 2:
-      mr.set_goal({Vector(6, 9), Vector(6, 10), Vector(7, 9), Vector(7, 10)});
+      mr.set_goal({MazeLib::Position(6, 9), MazeLib::Position(6, 10),
+                   MazeLib::Position(7, 9), MazeLib::Position(7, 10)});
       break;
     case 3:
-      mr.set_goal({Vector(3, 3), Vector(3, 4), Vector(4, 3), Vector(4, 4)});
+      mr.set_goal({MazeLib::Position(3, 3), MazeLib::Position(3, 4),
+                   MazeLib::Position(4, 3), MazeLib::Position(4, 4)});
       break;
     case 4:
-      mr.set_goal({Vector(15, 15)});
+      mr.set_goal({MazeLib::Position(15, 15)});
       break;
     }
     bz.play(Buzzer::SUCCESSFUL);
