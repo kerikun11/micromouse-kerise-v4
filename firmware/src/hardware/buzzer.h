@@ -25,8 +25,10 @@ public:
     CONFIRM,
     SUCCESSFUL,
     ERROR,
-    SHORT,
+    SHORT6,
+    SHORT7,
     BOOT,
+    SHUTDOWN,
     LOW_BATTERY,
     EMERGENCY,
     COMPLETE,
@@ -87,6 +89,13 @@ private:
         sound(NOTE_B, 6, 600);
         mute();
         break;
+      case SHUTDOWN:
+        sound(NOTE_Gs, 6, 200);
+        sound(NOTE_Eb, 6, 200);
+        sound(NOTE_Gs, 5, 200);
+        sound(NOTE_Bb, 5, 600);
+        mute();
+        break;
       case LOW_BATTERY:
         sound(NOTE_C, 7, 400);
         mute(200);
@@ -119,7 +128,11 @@ private:
         sound(NOTE_C, 7, 100);
         mute(100);
         break;
-      case SHORT:
+      case SHORT6:
+        sound(NOTE_C, 6, 50);
+        mute(50);
+        break;
+      case SHORT7:
         sound(NOTE_C, 7, 50);
         mute(50);
         break;

@@ -201,7 +201,7 @@ public:
     logi << "Battery Voltage: " << voltage << std::endl;
     if (voltage < thr_battery) {
       logw << "Battery Low!" << std::endl;
-      bz.play(Buzzer::LOW_BATTERY);
+      bz.play(Buzzer::SHUTDOWN);
       while (!btn.pressed)
         vTaskDelay(100 / portTICK_PERIOD_MS);
       btn.flags = 0;

@@ -14,7 +14,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -53,9 +53,9 @@ public:
   MazeRobot() : RobotBase(maze) { replaceGoals(MAZE_GOAL); }
 
   void start(bool isForceSearch = false, bool isPositionIdentifying = false) {
+    terminate();
     this->isForceSearch = isForceSearch;
     this->isPositionIdentifying = isPositionIdentifying;
-    terminate();
     isRunningFlag = true;
     createTask("MazeRobot", MAZE_ROBOT_TASK_PRIORITY, MAZE_ROBOT_STACK_SIZE);
   }
@@ -64,11 +64,8 @@ public:
     sr.disable();
     isRunningFlag = false;
   }
-  void print() {
-    printInfo();
-    printPath();
-  }
-  bool isRunning() { return isRunningFlag; }
+  void print() const { maze.print(); }
+  bool isRunning() const { return isRunningFlag; }
   void set_goal(const std::vector<MazeLib::Position> &goal) {
     replaceGoals(goal);
   }
@@ -119,6 +116,7 @@ private:
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
   int backupCounter = 0;
+  int trace_count = 0;
 
 protected:
   void waitForEndAction() override {
@@ -134,11 +132,12 @@ protected:
     left = wd.wall[0];
     right = wd.wall[1];
     front = wd.wall[2];
-    bz.play(Buzzer::SHORT);
+    bz.play(Buzzer::SHORT6);
 #if 0
     /* 前1区画先の壁を読める場合 */
     if (!front)
-      updateWall(curVec.next(curDir), curDir, tof.getDistance() < 210);
+      updateWall(current_pose.p.next(current_pose.d), current_pose.d,
+                 tof.getDistance() < 210);
 #endif
   }
   void backupMazeToFlash() override { backup(); }
@@ -214,7 +213,7 @@ protected:
     // 帰る
     return endFastRunBackingToStartRun();
   }
-  void readyToStartWait(const int wait_ms = 2000) {
+  void readyToStartWait(const int wait_ms = 1000) {
     led = 0xf;
     delay(200);
     for (int ms = 0; ms < wait_ms; ms++) {
@@ -236,15 +235,14 @@ protected:
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
       readyToStartWait();
-      if (!sr.positionRecovery()) {
-        bz.play(Buzzer::ERROR);
-        waitForever();
-      }
+      sr.positionRecovery();
+      setForceGoingToGoal();
       if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
+      readyToStartWait();
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
     if (isForceSearch || !calcShortestDirections(true)) {
@@ -252,26 +250,40 @@ protected:
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
+      trace_count++; //< 0 -> 1
+      setForceGoingToGoal();
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      // sr.diag_enabled = false;
+      // sr.rp_fast.diag_enabled = false;
     }
     /* 最短 */
     while (1) {
+      trace_count++; //< 0 -> 1
+      if (trace_count == 6)
+        break;
       if (!fastRun())
         waitForever();
-      bz.play(Buzzer::COMPLETE);
+      bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
+      /* 完走した場合はパラメータを上げる */
       if (sr.rp_fast.diag_enabled) {
         sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
         sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
         sr.rp_fast.accel *= sr.rp_fast.ac_gain;
       }
       sr.rp_fast.diag_enabled = true;
+      if (trace_count == 5)
+        for (int i = 0; i < 2; i++) {
+          sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
+          sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
+          sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+        }
     }
+    bz.play(Buzzer::COMPLETE);
+    vTaskDelay(portMAX_DELAY);
   }
 };

@@ -1,12 +1,8 @@
 /**
  * @file app_main.cpp
  * @author Ryotaro Onuki (kerikun11+github@gmail.com)
- * @brief
- * @version 0.1
+ * @brief KERISE
  * @date 2019-04-02
- *
- * @copyright Copyright (c) 2019
- *
  */
 #include "Machine.h"
 #include <iostream>
@@ -18,8 +14,7 @@ void timeKeepTask(void *arg);
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
-  std::cout << std::endl;
-  std::cout << "******** KERISE ********" << std::endl;
+  std::cout << std::endl << "******** KERISE ********" << std::endl;
   uint8_t mac[6];
   esp_efuse_mac_get_default(mac);
   std::cout << mac[0] << std::endl;

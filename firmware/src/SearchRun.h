@@ -29,7 +29,7 @@ public:
   struct RunParameter {
     RunParameter() {}
     float search_v = 300;
-    float curve_gain = 1.0;
+    float curve_gain = 1.1;
     float max_speed = 600;
     float accel = 4800;
     float fan_duty = 0.3f;
@@ -37,7 +37,7 @@ public:
     bool front_wall_fix_enabled = true;
 
   public:
-    const float cg_gain = 1.05f;
+    const float cg_gain = 1.1f;
     const float ms_gain = 1.21f;
     const float ac_gain = 1.1f;
     static float getCurveGains(const int value) {
@@ -173,7 +173,7 @@ private:
     if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       led = 6;
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT6);
       tof.disable();
       delay(10);
       portTickType xLastWakeTime = xTaskGetTickCount();
@@ -204,7 +204,7 @@ private:
       sc.position.x = 0;  //< 直進方向の補正
       sc.position.th = 0; //< 回転方向の補正
       tof.enable();
-      // bz.play(Buzzer::SHORT);
+      // bz.play(Buzzer::SHORT6);
       led = 0;
     }
 #endif
@@ -233,7 +233,7 @@ private:
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
-      const float shift = 0.04f;
+      const float shift = 0.06f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
         sc.position.y += shift;
@@ -271,7 +271,7 @@ private:
               fix.rotate(-origin.th).x - prev.rotate(-origin.th).x;
           if (-30 < diff && diff < 5) {
             sc.position = fix;
-            bz.play(Buzzer::SHORT);
+            bz.play(Buzzer::SHORT6);
           }
         }
         /* 45 [deg] + 90 [deg] の倍数 */
@@ -290,7 +290,7 @@ private:
           if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
               10.0f) {
             // sc.position = fix;
-            bz.play(Buzzer::SHORT);
+            bz.play(Buzzer::SHORT6);
           }
         }
       }
@@ -309,10 +309,10 @@ private:
       if (-20 < fixed_x && fixed_x < 20) {
         if (fixed_x > 5) {
           fixed_x = 5;
-          // bz.play(Buzzer::SHORT);
+          // bz.play(Buzzer::SHORT6);
         }
         sc.position.x = fixed_x;
-        // bz.play(Buzzer::SHORT);
+        // bz.play(Buzzer::SHORT6);
       }
     }
 #endif
@@ -409,7 +409,7 @@ private:
             field::SegWidthFull - tof_value + 6; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
-          // bz.play(Buzzer::SHORT);
+          // bz.play(Buzzer::SHORT6);
         }
       }
 #endif

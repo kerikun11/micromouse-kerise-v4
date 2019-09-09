@@ -124,7 +124,7 @@ public:
     int value;
 
     for (int i = 0; i < 1; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -133,7 +133,7 @@ public:
     sr.rp_fast.curve_gain = sr.rp_fast.getCurveGains(value);
 
     for (int i = 0; i < 2; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -142,7 +142,7 @@ public:
     sr.rp_fast.max_speed = sr.rp_fast.getMaxSpeeds(value);
 
     for (int i = 0; i < 3; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -156,7 +156,7 @@ public:
     int value;
 
     for (int i = 0; i < 1; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -165,7 +165,7 @@ public:
     sr.rp_fast.curve_gain *= std::pow(sr.rp_fast.cg_gain, value);
 
     for (int i = 0; i < 2; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -174,7 +174,7 @@ public:
     sr.rp_fast.max_speed *= std::pow(sr.rp_fast.ms_gain, value);
 
     for (int i = 0; i < 3; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
     if (value < 0)
       return;
@@ -248,7 +248,7 @@ public:
   }
   static void setGoalPositions() {
     for (int i = 0; i < 2; i++)
-      bz.play(Buzzer::SHORT);
+      bz.play(Buzzer::SHORT7);
     int value = ui.waitForSelect(5);
     if (value < 0)
       return;
