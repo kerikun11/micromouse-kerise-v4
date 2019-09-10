@@ -96,8 +96,10 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kp = ctrl::Polar(0.0006f, 0.1f), .Ki = ctrl::Polar(0.1f, 3.0f),
   .Kd = ctrl::Polar(0, 0),
 };
+/* Estimated Velocity IIR Filter gain */
+static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 5.0f;
+static constexpr float tt_gain = 15.0f;
 
 #endif
 

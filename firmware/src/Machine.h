@@ -77,9 +77,9 @@ public:
     if (mr.isComplete())
       bz.play(Buzzer::SUCCESSFUL);
     else if (mr.calcShortestDirections(true))
-      bz.play(Buzzer::MAZE_RESTORE);
-    else
       bz.play(Buzzer::MAZE_BACKUP);
+    else
+      bz.play(Buzzer::CONFIRM);
     int mode = ui.waitForSelect(4);
     if (mode < 0)
       return;
