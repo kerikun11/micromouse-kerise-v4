@@ -79,11 +79,11 @@ static constexpr float tt_gain = 15.0f;
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.67f;
+static constexpr float WheelDiameter = 13.0f;
 static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 23;
+static constexpr float tof_dist_offset = 17;
 const float wall_attach_gain_Kp = 120.0f;
 const float wall_attach_gain_Ki = 0.0f;
 /* Model */
@@ -99,7 +99,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
 /* Estimated Velocity IIR Filter gain */
 static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 15.0f;
+static constexpr float tt_gain = 10.0f;
 
 #endif
 
