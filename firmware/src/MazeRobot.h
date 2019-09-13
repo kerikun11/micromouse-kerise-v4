@@ -117,6 +117,7 @@ private:
   bool prevIsForceGoingToGoal = false;
   int backupCounter = 0;
   int trace_count = 0;
+  bool crashed_flag = false;
 
 protected:
   void waitForEndAction() override {
@@ -154,20 +155,17 @@ protected:
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
                                  SearchAlgorithm::State newState) override {
-    if (!prevIsForceGoingToGoal && isForceGoingToGoal) {
+    if (!prevIsForceGoingToGoal && isForceGoingToGoal)
       bz.play(Buzzer::CONFIRM);
-    }
     if (newState == prevState)
       return;
-    if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL) {
+    /* State Change has occurred */
+    if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
       bz.play(Buzzer::SUCCESSFUL);
-    }
-    if (prevState == SearchAlgorithm::IDENTIFYING_POSITION) {
+    if (prevState == SearchAlgorithm::IDENTIFYING_POSITION)
       bz.play(Buzzer::COMPLETE);
-    }
-    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY) {
+    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY)
       bz.play(Buzzer::COMPLETE);
-    }
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
@@ -243,6 +241,11 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
+      /* パラメータを若干落とす */
+      sr.rp_fast.curve_gain /= std::sqrt(sr.rp_fast.cg_gain);
+      sr.rp_fast.max_speed /= std::sqrt(sr.rp_fast.ms_gain);
+      sr.rp_fast.accel /= std::sqrt(sr.rp_fast.ac_gain);
+      crashed_flag = true;
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
     if (isForceSearch || !calcShortestDirections(true)) {
@@ -250,8 +253,10 @@ protected:
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
-      trace_count++; //< 0 -> 1
       setForceGoingToGoal();
+      trace_count++; //< 0 -> 1
+      for (int i = 0; i < trace_count; ++i)
+        bz.play(Buzzer::SHORT7);
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -262,28 +267,32 @@ protected:
     }
     /* 最短 */
     while (1) {
-      trace_count++; //< 0 -> 1
+      trace_count++; //< 1 -> 2
       if (trace_count == 6)
         break;
       if (!fastRun())
         waitForever();
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
+      /* 斜めを有効化 */
+      sr.rp_fast.diag_enabled = true;
       /* 完走した場合はパラメータを上げる */
       if (sr.rp_fast.diag_enabled) {
         sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
         sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
         sr.rp_fast.accel *= sr.rp_fast.ac_gain;
       }
-      sr.rp_fast.diag_enabled = true;
-      if (trace_count == 5)
-        for (int i = 0; i < 2; i++) {
+      /* 最終走行だけ例外処理 */
+      if (trace_count == 4 && !crashed_flag)
+        for (int i = 0; i < 1; i++) {
           sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
           sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
           sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+          bz.play(Buzzer::CONFIRM);
         }
     }
+    /* 5走終了 */
     bz.play(Buzzer::COMPLETE);
-    vTaskDelay(portMAX_DELAY);
+    waitForever();
   }
 };

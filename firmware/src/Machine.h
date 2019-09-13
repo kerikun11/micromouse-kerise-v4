@@ -74,12 +74,12 @@ public:
       mr.resetLastWall(3);
       return;
     }
-    if (mr.isComplete())
+    if (mr.isComplete()) //< 完全に探索終了
       bz.play(Buzzer::SUCCESSFUL);
-    else if (mr.calcShortestDirections(true))
-      bz.play(Buzzer::MAZE_BACKUP);
-    else
+    else if (mr.calcShortestDirections(true)) //< 探索中だが経路はある
       bz.play(Buzzer::CONFIRM);
+    else //< 経路なし
+      bz.play(Buzzer::MAZE_BACKUP);
     int mode = ui.waitForSelect(4);
     if (mode < 0)
       return;
@@ -102,7 +102,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    delay(2000);
+    delay(1000);
     mr.start(forceSearch, posIdAtStart);
     while (mr.isRunning()) {
       if (mt.isEmergency()) {

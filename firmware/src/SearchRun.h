@@ -30,14 +30,14 @@ public:
     RunParameter() {}
     float search_v = 300;
     float curve_gain = 1.1;
-    float max_speed = 600;
+    float max_speed = 720;
     float accel = 4800;
     float fan_duty = 0.3f;
     bool diag_enabled = true;
     bool front_wall_fix_enabled = true;
 
   public:
-    const float cg_gain = 1.1f;
+    const float cg_gain = 1.05f;
     const float ms_gain = 1.21f;
     const float ac_gain = 1.1f;
     static float getCurveGains(const int value) {
@@ -306,7 +306,7 @@ private:
           tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
       value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-      if (-20 < fixed_x && fixed_x < 20) {
+      if (-30 < fixed_x && fixed_x < 30) {
         if (fixed_x > 5) {
           fixed_x = 5;
           // bz.play(Buzzer::SHORT6);
@@ -406,7 +406,7 @@ private:
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
         float fixed_x =
-            field::SegWidthFull - tof_value + 6; /*< 要調整, 大きく:前壁近く*/
+            field::SegWidthFull - tof_value + 8; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
           // bz.play(Buzzer::SHORT6);
