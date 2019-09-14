@@ -32,7 +32,7 @@ public:
     float curve_gain = 1.1;
     float max_speed = 720;
     float accel = 4800;
-    float fan_duty = 0.3f;
+    float fan_duty = 0.0f;
     bool diag_enabled = true;
     bool front_wall_fix_enabled = true;
 
@@ -212,10 +212,10 @@ private:
   void wall_avoid(const float remain) {
 #if SEARCH_WALL_AVOID_ENABLED
     /* 一定速より小さかったら行わない */
-    if (sc.est_v.tra < 100.0f)
+    if (sc.est_v.tra < 150.0f)
       return;
     /* 曲線なら前半しか行わない */
-    if (std::abs(sc.position.th) > M_PI * 0.2f)
+    if (std::abs(sc.position.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
@@ -303,7 +303,7 @@ private:
     if (rp.front_wall_fix_enabled && tof.isValid()) {
       /* 壁までの距離を推定 */
       float value =
-          tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
+          tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
       value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-30 < fixed_x && fixed_x < 30) {
@@ -519,6 +519,7 @@ private:
       if (i == 60)
         bz.play(Buzzer::MAZE_BACKUP);
     }
+    sc.position.y = 0; /**< 横のステップ変化を抑制 */
   }
   void task() override {
     if (q.size())

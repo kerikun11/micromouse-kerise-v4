@@ -255,8 +255,6 @@ protected:
       mt.free();
       setForceGoingToGoal();
       trace_count++; //< 0 -> 1
-      for (int i = 0; i < trace_count; ++i)
-        bz.play(Buzzer::SHORT7);
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -268,8 +266,8 @@ protected:
     /* 最短 */
     while (1) {
       trace_count++; //< 1 -> 2
-      if (trace_count == 6)
-        break;
+      // if (trace_count == 6)
+      //   break;
       if (!fastRun())
         waitForever();
       bz.play(Buzzer::SUCCESSFUL);
