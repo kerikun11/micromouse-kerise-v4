@@ -71,7 +71,7 @@ public:
   static void driveNormally() {
     if (mr.isComplete() && !mr.calcShortestDirections(true)) {
       bz.play(Buzzer::ERROR);
-      mr.resetLastWall(3);
+      mr.resetLastWalls(3);
       return;
     }
     if (mr.isComplete()) //< 完全に探索終了

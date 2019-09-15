@@ -92,7 +92,7 @@ void driveTask(void *arg) {
       break;
     case 6: /* データ消去 */
       bz.play(Buzzer::MAZE_BACKUP);
-      mr.resetLastWall(6);
+      mr.resetLastWalls(6);
       break;
     case 7: /* 宴会芸 */
       Machine::partyStunt();

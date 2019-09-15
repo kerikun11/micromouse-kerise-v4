@@ -14,7 +14,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -66,48 +66,9 @@ public:
   }
   void print() const { maze.print(); }
   bool isRunning() const { return isRunningFlag; }
-  void set_goal(const std::vector<MazeLib::Position> &goal) {
-    replaceGoals(goal);
-  }
-  bool backup() {
-    {
-      std::ifstream f(MAZE_BACKUP_PATH, std::ifstream::ate);
-      const auto size = static_cast<size_t>(f.tellg());
-      if (backupCounter < size / sizeof(WallLog))
-        std::remove(MAZE_BACKUP_PATH);
-    }
-    std::ofstream f(MAZE_BACKUP_PATH, std::ios::binary | std::ios::app);
-    if (f.fail()) {
-      log_e("can't open file!: ", MAZE_BACKUP_PATH);
-      bz.play(Buzzer::ERROR);
-      return false;
-    }
-    const auto &wallLog = getMaze().getWallLogs();
-    while (backupCounter < wallLog.size()) {
-      const auto &wl = wallLog[backupCounter];
-      f.write((const char *)&wl, sizeof(wl));
-      backupCounter++;
-    }
-    return true;
-  }
-  bool restore() {
-    std::ifstream f(MAZE_BACKUP_PATH, std::ios::binary);
-    if (f.fail()) {
-      log_e("can't open file!: ", MAZE_BACKUP_PATH);
-      bz.play(Buzzer::ERROR);
-      return false;
-    }
-    maze.reset();
-    backupCounter = 0;
-    while (!f.eof()) {
-      WallLog wl;
-      f.read((char *)(&wl), sizeof(WallLog));
-      MazeLib::Position v = MazeLib::Position(wl.x, wl.y);
-      maze.updateWall(v, wl.d, wl.b);
-      backupCounter++;
-    }
-    return true;
-  }
+  void set_goal(const Positions &goal) { replaceGoals(goal); }
+  bool backup() { return maze.backupWallLogsFromFile(MAZE_BACKUP_PATH); }
+  bool restore() { return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH); }
 
 private:
   Maze maze;
@@ -115,16 +76,14 @@ private:
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
-  int backupCounter = 0;
   int trace_count = 0;
   bool crashed_flag = false;
 
 protected:
   void waitForEndAction() override {
     // delay(1200); // for debug
-    while (sr.isRunning()) {
+    while (sr.isRunning())
       delay(1);
-    }
   }
   void queueAction(const Action action) override {
     return sr.set_action(action);
@@ -198,12 +157,13 @@ protected:
       d = nextDir;
     }
     sr.set_path(path);
-    // FastRun
+    //> FastRun Start
     sr.enable();
     while (sr.isRunning()) {
       delay(100);
     }
     sr.disable();
+    //< FastRun End
 
     // 回収されるか待つ
     readyToStartWait();
@@ -249,7 +209,7 @@ protected:
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
     if (isForceSearch || !calcShortestDirections(true)) {
-      maze.resetLastWall(6);  //< クラッシュ後を想定して少し消す
+      maze.resetLastWalls(6); //< クラッシュ後を想定して少し消す
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
