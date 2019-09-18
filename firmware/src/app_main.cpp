@@ -63,11 +63,11 @@ void driveTask(void *arg) {
     case 0: /* 迷路走行 */
       Machine::driveNormally();
       break;
-    case 1: /* プリセット走行パラメータの選択 */
-      Machine::selectParamPreset();
-      break;
-    case 2: /* マニュアル走行パラメータの設定 */
+    case 1: /* マニュアル走行パラメータの設定 */
       Machine::selectParamManually();
+      break;
+    case 2: /* プリセット走行パラメータ */
+      Machine::selectParamPreset();
       break;
     case 3: { /* 壁制御，斜め走行の設定 */
       int value = ui.waitForSelect(16);
@@ -77,6 +77,8 @@ void driveTask(void *arg) {
       sr.rp_fast.diag_enabled = value & 0x02;
       sr.rp_search.front_wall_fix_enabled = value & 0x04;
       sr.rp_fast.front_wall_fix_enabled = value & 0x04;
+      sr.rp_search.wall_avoid_enabled = value & 0x08;
+      sr.rp_fast.wall_avoid_enabled = value & 0x08;
     }
       bz.play(Buzzer::SUCCESSFUL);
       break;
@@ -91,8 +93,8 @@ void driveTask(void *arg) {
         bz.play(Buzzer::SUCCESSFUL);
       break;
     case 6: /* データ消去 */
-      bz.play(Buzzer::MAZE_BACKUP);
-      mr.resetLastWalls(6);
+      bz.play(Buzzer::SHUTDOWN);
+      mr.reset();
       break;
     case 7: /* 宴会芸 */
       Machine::partyStunt();
@@ -103,16 +105,15 @@ void driveTask(void *arg) {
     case 9: /* プチコン */
       Machine::petitcon();
       break;
+    case 10: /* 迷路の表示 */
+      mr.print();
+      break;
     case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
-      break;
-    case 13: /* 迷路の表示 */
-      mr.print();
       break;
     case 14: /* テスト */
       Machine::accel_test();
       // Machine::sysid();
-      // Machine::position_recovery();
       break;
     case 15: /* ログの表示 */
       lgr.print();

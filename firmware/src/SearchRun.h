@@ -35,26 +35,12 @@ public:
     float fan_duty = 0.0f;
     bool diag_enabled = true;
     bool front_wall_fix_enabled = true;
+    bool wall_avoid_enabled = true;
 
   public:
-    const float cg_gain = 1.05f;
-    const float ms_gain = 1.21f;
-    const float ac_gain = 1.1f;
-    static float getCurveGains(const int value) {
-      float vals_p[] = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
-      float vals_n[] = {1.0f, 0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f};
-      return value > 0 ? vals_p[value] : vals_n[-value];
-    }
-    static float getMaxSpeeds(const int value) {
-      float vals_p[] = {600, 720, 840, 960, 1080, 1200};
-      float vals_n[] = {600, 480, 360, 240, 180, 120, 60};
-      return value > 0 ? vals_p[value] : vals_n[-value];
-    }
-    static float getAccels(const int value) {
-      float vals_p[] = {4800, 6000, 7200, 8400, 9600, 10800};
-      float vals_n[] = {4800, 3600, 2400, 1200, 600, 600};
-      return value > 0 ? vals_p[value] : vals_n[-value];
-    }
+    static constexpr float cg_gain = 1.05f;
+    static constexpr float ms_gain = 1.21f;
+    static constexpr float ac_gain = 1.1f;
   };
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
@@ -209,10 +195,10 @@ private:
     }
 #endif
   }
-  void wall_avoid(const float remain) {
+  void wall_avoid(const float remain, const RunParameter &rp) {
 #if SEARCH_WALL_AVOID_ENABLED
     /* 一定速より小さかったら行わない */
-    if (sc.est_v.tra < 150.0f)
+    if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f)
       return;
     /* 曲線なら前半しか行わない */
     if (std::abs(sc.position.th) > M_PI * 0.1f)
@@ -370,7 +356,7 @@ private:
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         const float remain = distance - est_q.x;
-        wall_avoid(remain);
+        wall_avoid(remain, rp);
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
         int_y += sc.position.y;
@@ -380,7 +366,8 @@ private:
     sc.position.x -= distance; //< 移動した量だけ位置を更新
     offset += ctrl::Position(distance, 0, 0).rotate(offset.th);
   }
-  void trace(slalom::Trajectory &sd, const float velocity) {
+  void trace(slalom::Trajectory &sd, const float velocity,
+             const RunParameter &rp) {
     TrajectoryTracker tt(model::tt_gain);
     tt.reset(velocity);
     slalom::State s;
@@ -397,7 +384,7 @@ private:
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      wall_avoid(0);
+      wall_avoid(0, rp);
       wall_cut(ref.v);
 #if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */
@@ -416,7 +403,7 @@ private:
     }
 #if SEARCH_WALL_FRONT_ENABLED
     /* V90ターン中の前壁補正 */
-    if (front_fix_x != 0)
+    if (rp.front_wall_fix_enabled && front_fix_x != 0)
       sc.position +=
           ctrl::Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
 #endif
@@ -447,7 +434,7 @@ private:
     // if (isDiag())
     //   wall_front_fix(velocity, field::SegWidthDiag - st.get_straight_prev());
     /* スラローム */
-    trace(st, velocity);
+    trace(st, velocity, rp);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
 
@@ -622,7 +609,7 @@ private:
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
-      trace(st, velocity);
+      trace(st, velocity, rp);
       straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;
     }
@@ -632,7 +619,7 @@ private:
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
-      trace(st, velocity);
+      trace(st, velocity, rp);
       straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;
     }

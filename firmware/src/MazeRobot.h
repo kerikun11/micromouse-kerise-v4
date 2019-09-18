@@ -64,6 +64,10 @@ public:
     sr.disable();
     isRunningFlag = false;
   }
+  void reset() {
+    Agent::reset();
+    std::remove(MAZE_BACKUP_PATH);
+  }
   void print() const { maze.print(); }
   bool isRunning() const { return isRunningFlag; }
   void set_goal(const Positions &goal) { replaceGoals(goal); }
@@ -76,7 +80,7 @@ private:
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
-  int trace_count = 0;
+  int track_count = 0;
   bool crashed_flag = false;
 
 protected:
@@ -85,7 +89,7 @@ protected:
     while (sr.isRunning())
       delay(1);
   }
-  void queueAction(const Action action) override {
+  void queueAction(const RobotBase::Action action) override {
     return sr.set_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {
@@ -129,43 +133,39 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
   bool fastRun() {
-    if (!calcShortestDirections(sr.rp_fast.diag_enabled)) {
-      printf("Couldn't solve the maze!\n");
-      bz.play(Buzzer::ERROR);
+    if (!calcShortestDirections(sr.rp_fast.diag_enabled))
       return false;
-    }
+    /* 最短経路の作成 */
     auto shortestDirs = getShortestDirections();
     shortestDirs.erase(shortestDirs.begin()); /*< 最初の直線を除去 */
     std::string path;
-    Direction d = Direction::North;
-    MazeLib::Position v(0, 1);
+    Direction prevDir = Direction::North;
     for (const auto nextDir : shortestDirs) {
-      v = v.next(nextDir);
-      switch (Direction(nextDir - d)) {
+      switch (Direction(nextDir - prevDir)) {
       case Direction::Front:
-        path += MazeLib::RobotBase::Action::ST_FULL;
+        path += RobotBase::Action::ST_FULL;
         break;
       case Direction::Left:
-        path += MazeLib::RobotBase::Action::TURN_L;
+        path += RobotBase::Action::TURN_L;
         break;
       case Direction::Right:
-        path += MazeLib::RobotBase::Action::TURN_R;
+        path += RobotBase::Action::TURN_R;
         break;
       default:
         return false; //< あってはならない
       }
-      d = nextDir;
+      prevDir = nextDir;
     }
     sr.set_path(path);
+
     //> FastRun Start
     sr.enable();
-    while (sr.isRunning()) {
+    while (sr.isRunning())
       delay(100);
-    }
     sr.disable();
     //< FastRun End
 
-    // 回収されるか待つ
+    // ゴールで回収されるか待つ
     readyToStartWait();
 
     // 帰る
@@ -194,7 +194,6 @@ protected:
       isPositionIdentifying = false;
       readyToStartWait();
       sr.positionRecovery();
-      setForceGoingToGoal();
       if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -213,35 +212,31 @@ protected:
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
-      setForceGoingToGoal();
-      trace_count++; //< 0 -> 1
+      track_count++; //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      // sr.rp_fast.diag_enabled = false;
     }
     /* 最短 */
     while (1) {
-      trace_count++; //< 1 -> 2
-      // if (trace_count == 6)
+      track_count++; //< 1 -> 2
+      // if (track_count== 6)
       //   break;
-      if (!fastRun())
+      if (!fastRun()) {
+        bz.play(Buzzer::ERROR);
         waitForever();
+      }
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
-      /* 斜めを有効化 */
-      sr.rp_fast.diag_enabled = true;
       /* 完走した場合はパラメータを上げる */
-      if (sr.rp_fast.diag_enabled) {
-        sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
-        sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
-        sr.rp_fast.accel *= sr.rp_fast.ac_gain;
-      }
+      sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
+      sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
+      sr.rp_fast.accel *= sr.rp_fast.ac_gain;
       /* 最終走行だけ例外処理 */
-      if (trace_count == 4 && !crashed_flag)
+      if (track_count == 4 && !crashed_flag)
         for (int i = 0; i < 1; i++) {
           sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
           sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;

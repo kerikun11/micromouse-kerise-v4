@@ -121,35 +121,7 @@ public:
     mr.terminate();
   }
   static void selectParamPreset() {
-    int value;
-
-    for (int i = 0; i < 1; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    sr.rp_fast.curve_gain = sr.rp_fast.getCurveGains(value);
-
-    for (int i = 0; i < 2; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    sr.rp_fast.max_speed = sr.rp_fast.getMaxSpeeds(value);
-
-    for (int i = 0; i < 3; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    sr.rp_fast.accel = sr.rp_fast.getAccels(value);
-
+    sr.rp_fast = SearchRun::RunParameter();
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectParamManually() {
@@ -181,6 +153,7 @@ public:
     if (value > 7)
       value -= 16;
     sr.rp_fast.accel *= std::pow(sr.rp_fast.ms_gain, value);
+
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectFanGain() {
