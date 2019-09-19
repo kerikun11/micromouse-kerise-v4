@@ -156,6 +156,12 @@ public:
 
     bz.play(Buzzer::SUCCESSFUL);
   }
+  static void reset() {
+    if (!ui.waitForCover())
+      return;
+    bz.play(Buzzer::SHUTDOWN);
+    mr.reset();
+  }
   static void selectFanGain() {
     fan.drive(0.5f);
     delay(100);

@@ -9,7 +9,6 @@
 #include "TaskBase.h"
 #include <AccelDesigner.h>
 #include <cmath>
-#include <memory>
 #include <queue>
 #include <vector>
 
@@ -17,6 +16,7 @@
 #define SEARCH_WALL_CUT_ENABLED 0
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
+#define SEARCH_WALL_THETA_ENABLED 1
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -33,9 +33,9 @@ public:
     float max_speed = 720;
     float accel = 4800;
     float fan_duty = 0.0f;
-    bool diag_enabled = true;
-    bool front_wall_fix_enabled = true;
-    bool wall_avoid_enabled = true;
+    bool diag_enabled = 1;
+    bool front_wall_fix_enabled = 1;
+    bool wall_avoid_enabled = 1;
 
   public:
     static constexpr float cg_gain = 1.05f;
@@ -360,7 +360,9 @@ private:
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
         int_y += sc.position.y;
+#if SEARCH_WALL_THETA_ENABLED
         sc.position.th += int_y * 0.00000001f;
+#endif
       }
     }
     sc.position.x -= distance; //< 移動した量だけ位置を更新
@@ -437,7 +439,6 @@ private:
     trace(st, velocity, rp);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
-
   void put_back() {
     const int max_v = 150;
     const float th_gain = 100.0f;
@@ -469,7 +470,7 @@ private:
       turn(M_PI / 2);
     }
   }
-  void stop() {
+  void wall_stop() {
     bz.play(Buzzer::ERROR);
     float v = sc.est_v.tra;
     while (v > 0) {
@@ -595,7 +596,7 @@ private:
       break;
     case RobotBase::Action::ST_FULL:
       if (wd.wall[2])
-        stop();
+        wall_stop();
       straight_x(field::SegWidthFull * num, num > 1 ? v_max : velocity,
                  velocity, rp);
       break;
@@ -605,7 +606,7 @@ private:
       break;
     case RobotBase::Action::TURN_L: {
       if (wd.wall[0])
-        stop();
+        wall_stop();
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
@@ -615,7 +616,7 @@ private:
     }
     case RobotBase::Action::TURN_R: {
       if (wd.wall[1])
-        stop();
+        wall_stop();
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);

@@ -93,8 +93,7 @@ void driveTask(void *arg) {
         bz.play(Buzzer::SUCCESSFUL);
       break;
     case 6: /* データ消去 */
-      bz.play(Buzzer::SHUTDOWN);
-      mr.reset();
+      Machine::reset();
       break;
     case 7: /* 宴会芸 */
       Machine::partyStunt();

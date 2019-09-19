@@ -7,7 +7,6 @@
 #include "Maze.h"
 #include "RobotBase.h"
 #include "TaskBase.h"
-#include <Arduino.h>
 
 using namespace MazeLib;
 
@@ -31,12 +30,6 @@ using namespace MazeLib;
         MazeLib::Position(3, 4),                                               \
   }
 #elif GOAL == 4
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(7, 0), MazeLib::Position(8, 0), MazeLib::Position(7, 1), \
-        MazeLib::Position(8, 1),                                               \
-  }
-#elif GOAL == 5
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(19, 20), MazeLib::Position(19, 21),                      \
@@ -136,26 +129,7 @@ protected:
     if (!calcShortestDirections(sr.rp_fast.diag_enabled))
       return false;
     /* 最短経路の作成 */
-    auto shortestDirs = getShortestDirections();
-    shortestDirs.erase(shortestDirs.begin()); /*< 最初の直線を除去 */
-    std::string path;
-    Direction prevDir = Direction::North;
-    for (const auto nextDir : shortestDirs) {
-      switch (Direction(nextDir - prevDir)) {
-      case Direction::Front:
-        path += RobotBase::Action::ST_FULL;
-        break;
-      case Direction::Left:
-        path += RobotBase::Action::TURN_L;
-        break;
-      case Direction::Right:
-        path += RobotBase::Action::TURN_R;
-        break;
-      default:
-        return false; //< あってはならない
-      }
-      prevDir = nextDir;
-    }
+    const auto path = convertDirectionsToSearch(getShortestDirections());
     sr.set_path(path);
 
     //> FastRun Start
