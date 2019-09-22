@@ -104,6 +104,7 @@ private:
   void task() {
     portTickType xLastWakeTime = xTaskGetTickCount();
     while (1) {
+      xLastWakeTime = xTaskGetTickCount();
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       /* 有効でなければスルー */
       if (enabled == false)

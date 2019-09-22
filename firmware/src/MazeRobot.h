@@ -40,8 +40,39 @@ using namespace MazeLib;
   }
 #endif
 #define MAZE_BACKUP_PATH "/spiffs/maze_backup.bin"
+#define STATE_BACKUP_PATH "/spiffs/maze_state.bin"
 
 class MazeRobot : public RobotBase, private TaskBase {
+public:
+  struct State {
+    int try_count = 0;             /**< 走行回数 */
+    bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
+
+    bool save(const std::string filepath = STATE_BACKUP_PATH) {
+      std::ofstream of(filepath, std::ios::binary | std::ios::app);
+      if (of.fail()) {
+        loge << "failed to open file! " << filepath << std::endl;
+        return false;
+      }
+      of.write((const char *)this, sizeof(State));
+      return true;
+    }
+    bool restore(const std::string filepath = STATE_BACKUP_PATH) const {
+      std::ifstream f(filepath, std::ios::binary);
+      if (f.fail()) {
+        loge << "failed to open file! " << filepath << std::endl;
+        return false;
+      }
+      f.read((char *)this, sizeof(State));
+      return true;
+    }
+    void newRun() {
+      try_count++;
+      has_reached_goal = false;
+      save();
+    }
+  };
+
 public:
   MazeRobot() : RobotBase(maze) { replaceGoals(MAZE_GOAL); }
 
@@ -59,13 +90,45 @@ public:
   }
   void reset() {
     Agent::reset();
-    std::remove(MAZE_BACKUP_PATH);
+    maze.backupWallLogsToFile(MAZE_BACKUP_PATH, true);
+    state = State();
+    state.save();
+  }
+  bool backup() {
+    state.save();
+    return maze.backupWallLogsToFile(MAZE_BACKUP_PATH);
+  }
+  bool restore() {
+    state.restore();
+    for (int i = 0; i < state.try_count; i++)
+      bz.play(Buzzer::SHORT7);
+    for (int i = 0; i < state.try_count - 1; i++) {
+      sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
+      sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
+      sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+    }
+    return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH);
+  }
+  void autoRun(bool isForceSearch = false) {
+    start(isForceSearch, true); /*< Position Identification Run */
+    while (isRunning()) {
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        terminate();
+        fan.free();
+        delay(1000);
+        mt.emergencyRelease();
+        /* EmergencyStopのタイミング次第でdisabledの場合がある */
+        tof.enable();
+        start(false, true); /*< Position Identification Run */
+      }
+      delay(100);
+    }
+    terminate();
   }
   void print() const { maze.print(); }
   bool isRunning() const { return isRunningFlag; }
-  void set_goal(const Positions &goal) { replaceGoals(goal); }
-  bool backup() { return maze.backupWallLogsFromFile(MAZE_BACKUP_PATH); }
-  bool restore() { return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH); }
+  void setGoals(const Positions &goal) { replaceGoals(goal); }
 
 private:
   Maze maze;
@@ -73,8 +136,8 @@ private:
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
-  int track_count = 0;
   bool crashed_flag = false;
+  State state;
 
 protected:
   void waitForEndAction() override {
@@ -111,8 +174,10 @@ protected:
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
                                  SearchAlgorithm::State newState) override {
-    if (!prevIsForceGoingToGoal && isForceGoingToGoal)
+    if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
+      state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
+    }
     if (newState == prevState)
       return;
     /* State Change has occurred */
@@ -168,7 +233,7 @@ protected:
       isPositionIdentifying = false;
       readyToStartWait();
       sr.positionRecovery();
-      if (!positionIdentifyRun()) {
+      if (!positionIdentifyRun(!state.has_reached_goal)) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
@@ -186,7 +251,7 @@ protected:
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
-      track_count++; //< 0 -> 1
+      state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -196,9 +261,7 @@ protected:
     }
     /* 最短 */
     while (1) {
-      track_count++; //< 1 -> 2
-      // if (track_count== 6)
-      //   break;
+      state.newRun(); //< 1 -> 2
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -210,7 +273,7 @@ protected:
       sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
       sr.rp_fast.accel *= sr.rp_fast.ac_gain;
       /* 最終走行だけ例外処理 */
-      if (track_count == 4 && !crashed_flag)
+      if (state.try_count == 4 && !crashed_flag)
         for (int i = 0; i < 1; i++) {
           sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
           sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;

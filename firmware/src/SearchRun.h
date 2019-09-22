@@ -116,9 +116,8 @@ public:
         min_i = i;
       }
     }
-    sc.position.clear();
+    sc.enable(); //< reset
     turn(2 * M_PI * min_i / table_size);
-    sc.position.clear();
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
@@ -429,8 +428,12 @@ private:
       if (rp.diag_enabled && reverse == false)
         wall_front_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
                                st.get_straight_prev());
-      if (shape == SS_FLS90 || shape == SS_FRS90)
+      if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
+        // 壁衝突防止
+        // if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
+        //   wall_stop();
+      }
     }
     /* 斜め前壁補正 */
     // if (isDiag())
@@ -478,6 +481,7 @@ private:
       v -= 9;
       delay(1);
     }
+    delay(100);
     sc.disable();
     mt.emergencyStop();
     vTaskDelay(portMAX_DELAY);
@@ -605,21 +609,21 @@ private:
                  velocity, rp);
       break;
     case RobotBase::Action::TURN_L: {
-      if (wd.wall[0])
-        wall_stop();
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
+      if (wd.wall[0])
+        wall_stop();
       trace(st, velocity, rp);
       straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;
     }
     case RobotBase::Action::TURN_R: {
-      if (wd.wall[1])
-        wall_stop();
       wall_front_fix(rp, field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
+      if (wd.wall[1])
+        wall_stop();
       trace(st, velocity, rp);
       straight_x(st.get_straight_post(), velocity, velocity, rp);
       break;

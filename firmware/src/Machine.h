@@ -11,20 +11,6 @@
 #include <WiFi.h>
 #include <json11.hpp>
 
-struct State {
-  int try_count = 0;             /**< 走行回数 */
-  bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
-  bool is_position_recovery = false; /**< 自己位置復帰中かどうか */
-  /**
-   * @brief 探索状態
-   */
-  enum Search {
-    None,
-    FoundAtLeastOnePath,
-    FoundShortestPath,
-  };
-};
-
 class Machine {
 public:
   static bool init() {
@@ -68,57 +54,47 @@ public:
     //   bz.play(Buzzer::ERROR);
     return true;
   }
+  static void driveAutomatically() {
+    // delay(1000); //< クラッシュ後の静止時間
+    if (!mr.restore()) {
+      bz.play(Buzzer::ERROR);
+      return;
+    }
+    if (!ui.waitForPickup())
+      return;
+    mr.autoRun();
+  }
   static void driveNormally() {
     if (mr.isComplete() && !mr.calcShortestDirections(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWalls(3);
       return;
     }
-    if (mr.isComplete()) //< 完全に探索終了
+    /* 探索状態のお知らせ */
+    if (mr.getMaze().getWallLogs().empty()) //< 完全に未探索状態
+      bz.play(Buzzer::MAZE_BACKUP);
+    else if (mr.isComplete()) //< 完全に探索終了
       bz.play(Buzzer::SUCCESSFUL);
     else if (mr.calcShortestDirections(true)) //< 探索中だが経路はある
       bz.play(Buzzer::CONFIRM);
-    else //< 経路なし
-      bz.play(Buzzer::MAZE_BACKUP);
-    int mode = ui.waitForSelect(4);
+    /* 走行オプション */
+    int mode = ui.waitForSelect(2);
     if (mode < 0)
       return;
-    bool pi_enabled = true;
     bool forceSearch = false;
-    bool posIdAtStart = false;
     switch (mode) {
     case 0:
+      //< デフォルト
       break;
     case 1:
-      pi_enabled = false;
-      break;
-    case 2:
-      posIdAtStart = true;
-      break;
-    case 3:
       forceSearch = true;
       break;
     }
     if (!ui.waitForCover())
       return;
     led = 9;
-    delay(1000);
-    mr.start(forceSearch, posIdAtStart);
-    while (mr.isRunning()) {
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
-        mr.terminate();
-        fan.free();
-        delay(1000);
-        mt.emergencyRelease();
-        tof.enable(); /*< EmergencyStopのタイミング次第でdisabledの場合がある */
-        if (!pi_enabled)
-          break;
-        mr.start(false, true); /*< Position Identification Run */
-      }
-      delay(100);
-    }
-    mr.terminate();
+    // delay(3000); //< 動画用 delay
+    mr.autoRun(forceSearch);
   }
   static void selectParamPreset() {
     sr.rp_fast = SearchRun::RunParameter();
@@ -159,7 +135,7 @@ public:
   static void reset() {
     if (!ui.waitForCover())
       return;
-    bz.play(Buzzer::SHUTDOWN);
+    bz.play(Buzzer::MAZE_BACKUP);
     mr.reset();
   }
   static void selectFanGain() {
@@ -235,22 +211,22 @@ public:
     case 0: {
       int x = ui.waitForSelect(16);
       int y = ui.waitForSelect(16);
-      mr.set_goal({MazeLib::Position(x, y)});
+      mr.setGoals({MazeLib::Position(x, y)});
       break;
     }
     case 1:
-      mr.set_goal({MazeLib::Position(1, 0)});
+      mr.setGoals({MazeLib::Position(1, 0)});
       break;
     case 2:
-      mr.set_goal({MazeLib::Position(6, 9), MazeLib::Position(6, 10),
+      mr.setGoals({MazeLib::Position(6, 9), MazeLib::Position(6, 10),
                    MazeLib::Position(7, 9), MazeLib::Position(7, 10)});
       break;
     case 3:
-      mr.set_goal({MazeLib::Position(3, 3), MazeLib::Position(3, 4),
+      mr.setGoals({MazeLib::Position(3, 3), MazeLib::Position(3, 4),
                    MazeLib::Position(4, 3), MazeLib::Position(4, 4)});
       break;
     case 4:
-      mr.set_goal({MazeLib::Position(15, 15)});
+      mr.setGoals({MazeLib::Position(15, 15)});
       break;
     }
     bz.play(Buzzer::SUCCESSFUL);

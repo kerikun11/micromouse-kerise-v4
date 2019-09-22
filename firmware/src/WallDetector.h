@@ -2,8 +2,6 @@
 
 #include "global.h"
 
-#include <Arduino.h>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>

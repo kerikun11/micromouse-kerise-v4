@@ -56,6 +56,7 @@ void timeKeepTask(void *arg) {
 }
 
 void driveTask(void *arg) {
+  Machine::driveAutomatically();
   while (1) {
     delay(1);
     int mode = ui.waitForSelect(16);
@@ -86,11 +87,10 @@ void driveTask(void *arg) {
       Machine::selectFanGain();
       break;
     case 5: /* 迷路データの復元 */
-      bz.play(Buzzer::MAZE_RESTORE);
       if (!mr.restore())
         bz.play(Buzzer::ERROR);
       else
-        bz.play(Buzzer::SUCCESSFUL);
+        bz.play(Buzzer::MAZE_RESTORE);
       break;
     case 6: /* データ消去 */
       Machine::reset();

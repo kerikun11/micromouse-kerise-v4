@@ -139,6 +139,23 @@ public:
     }
   }
   /**
+   * @brief マシン回収まで待つ関数
+   */
+  static bool waitForPickup(const int wait_ms = 2000) {
+    led = 0xf;
+    for (int ms = 0; ms < wait_ms; ms++) {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+      if (std::abs(imu.gyro.x) > thr_gyro || std::abs(imu.gyro.y) > thr_gyro ||
+          std::abs(imu.gyro.z) > thr_gyro) {
+        bz.play(Buzzer::CANCEL);
+        led = 0x0;
+        return false;
+      }
+    }
+    led = 0x0;
+    return true;
+  }
+  /**
    * @brief 静止状態になるまで待機する関数
    *
    * @return true 静止状態になった

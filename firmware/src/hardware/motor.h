@@ -53,7 +53,6 @@ public:
         gpio_num_t gpio_R2)
       : mt_L(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, gpio_L1, gpio_L2),
         mt_R(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, gpio_R1, gpio_R2) {
-    emergency = false;
     free();
   }
   void drive(float valueL, float valueR) {
@@ -77,10 +76,10 @@ public:
     emergency = false;
     free();
   }
-  bool isEmergency() { return emergency; }
+  bool isEmergency() const { return emergency; }
 
 private:
-  bool emergency;
+  bool emergency = false;
   OneMotor mt_L;
   OneMotor mt_R;
 };
