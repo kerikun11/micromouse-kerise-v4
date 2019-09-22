@@ -62,7 +62,7 @@ public:
     }
     if (!ui.waitForPickup())
       return;
-    mr.autoRun();
+    mr.autoRun(false, true);
   }
   static void driveNormally() {
     if (mr.isComplete() && !mr.calcShortestDirections(true)) {
@@ -94,7 +94,7 @@ public:
       return;
     led = 9;
     // delay(3000); //< 動画用 delay
-    mr.autoRun(forceSearch);
+    mr.autoRun(forceSearch, false);
   }
   static void selectParamPreset() {
     sr.rp_fast = SearchRun::RunParameter();

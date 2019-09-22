@@ -27,7 +27,7 @@ using namespace MazeLib;
 class SearchRun : TaskBase {
 public:
   struct RunParameter {
-    RunParameter() {}
+  public:
     float search_v = 300;
     float curve_gain = 1.1;
     float max_speed = 720;
@@ -51,8 +51,6 @@ public:
   ~SearchRun() {}
   void enable() {
     deleteTask();
-    offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
-                            field::SegWidthFull / 2, 0);
     isRunningFlag = true;
     createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
@@ -189,7 +187,6 @@ private:
       sc.position.x = 0;  //< 直進方向の補正
       sc.position.th = 0; //< 回転方向の補正
       tof.enable();
-      // bz.play(Buzzer::SHORT6);
       led = 0;
     }
 #endif
@@ -294,10 +291,10 @@ private:
       if (-30 < fixed_x && fixed_x < 30) {
         if (fixed_x > 5) {
           fixed_x = 5;
-          // bz.play(Buzzer::SHORT6);
+          // bz.play(Buzzer::SHORT7);
         }
         sc.position.x = fixed_x;
-        // bz.play(Buzzer::SHORT6);
+        // bz.play(Buzzer::SHORT7);
       }
     }
 #endif
@@ -389,7 +386,7 @@ private:
       wall_cut(ref.v);
 #if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */
-      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0006f &&
+      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0005001f &&
           (sd.getShape() == SS_FLV90 || sd.getShape() == SS_FRV90)) {
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
@@ -397,7 +394,7 @@ private:
             field::SegWidthFull - tof_value + 8; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
-          // bz.play(Buzzer::SHORT6);
+          // bz.play(Buzzer::SHORT7);
         }
       }
 #endif
@@ -425,11 +422,15 @@ private:
     }
     /* 直線前壁補正 */
     if (isAlong()) {
-      if (rp.diag_enabled && reverse == false)
+      if (rp.diag_enabled && reverse == false) {
         wall_front_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
                                st.get_straight_prev());
+        wall_front_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2 -
+                               st.get_straight_prev());
+      }
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
+        wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
         // 壁衝突防止
         // if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
         //   wall_stop();
@@ -557,6 +558,8 @@ private:
   void search_run_task() {
     const auto &rp = rp_search;
     /* スタート */
+    offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
+                            field::SegWidthFull / 2, 0);
     sc.enable();
     while (1) {
       if (q.empty())
@@ -610,6 +613,7 @@ private:
       break;
     case RobotBase::Action::TURN_L: {
       wall_front_fix(rp, field::SegWidthFull);
+      wall_front_fix(rp, 2 * field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[0])
@@ -620,6 +624,7 @@ private:
     }
     case RobotBase::Action::TURN_R: {
       wall_front_fix(rp, field::SegWidthFull);
+      wall_front_fix(rp, 2 * field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[1])

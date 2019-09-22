@@ -109,8 +109,8 @@ public:
     }
     return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH);
   }
-  void autoRun(bool isForceSearch = false) {
-    start(isForceSearch, true); /*< Position Identification Run */
+  void autoRun(bool isForceSearch, bool isPositionIdentifying) {
+    start(isForceSearch, isPositionIdentifying);
     while (isRunning()) {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
@@ -152,7 +152,7 @@ protected:
     left = wd.wall[0];
     right = wd.wall[1];
     front = wd.wall[2];
-    bz.play(Buzzer::SHORT6);
+    // bz.play(Buzzer::SHORT6);
 #if 0
     /* 前1区画先の壁を読める場合 */
     if (!front)
