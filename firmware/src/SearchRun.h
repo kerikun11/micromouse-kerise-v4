@@ -132,8 +132,9 @@ public:
   }
 
 private:
-  std::queue<enum RobotBase::Action> q;
+  std::queue<RobotBase::Action> q;
   bool isRunningFlag = false;
+  ctrl::TrajectoryTracker tt{model::tt_gain};
   ctrl::Position offset;
   std::string path;
   bool prev_wall[2];
@@ -202,8 +203,8 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = 0.006f;
-      const float wall_diff_thr = 100;
+      const float gain = 0.004f;
+      const float wall_diff_thr = 500;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         led_flags |= 8;
@@ -289,8 +290,8 @@ private:
       value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-30 < fixed_x && fixed_x < 30) {
-        if (fixed_x > 5) {
-          fixed_x = 5;
+        if (fixed_x > 0) {
+          fixed_x = 0;
           // bz.play(Buzzer::SHORT7);
         }
         sc.position.x = fixed_x;
@@ -335,8 +336,6 @@ private:
     if (distance - sc.position.x > 0) {
       const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
-      TrajectoryTracker tt(model::tt_gain);
-      tt.reset(v_start);
       AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
       float int_y = 0;
@@ -366,8 +365,6 @@ private:
   }
   void trace(slalom::Trajectory &sd, const float velocity,
              const RunParameter &rp) {
-    TrajectoryTracker tt(model::tt_gain);
-    tt.reset(velocity);
     slalom::State s;
     const float Ts = 0.001f;
     sd.reset(velocity);
@@ -460,6 +457,7 @@ private:
     mt.drive(-0.2f, -0.2f);
     delay(200);
     sc.enable(true);
+    tt.reset();
   }
   void uturn() {
     if (wd.distance.side[0] < wd.distance.side[1]) {
@@ -561,6 +559,7 @@ private:
     offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
                             field::SegWidthFull / 2, 0);
     sc.enable();
+    tt.reset();
     while (1) {
       if (q.empty())
         isRunningFlag = false;
@@ -659,6 +658,7 @@ private:
     fan.drive(rp.fan_duty);
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
+    tt.reset();
     /* 初期位置を設定 */
     offset =
         ctrl::Position(field::SegWidthFull / 2,

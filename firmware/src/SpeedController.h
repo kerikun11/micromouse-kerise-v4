@@ -122,7 +122,6 @@ private:
       enc_v.wheel2pole();
       /* calculate estimated velocity value with complementary filter */
       Polar noisy_v = Polar(enc_v.tra, imu.gyro.z);
-      // Polar alpha = Polar(0.9f, 0.0f);
       Polar alpha = model::alpha;
       est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
       /* estimated acceleration */
@@ -134,9 +133,9 @@ private:
       /* drive the motors */
       mt.drive(pwm_value_L, pwm_value_R);
       /* estimates slip angle */
-      // const float k = 0.001f;
+      // const float k = 0.01f;
       const float k = 0.0f;
-      const float slip_angle = k * est_v.tra * est_v.rot;
+      const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
       /* calculate odometry value */
       position.th += est_v.rot * Ts;
       position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
