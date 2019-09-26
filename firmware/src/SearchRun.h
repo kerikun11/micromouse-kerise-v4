@@ -72,6 +72,7 @@ public:
 public:
   RunParameter rp_search;
   RunParameter rp_fast;
+  bool continue_straight_if_no_front_wall = false;
 
   bool positionRecovery() {
     sc.enable();
@@ -422,8 +423,9 @@ private:
       if (rp.diag_enabled && reverse == false) {
         wall_front_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
                                st.get_straight_prev());
-        wall_front_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2 -
-                               st.get_straight_prev());
+        // wall_front_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2
+        // -
+        //                        st.get_straight_prev());
       }
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
@@ -572,21 +574,12 @@ private:
       if (q.size()) {
         const auto action = q.front();
         q.pop();
-        /* 連続した直線を追加 */
-        int num = 1;
-        while (!q.empty()) {
-          auto next = q.front();
-          if (action != RobotBase::Action::ST_FULL || action != next)
-            break;
-          num++;
-          q.pop();
-        }
-        search_run_switch(action, rp, num);
+        search_run_switch(action, rp);
       }
     }
   }
-  void search_run_switch(const RobotBase::Action action, const RunParameter &rp,
-                         const int num = 1) {
+  void search_run_switch(const RobotBase::Action action,
+                         const RunParameter &rp) {
     const float velocity = rp.search_v;
     const float v_max = rp.max_speed;
     switch (action) {
@@ -600,14 +593,21 @@ private:
     case RobotBase::Action::START_INIT:
       start_init();
       break;
-    case RobotBase::Action::ST_FULL:
+    case RobotBase::Action::ST_FULL: {
       if (wd.wall[2])
         wall_stop();
-      straight_x(field::SegWidthFull * num, num > 1 ? v_max : velocity,
-                 velocity, rp);
+      const bool no_front_wall =
+          tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 4;
+      // const auto v_end = (continue_straight_if_no_front_wall &&
+      // no_front_wall)
+      //                        ? v_max
+      //                        : velocity;
+      const auto v_end = velocity;
+      straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
+    }
     case RobotBase::Action::ST_HALF:
-      straight_x(field::SegWidthFull / 2 * num - model::CenterShift, velocity,
+      straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
                  velocity, rp);
       break;
     case RobotBase::Action::TURN_L: {

@@ -174,6 +174,11 @@ protected:
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
                                  SearchAlgorithm::State newState) override {
+    const auto d = !getNextDirections().empty() ? getNextDirections().back()
+                                                : current_pose.d;
+    sr.continue_straight_if_no_front_wall =
+        !getNextDirectionCandidates().empty() &&
+        getNextDirectionCandidates()[0] == d;
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
       state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
