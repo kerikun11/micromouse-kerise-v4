@@ -17,6 +17,7 @@
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
 #define SEARCH_WALL_THETA_ENABLED 1
+#define SEARCH_NO_FRONT_WALL_ACCEL_ENABLED 1
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -204,8 +205,8 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = 0.004f;
-      const float wall_diff_thr = 500;
+      const float gain = 0.006f;
+      const float wall_diff_thr = 100;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         led_flags |= 8;
@@ -581,14 +582,21 @@ private:
   void search_run_switch(const RobotBase::Action action,
                          const RunParameter &rp) {
     const float velocity = rp.search_v;
-    const float v_max = rp.max_speed;
+#if SEARCH_NO_FRONT_WALL_ACCEL_ENABLED
+    const bool no_front_wall =
+        tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 4;
+    const auto v_end =
+        (continue_straight_if_no_front_wall && no_front_wall) ? 600 : velocity;
+#else
+    const auto v_end = velocity;
+#endif
     switch (action) {
     case RobotBase::Action::START_STEP:
       imu.angle = 0;
       sc.position.clear();
       sc.position.x = model::TailLength + field::WallThickness / 2;
       offset = ctrl::Position(field::SegWidthFull / 2, 0, M_PI / 2);
-      straight_x(field::SegWidthFull, velocity, velocity, rp);
+      straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
     case RobotBase::Action::START_INIT:
       start_init();
@@ -596,13 +604,6 @@ private:
     case RobotBase::Action::ST_FULL: {
       if (wd.wall[2])
         wall_stop();
-      const bool no_front_wall =
-          tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 4;
-      // const auto v_end = (continue_straight_if_no_front_wall &&
-      // no_front_wall)
-      //                        ? v_max
-      //                        : velocity;
-      const auto v_end = velocity;
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
     }
