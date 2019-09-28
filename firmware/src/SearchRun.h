@@ -292,8 +292,8 @@ private:
       value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-30 < fixed_x && fixed_x < 30) {
-        if (fixed_x > 0) {
-          fixed_x = 0;
+        if (fixed_x > 5) {
+          fixed_x = 5;
           // bz.play(Buzzer::SHORT7);
         }
         sc.position.x = fixed_x;
@@ -637,6 +637,8 @@ private:
       uturn();
       break;
     case RobotBase::Action::ST_HALF_STOP:
+      wall_front_fix(rp, field::SegWidthFull);
+      wall_front_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
       turn(0);
       break;
@@ -647,7 +649,6 @@ private:
     const auto &rp = rp_fast;
     /* 最短走行用にパターンを置換 */
     path = MazeLib::RobotBase::pathConvertSearchToFast(path, rp.diag_enabled);
-    const float v_max = rp.max_speed;
     /* キャリブレーション */
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
@@ -676,7 +677,7 @@ private:
     }
     /* 最後の直線を消化 */
     if (straight > 0.1f) {
-      straight_x(straight, v_max, 0, rp);
+      straight_x(straight, rp.max_speed, 0, rp);
       straight = 0;
     }
     sc.set_target(0, 0);
