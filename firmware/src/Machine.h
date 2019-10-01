@@ -51,7 +51,7 @@ public:
       bz.play(Buzzer::ERROR);
 
     // if (!ec.begin())
-    //   bz.play(Buzzer::ERROR);
+    // bz.play(Buzzer::ERROR);
     return true;
   }
   static void driveAutomatically() {
@@ -339,7 +339,7 @@ public:
       const float jerk = 240000;
       const float accel = 9000;
       const float v_max = 1200;
-      const float dist = 90 * 8;
+      const float dist = 90 * 6;
       ad.reset(jerk, accel, 0, v_max, 0, dist);
     } else {
       const float jerk = 2400 * M_PI;

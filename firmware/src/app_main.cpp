@@ -40,6 +40,7 @@ void printTask(void *arg) {
     // wd.print();
     // wd.printDiff();
     // wd.csv();
+    // enc.csv();
     // tof.print();
     // enc.print();
     vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);

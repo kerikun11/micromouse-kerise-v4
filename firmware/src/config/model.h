@@ -24,28 +24,29 @@ namespace model {
 /* KERISE v5 */
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
-static constexpr float GearRatio = (38.0f / 38.0f);
-static constexpr float WheelDiameter = 12.67f;
+static constexpr float GearRatio = 1.0f;
+static constexpr float WheelDiameter = 12.60f;
 static constexpr float CenterShift = 0.0f;
-static constexpr float TailLength = 13.0f + CenterShift + 5.0f;
+static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 16;
+static constexpr float tof_dist_offset = 12;
 const float wall_attach_gain_Kp = 6.0f;
 const float wall_attach_gain_Ki = 0.0f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5400, 120.0f), .T1 = ctrl::Polar(0.09f, 0.09f),
+  .K1 = ctrl::Polar(5400, 90.0f), .T1 = ctrl::Polar(0.06f, 0.06f),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0003f, 0.04f), .Ki = ctrl::Polar(0.01f, 3.0f),
+  // .Kp = ctrl::Polar(0.0003f, 0.04f), .Ki = ctrl::Polar(0.01f, 3.0f),
+  .Kp = ctrl::Polar(0.0002f, 0.03f), .Ki = ctrl::Polar(0.03f, 3.0f),
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
+static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.5f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 2.0f;
+static constexpr float tt_gain = 10.0f;
 
 #elif KERISE_SELECT == 4
 /* Original KERISE v4 */

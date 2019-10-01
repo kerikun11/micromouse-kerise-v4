@@ -143,7 +143,7 @@ public:
     dev_cfg.command_bits = 0;
     dev_cfg.address_bits = 0;
     dev_cfg.dummy_bits = 0;
-    dev_cfg.mode = 1;
+    dev_cfg.mode = 3;
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;

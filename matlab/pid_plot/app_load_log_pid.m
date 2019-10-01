@@ -9,7 +9,7 @@ set(groot, 'DefaultLegendInterpreter', 'Latex');
 figindex = 1;
 
 %% settings
-save_fig = 0;
+save_fig = 1;
 
 %% Select a Log File with GUI
 %{

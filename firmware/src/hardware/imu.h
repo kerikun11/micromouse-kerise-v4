@@ -71,10 +71,10 @@ public:
   }
   void device_reset() { writeReg(107, 0x81); /**< PowerManagement 1 */ }
   void device_config() {
-    writeReg(26, 0x00); /**< Config; DLPF=250[Hz] */
-    writeReg(27, 0x18); /**< Gyro Config; FS=2000[dps], FCHOICE=8[kHz] */
-    writeReg(28, 0x18); /**< Accel Config; FS=16[g] */
-    writeReg(29, 0x00); /**< Accel Config 2; F_CHOICE=1[kHz], DLPF=218.1[Hz] */
+    writeReg(26, 0x00); /**< Config; 2:0 DLPF = 250[Hz] */
+    writeReg(27, 0x18); /**< Gyr Conf; 4:3 FS=2000[dps], 1:0 FCHOICE=8[kHz] */
+    writeReg(28, 0x18); /**< Acc Conf; 4:3 FS=16[g] */
+    writeReg(29, 0x00); /**< Acc Conf 2; 3 F_CHOICE=1[kHz], DLPF=218.1[Hz] */
     // writeReg(17, 0xc9);  /**< ??? for Accel */
     writeReg(107, 0x01); /**< PowerManagement 1 */
   }
@@ -343,6 +343,7 @@ private:
 
   void update() {
     icm.update();
+    const auto prev_gyro_z = gyro.z;
 
     gyro.x = icm.gyro.x;
     gyro.y = icm.gyro.y;
@@ -351,6 +352,7 @@ private:
     accel.y = icm.accel.y;
     accel.z = icm.accel.z;
 
+    angular_accel = (gyro.z - prev_gyro_z) / Ts;
     angle += gyro.z * Ts;
   }
   void task() {
