@@ -40,7 +40,7 @@ public:
     float max_speed = 720;
     float accel = 4800;
 #endif
-    float fan_duty = 0.0f;
+    float fan_duty = 0.2f;
     bool diag_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
@@ -437,7 +437,7 @@ private:
       }
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
-        wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
+        // wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
         // 壁衝突防止
         // if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
         //   wall_stop();
@@ -620,7 +620,7 @@ private:
       break;
     case RobotBase::Action::TURN_L: {
       wall_front_fix(rp, field::SegWidthFull);
-      wall_front_fix(rp, 2 * field::SegWidthFull);
+      // wall_front_fix(rp, 2 * field::SegWidthFull);
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[0])
@@ -631,7 +631,7 @@ private:
     }
     case RobotBase::Action::TURN_R: {
       wall_front_fix(rp, field::SegWidthFull);
-      wall_front_fix(rp, 2 * field::SegWidthFull);
+      // wall_front_fix(rp, 2 * field::SegWidthFull);
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[1])
@@ -645,7 +645,7 @@ private:
       break;
     case RobotBase::Action::ST_HALF_STOP:
       wall_front_fix(rp, field::SegWidthFull);
-      wall_front_fix(rp, 2 * field::SegWidthFull);
+      // wall_front_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
       turn(0);
       break;

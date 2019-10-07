@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 2
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -177,6 +177,7 @@ protected:
     const auto d = !getNextDirections().empty() ? getNextDirections().back()
                                                 : current_pose.d;
     sr.continue_straight_if_no_front_wall =
+        newState != SearchAlgorithm::IDENTIFYING_POSITION &&
         !getNextDirectionCandidates().empty() &&
         getNextDirectionCandidates()[0] == d;
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
@@ -240,6 +241,7 @@ protected:
       sr.positionRecovery();
       if (!positionIdentifyRun(!state.has_reached_goal)) {
         bz.play(Buzzer::ERROR);
+        mt.emergencyStop();
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
@@ -259,6 +261,7 @@ protected:
       state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
+        mt.emergencyStop();
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
