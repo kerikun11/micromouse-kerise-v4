@@ -261,7 +261,6 @@ protected:
       state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
-        mt.emergencyStop();
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
