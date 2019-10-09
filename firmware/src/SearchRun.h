@@ -38,7 +38,7 @@ public:
     float search_v = 300;
     float curve_gain = 1.1;
     float max_speed = 720;
-    float accel = 4800;
+    float accel = 3600;
 #endif
     float fan_duty = 0.2f;
     bool diag_enabled = 1;
@@ -163,7 +163,7 @@ private:
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if ((force && tof.getDistance() < 180) || tof.getDistance() < 90 ||
+    if ((force && tof.getDistance() < 210) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       led = 6;
       bz.play(Buzzer::SHORT6);
@@ -174,8 +174,8 @@ private:
       for (int i = 0; i < 2000; i++) {
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
-        const float sat_integral = 1.0f;
-        const float end = 0.1f;
+        const float sat_integral = 60.0f;
+        const float end = 1.0f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
@@ -196,6 +196,8 @@ private:
       sc.set_target(0, 0);
       sc.position.x = 0;  //< 直進方向の補正
       sc.position.th = 0; //< 回転方向の補正
+      if (force)
+        sc.position.y = 0; //< 強制の場合は大きくずれうる
       tof.enable();
       led = 0;
     }
@@ -296,11 +298,13 @@ private:
       /* 壁までの距離を推定 */
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
-      value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
-      float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
+      // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
+      value = value * std::cos(sc.position.th);  /*< 機体姿勢考慮 */
+      float fixed_x = dist_to_wall - value + 12; /*< 大きく:壁に近く */
+      const float max_x = 5;
       if (-30 < fixed_x && fixed_x < 30) {
-        if (fixed_x > 5) {
-          fixed_x = 5;
+        if (fixed_x > max_x) {
+          fixed_x = max_x;
           // bz.play(Buzzer::SHORT7);
         }
         sc.position.x = fixed_x;
@@ -397,7 +401,7 @@ private:
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
         float fixed_x =
-            field::SegWidthFull - tof_value + 8; /*< 要調整, 大きく:前壁近く*/
+            field::SegWidthFull - tof_value + 12; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
           // bz.play(Buzzer::SHORT7);
@@ -431,16 +435,15 @@ private:
       if (rp.diag_enabled && reverse == false) {
         wall_front_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
                                st.get_straight_prev());
-        // wall_front_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2
-        // -
-        //                        st.get_straight_prev());
+        wall_front_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2 -
+                               st.get_straight_prev());
       }
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
-        // wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
+        wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
         // 壁衝突防止
-        // if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
-        //   wall_stop();
+        if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
+          wall_stop();
       }
     }
     /* 斜め前壁補正 */
@@ -611,6 +614,7 @@ private:
     case RobotBase::Action::ST_FULL: {
       if (wd.wall[2])
         wall_stop();
+      // wall_front_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
     }
