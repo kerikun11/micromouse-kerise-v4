@@ -47,13 +47,13 @@ public:
   Polar est_a;
   WheelParameter enc_v;
   Position position;
-  const struct ctrl::FeedbackController<ctrl::Polar>::Model &M;
-  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G;
-  FeedbackController<Polar> fbc;
+  const ctrl::FeedbackController<ctrl::Polar>::Model &M;
+  const ctrl::FeedbackController<ctrl::Polar>::Gain &G;
+  ctrl::FeedbackController<ctrl::Polar> fbc;
 
 public:
-  SpeedController(const struct ctrl::FeedbackController<ctrl::Polar>::Model &M,
-                  const struct ctrl::FeedbackController<ctrl::Polar>::Gain &G)
+  SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
+                  const ctrl::FeedbackController<ctrl::Polar>::Gain &G)
       : M(M), G(G), fbc(M, G) {
     enabled = false;
     reset();

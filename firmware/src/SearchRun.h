@@ -29,16 +29,16 @@ class SearchRun : TaskBase {
 public:
   struct RunParameter {
   public:
-#if KERISE_SELECT == 5
-    float search_v = 240;
-    float curve_gain = 1.0;
-    float max_speed = 480;
-    float accel = 2400;
-#else
+#if KERISE_SELECT == 4
     float search_v = 300;
     float curve_gain = 1.1;
     float max_speed = 720;
     float accel = 3600;
+#else
+    float search_v = 240;
+    float curve_gain = 1.0;
+    float max_speed = 480;
+    float accel = 2400;
 #endif
     float fan_duty = 0.2f;
     bool diag_enabled = 1;

@@ -15,32 +15,20 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
   std::cout << std::endl << "******** KERISE ********" << std::endl;
-  uint8_t mac[6];
-  esp_efuse_mac_get_default(mac);
-  std::cout << mac[0] << std::endl;
   Machine::init();
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   // xTaskCreate(timeKeepTask, "TimeKeep", 4096, NULL, 2, NULL);
   xTaskCreate(driveTask, "drive", 4096, NULL, 2, NULL);
 }
 
-void loop() { delay(1000); }
+void loop() { vTaskDelay(portMAX_DELAY); }
 
 void printTask(void *arg) {
-  // Accumulator<float, 100> p[2];
   portTickType xLastWakeTime = xTaskGetTickCount();
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-    // for (int i = 0; i < 2; ++i)
-    //   p[i].push(enc.position(i));
-    // std::cout << p[0][0] - p[0][p[0].size() - 1] << "\t"
-    //           << p[1][0] - p[1][p[0].size() - 1] << std::endl;
     // ref.csv();
-    // tof.csv();
     // wd.print();
-    // wd.printDiff();
-    // wd.csv();
-    // enc.csv();
     // tof.print();
     // enc.print();
     vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
@@ -71,27 +59,14 @@ void driveTask(void *arg) {
     case 2: /* プリセット走行パラメータ */
       Machine::selectParamPreset();
       break;
-    case 3: { /* 壁制御，斜め走行の設定 */
-      int value = ui.waitForSelect(16);
-      if (value < 0)
-        break;
-      sr.rp_search.diag_enabled = value & 0x01;
-      sr.rp_fast.diag_enabled = value & 0x02;
-      sr.rp_search.front_wall_fix_enabled = value & 0x04;
-      sr.rp_fast.front_wall_fix_enabled = value & 0x04;
-      sr.rp_search.wall_avoid_enabled = value & 0x08;
-      sr.rp_fast.wall_avoid_enabled = value & 0x08;
-    }
-      bz.play(Buzzer::SUCCESSFUL);
+    case 3: /* 壁制御，斜め走行の設定 */
+      Machine::selectRunConfig();
       break;
     case 4: /* ファンの設定 */
       Machine::selectFanGain();
       break;
     case 5: /* 迷路データの復元 */
-      if (!mr.restore())
-        bz.play(Buzzer::ERROR);
-      else
-        bz.play(Buzzer::MAZE_RESTORE);
+      Machine::restore();
       break;
     case 6: /* データ消去 */
       Machine::reset();

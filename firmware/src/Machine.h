@@ -54,17 +54,26 @@ public:
     // bz.play(Buzzer::ERROR);
     return true;
   }
-  static void driveAutomatically() {
-    // delay(1000); //< クラッシュ後の静止時間
-    if (!mr.restore()) {
+  static void restore() {
+    if (!mr.restore())
       bz.play(Buzzer::ERROR);
+    else
+      bz.play(Buzzer::MAZE_RESTORE);
+  }
+  static void reset() {
+    if (!ui.waitForCover())
       return;
-    }
+    bz.play(Buzzer::MAZE_BACKUP);
+    mr.reset();
+  }
+  static void driveAutomatically() {
+    restore();
     if (!ui.waitForPickup())
       return;
     mr.autoRun(false, true);
   }
   static void driveNormally() {
+    /* 異常検出 */
     if (mr.isComplete() && !mr.calcShortestDirections(true)) {
       bz.play(Buzzer::ERROR);
       mr.resetLastWalls(3);
@@ -100,9 +109,21 @@ public:
     sr.rp_fast = SearchRun::RunParameter();
     bz.play(Buzzer::SUCCESSFUL);
   }
+  static void selectRunConfig() {
+    int value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    sr.rp_search.diag_enabled = value & 0x01;
+    sr.rp_fast.diag_enabled = value & 0x02;
+    sr.rp_search.front_wall_fix_enabled = value & 0x04;
+    sr.rp_fast.front_wall_fix_enabled = value & 0x04;
+    sr.rp_search.wall_avoid_enabled = value & 0x08;
+    sr.rp_fast.wall_avoid_enabled = value & 0x08;
+    bz.play(Buzzer::SUCCESSFUL);
+  }
   static void selectParamManually() {
     int value;
-
+    /* ターン速度 */
     for (int i = 0; i < 1; i++)
       bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
@@ -111,7 +132,7 @@ public:
     if (value > 7)
       value -= 16;
     sr.rp_fast.curve_gain *= std::pow(sr.rp_fast.cg_gain, value);
-
+    /* 最大速度 */
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
@@ -120,7 +141,7 @@ public:
     if (value > 7)
       value -= 16;
     sr.rp_fast.max_speed *= std::pow(sr.rp_fast.ms_gain, value);
-
+    /* 加速度 */
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT7);
     value = ui.waitForSelect(16);
@@ -129,14 +150,8 @@ public:
     if (value > 7)
       value -= 16;
     sr.rp_fast.accel *= std::pow(sr.rp_fast.ms_gain, value);
-
+    /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
-  }
-  static void reset() {
-    if (!ui.waitForCover())
-      return;
-    bz.play(Buzzer::MAZE_BACKUP);
-    mr.reset();
   }
   static void selectFanGain() {
     fan.drive(0.5f);
