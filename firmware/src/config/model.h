@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Position.h"
+#include "TrajectoryTracker.h"
 #include "ctrl/FeedbackController.h"
 
 #ifndef M_PI
@@ -71,9 +72,9 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 15.0f;
+static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {};
 
 #elif KERISE_SELECT == 3
 /* Copy KERISE v4 */

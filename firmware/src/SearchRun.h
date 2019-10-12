@@ -143,7 +143,7 @@ public:
 private:
   std::queue<RobotBase::Action> q;
   bool isRunningFlag = false;
-  ctrl::TrajectoryTracker tt{model::tt_gain};
+  ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
   ctrl::Position offset;
   std::string path;
   bool prev_wall[2];
