@@ -42,7 +42,8 @@ public:
 #endif
 
 private:
-  static constexpr float ICM20602_ACCEL_FACTOR = 2048.0f;
+  // static constexpr float ICM20602_ACCEL_FACTOR = 2048.0f;
+  static constexpr float ICM20602_ACCEL_FACTOR = 4 * 2048.0f;
   static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
 
 public:
@@ -73,7 +74,8 @@ public:
   void device_config() {
     writeReg(26, 0x00); /**< Config; 2:0 DLPF = 250[Hz] */
     writeReg(27, 0x18); /**< Gyr Conf; 4:3 FS=2000[dps], 1:0 FCHOICE=8[kHz] */
-    writeReg(28, 0x18); /**< Acc Conf; 4:3 FS=16[g] */
+    // writeReg(28, 0x18); /**< Acc Conf; 4:3 FS=16[g] */
+    writeReg(28, 0x08); /**< Acc Conf; 4:3 FS=2[g] */
     writeReg(29, 0x00); /**< Acc Conf 2; 3 F_CHOICE=1[kHz], DLPF=218.1[Hz] */
     // writeReg(17, 0xc9);  /**< ??? for Accel */
     writeReg(107, 0x01); /**< PowerManagement 1 */

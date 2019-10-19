@@ -32,7 +32,7 @@ public:
 #if KERISE_SELECT == 4
     float search_v = 300;
     float curve_gain = 1.1;
-    float max_speed = 720;
+    float max_speed = 600;
     float accel = 3600;
 #else
     float search_v = 240;
@@ -299,7 +299,7 @@ private:
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
       // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
-      value = value * std::cos(sc.position.th);  /*< 機体姿勢考慮 */
+      // value = value * std::cos(sc.position.th);  /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 12; /*< 大きく:壁に近く */
       const float max_x = 5;
       if (-30 < fixed_x && fixed_x < 30) {
@@ -594,7 +594,8 @@ private:
     const float velocity = rp.search_v;
 #if SEARCH_NO_FRONT_WALL_ACCEL_ENABLED
     const bool no_front_wall =
-        tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 4;
+        !tof.isValid() ||
+        tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 3;
     const auto v_end =
         (continue_straight_if_no_front_wall && no_front_wall) ? 600 : velocity;
 #else
