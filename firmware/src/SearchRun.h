@@ -31,7 +31,7 @@ public:
   public:
 #if KERISE_SELECT == 4
     float search_v = 300;
-    float curve_gain = 1.1;
+    float curve_gain = 1.0;
     float max_speed = 600;
     float accel = 3600;
 #else
@@ -125,6 +125,7 @@ public:
     }
     sc.enable(); //< reset
     turn(2 * M_PI * min_i / table_size);
+    sc.position.clear();
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
@@ -143,7 +144,6 @@ public:
 private:
   std::queue<RobotBase::Action> q;
   bool isRunningFlag = false;
-  ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
   ctrl::Position offset;
   std::string path;
   bool prev_wall[2];
@@ -299,8 +299,8 @@ private:
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
       // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
-      // value = value * std::cos(sc.position.th);  /*< 機体姿勢考慮 */
-      float fixed_x = dist_to_wall - value + 12; /*< 大きく:壁に近く */
+      value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
+      float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       const float max_x = 5;
       if (-30 < fixed_x && fixed_x < 30) {
         if (fixed_x > max_x) {
@@ -308,7 +308,7 @@ private:
           // bz.play(Buzzer::SHORT7);
         }
         sc.position.x = fixed_x;
-        // bz.play(Buzzer::SHORT7);
+        bz.play(Buzzer::SHORT7);
       }
     }
 #endif
@@ -349,6 +349,8 @@ private:
     if (distance - sc.position.x > 0) {
       const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
+      ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+      tt.reset(v_start);
       AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
       float int_y = 0;
@@ -378,6 +380,8 @@ private:
   }
   void trace(slalom::Trajectory &sd, const float velocity,
              const RunParameter &rp) {
+    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+    tt.reset(velocity);
     slalom::State s;
     const float Ts = 0.001f;
     sd.reset(velocity);
@@ -401,10 +405,10 @@ private:
         float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
         float fixed_x =
-            field::SegWidthFull - tof_value + 12; /*< 要調整, 大きく:前壁近く*/
+            field::SegWidthFull - tof_value + 8; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
-          // bz.play(Buzzer::SHORT7);
+          bz.play(Buzzer::SHORT7);
         }
       }
 #endif
@@ -470,7 +474,6 @@ private:
     mt.drive(-0.2f, -0.2f);
     delay(200);
     sc.enable(true);
-    tt.reset();
   }
   void uturn() {
     if (wd.distance.side[0] < wd.distance.side[1]) {
@@ -572,7 +575,6 @@ private:
     offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
                             field::SegWidthFull / 2, 0);
     sc.enable();
-    tt.reset();
     while (1) {
       if (q.empty())
         isRunningFlag = false;
@@ -672,7 +674,6 @@ private:
     fan.drive(rp.fan_duty);
     delay(500);  //< ファンの回転数が一定なるのを待つ
     sc.enable(); //< 速度コントローラ始動
-    tt.reset();
     /* 初期位置を設定 */
     offset =
         ctrl::Position(field::SegWidthFull / 2,
