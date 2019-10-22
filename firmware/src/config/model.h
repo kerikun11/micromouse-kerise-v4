@@ -74,7 +74,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
 /* Estimated Velocity IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {};
+static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain;
 
 #elif KERISE_SELECT == 3
 /* Copy KERISE v4 */

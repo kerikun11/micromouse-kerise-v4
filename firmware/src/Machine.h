@@ -383,6 +383,84 @@ public:
     sc.disable();
     fan.drive(0);
   }
+  static void slalom_test() {
+    if (!ui.waitForCover())
+      return;
+    delay(500);
+    lgr.clear();
+    auto printLog = [](const auto ref_q, const auto est_q) {
+      auto &bd = sc.fbc.getBreakdown();
+      lgr.push({
+          sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
+          bd.fb.tra,    bd.fbp.tra,   bd.fbi.tra,   bd.u.tra,     sc.ref_v.rot,
+          sc.est_v.rot, sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fb.rot,
+          bd.fbp.rot,   bd.fbi.rot,   bd.u.rot,     ref_q.x,      est_q.x,
+          ref_q.y,      est_q.y,      ref_q.th,     est_q.th,
+      });
+    };
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    const float velocity = 450;
+    const float Ts = 0.001f;
+    const float j_max = 240000;
+    const float a_max = 6000;
+    const float v_max = velocity;
+    const float dist = 1 * 90;
+    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+    const auto &shape = SS_FL90;
+    ctrl::Position offset;
+    /* start */
+    sc.enable();
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    tt.reset(0);
+    /* accel */
+    ctrl::straight::Trajectory ref;
+    ref.reset(j_max, a_max, 0, v_max, velocity, dist + shape.straight_prev);
+    for (float t = 0; t < ref.t_end(); t += Ts) {
+      ctrl::State ref_s;
+      ref.update(ref_s, t);
+      auto est_q = sc.position;
+      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
+      sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+    }
+    sc.position.x -= ref.x_end();
+    offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
+    /* slalom */
+    slalom::Trajectory st(shape);
+    st.reset(velocity);
+    ctrl::State ref_s;
+    for (float t = 0; t < st.t_end(); t += Ts) {
+      st.update(ref_s, t, Ts);
+      auto est_q = sc.position;
+      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
+      sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+    }
+    const auto &net = st.get_net_curve();
+    sc.position = (sc.position - net).rotate(-net.th);
+    offset += net.rotate(offset.th);
+    /* decel */
+    ref.reset(j_max, a_max, sc.ref_v.tra, v_max, 0, dist + shape.straight_post);
+    for (float t = 0; t < ref.t_end(); t += Ts) {
+      ctrl::State ref_s;
+      ref.update(ref_s, t);
+      auto est_q = sc.position;
+      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
+      sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+    }
+    sc.position.x -= ref.x_end();
+    offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
+    /* end */
+    sc.set_target(0, 0);
+    delay(200);
+    bz.play(Buzzer::CANCEL);
+    sc.disable();
+  }
   static void SearchRun_test() {
     if (!ui.waitForCover())
       return;

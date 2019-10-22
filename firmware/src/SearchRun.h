@@ -5,6 +5,7 @@
 
 #include "TrajectoryTracker.h"
 #include "slalom_shapes.h"
+#include "straight.h"
 
 #include "TaskBase.h"
 #include <AccelDesigner.h>
@@ -366,6 +367,8 @@ private:
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         const float remain = distance - est_q.x;
+        if (remain < 0)
+          break;
         wall_avoid(remain, rp);
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
@@ -382,7 +385,7 @@ private:
              const RunParameter &rp) {
     ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
     tt.reset(velocity);
-    slalom::State s;
+    ctrl::State s;
     const float Ts = 0.001f;
     sd.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
@@ -390,8 +393,8 @@ private:
     float front_fix_x = 0;
 #endif
     s.q.x = sc.position.x; //*< 既に移動した分を反映 */
-    for (float t = 0; t < sd.t_end(); t += 0.001f) {
-      sd.update(&s, Ts);
+    for (float t = 0; t < sd.t_end(); t += Ts) {
+      sd.update(s, t, Ts);
       auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
@@ -420,7 +423,7 @@ private:
           ctrl::Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
 #endif
     sc.set_target(velocity, 0);
-    const auto net = sd.get_net_curve();
+    const auto &net = sd.get_net_curve();
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }

@@ -87,7 +87,8 @@ void driveTask(void *arg) {
       Machine::setGoalPositions();
       break;
     case 14: /* テスト */
-      Machine::accel_test();
+      // Machine::accel_test();
+      Machine::slalom_test();
       // Machine::sysid();
       break;
     case 15: /* ログの表示 */
