@@ -403,7 +403,7 @@ public:
     const float velocity = 450;
     const float Ts = 0.001f;
     const float j_max = 240000;
-    const float a_max = 6000;
+    const float a_max = 9000;
     const float v_max = velocity;
     const float dist = 1 * 90;
     ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};

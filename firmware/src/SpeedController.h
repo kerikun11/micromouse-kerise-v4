@@ -38,7 +38,7 @@ public:
 
 class SpeedController {
 public:
-  constexpr static const float Ts = 0.001f;
+  constexpr static float Ts = 0.001f;
 
 public:
   Polar ref_v;
@@ -138,8 +138,10 @@ private:
       const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
       /* calculate odometry value */
       position.th += est_v.rot * Ts;
-      position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
-      position.y += est_v.tra * std::sin(position.th + slip_angle) * Ts;
+      // position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
+      // position.y += est_v.tra * std::sin(position.th + slip_angle) * Ts;
+      position.x += noisy_v.tra * std::cos(position.th + slip_angle) * Ts;
+      position.y += noisy_v.tra * std::sin(position.th + slip_angle) * Ts;
       /* Fix Position */
       const float delta = 0.3;
       if (fix.x > delta) {

@@ -176,7 +176,7 @@ private:
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
         const float sat_integral = 60.0f;
-        const float end = 1.0f;
+        const float end = 0.4f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
@@ -302,13 +302,14 @@ private:
       // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
       value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-      const float max_x = 5;
       if (-30 < fixed_x && fixed_x < 30) {
-        if (fixed_x > max_x) {
-          fixed_x = max_x;
-          // bz.play(Buzzer::SHORT7);
-        }
-        sc.position.x = fixed_x;
+        // const float max_x = 5;
+        // if (fixed_x > max_x) {
+        // fixed_x = max_x;
+        // bz.play(Buzzer::SHORT7);
+        // }
+        // sc.position.x = fixed_x;
+        sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
         bz.play(Buzzer::SHORT7);
       }
     }
@@ -356,7 +357,7 @@ private:
                        distance - sc.position.x, sc.position.x);
       float int_y = 0;
       portTickType xLastWakeTime = xTaskGetTickCount();
-      for (float t = 0; t < ad.t_end(); t += 0.001f) {
+      for (float t = 0; true; t += 0.001f) {
         auto est_q = sc.position;
         auto ref_q = ctrl::Position(ad.x(t), 0);
         auto ref_dq = ctrl::Position(ad.v(t), 0);
@@ -367,7 +368,7 @@ private:
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
         const float remain = distance - est_q.x;
-        if (remain < 0)
+        if (remain < 0 || t > ad.t_end() + 0.1f)
           break;
         wall_avoid(remain, rp);
         wall_cut(ref.v);
