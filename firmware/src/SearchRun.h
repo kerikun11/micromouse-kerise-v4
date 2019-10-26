@@ -215,7 +215,7 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = 0.006f;
+      const float gain = model::wall_avoid_gain;
       const float wall_diff_thr = 100;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
