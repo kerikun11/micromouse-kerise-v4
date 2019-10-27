@@ -176,7 +176,7 @@ private:
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
         const float sat_integral = 60.0f;
-        const float end = 0.4f;
+        const float end = 0.2f;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
@@ -300,7 +300,7 @@ private:
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
       // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
-      value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
+      // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-30 < fixed_x && fixed_x < 30) {
         // const float max_x = 5;

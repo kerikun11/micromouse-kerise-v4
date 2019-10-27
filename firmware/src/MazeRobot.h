@@ -126,7 +126,12 @@ public:
     }
     terminate();
   }
-  void print() const { maze.print(); }
+  void print() const {
+    for (const auto &wl : maze.getWallLogs()) {
+      std::cout << wl << std::endl;
+    }
+    maze.print();
+  }
   bool isRunning() const { return isRunningFlag; }
   void setGoals(const Positions &goal) { replaceGoals(goal); }
 
