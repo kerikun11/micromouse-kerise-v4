@@ -62,7 +62,7 @@ static constexpr float TailLength = 16.4f + CenterShift;
 /* ToF */
 static constexpr float tof_dist_offset = 23; //< 大きいほど壁に近く
 /* Reflector */
-const float wall_attach_gain_Kp = 120.0f;
+const float wall_attach_gain_Kp = 240.0f;
 const float wall_attach_gain_Ki = 0.0f;
 const float wall_avoid_gain = 0.006f;
 /* Model */

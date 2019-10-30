@@ -18,11 +18,12 @@ public:
   };
 
 public:
-  FeedbackController(const struct Model M, const struct Gain G) : M(M), G(G) {
+  FeedbackController(const struct Model &M, const struct Gain &G) : M(M), G(G) {
     reset();
   }
-  void reset() { e_int.clear(); }
-  const T update(const T r, const T y, const T dr, const T dy, const float Ts) {
+  void reset() { e_int = T(); }
+  const T update(const T &r, const T &y, const T &dr, const T &dy,
+                 const float Ts) {
     /* feedforward signal */
     bd.ff = (M.T1 * dr + r) / M.K1;
     /* feedback signal */

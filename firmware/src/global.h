@@ -37,8 +37,8 @@ extern WallDetector wd;
 /* Conductor */
 #include "Logger.h"
 extern Logger lgr;
-#include "SearchRun.h"
-extern SearchRun sr;
+#include "MoveAction.h"
+extern MoveAction ma;
 #include "MazeRobot.h"
 extern MazeRobot mr;
 #include "ExternalController.h"

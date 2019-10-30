@@ -26,7 +26,7 @@
 #include <RobotBase.h>
 using namespace MazeLib;
 
-class SearchRun : TaskBase {
+class MoveAction : TaskBase {
 public:
   struct RunParameter {
   public:
@@ -56,12 +56,12 @@ public:
 #endif
 
 public:
-  SearchRun() {}
-  ~SearchRun() {}
+  MoveAction() {}
+  ~MoveAction() {}
   void enable() {
     deleteTask();
     isRunningFlag = true;
-    createTask("SearchRun", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
+    createTask("MoveAction", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
   }
   void disable() {
     deleteTask();
@@ -217,14 +217,18 @@ private:
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
       const float wall_diff_thr = 100;
+      float fix_th = 0;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
+        fix_th += wd.distance.side[0];
         led_flags |= 8;
       }
       if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
         sc.position.y -= wd.distance.side[1] * gain;
+        fix_th -= wd.distance.side[1];
         led_flags |= 1;
       }
+      // sc.position.th += fix_th * 0.00000001f;
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
@@ -296,19 +300,12 @@ private:
   void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
     if (rp.front_wall_fix_enabled && tof.isValid()) {
-      /* 壁までの距離を推定 */
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
-      // tof.getDistance() - tof.passedTimeMs() / 1000.0f * rp.search_v;
       // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-      if (-30 < fixed_x && fixed_x < 30) {
-        // const float max_x = 5;
-        // if (fixed_x > max_x) {
-        // fixed_x = max_x;
-        // bz.play(Buzzer::SHORT7);
-        // }
-        // sc.position.x = fixed_x;
+      if (-15 < fixed_x && fixed_x < 15) {
+        // fixed_x = std::max(fixed_x, 5.0f);
         sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
         bz.play(Buzzer::SHORT7);
       }
@@ -355,7 +352,9 @@ private:
       tt.reset(v_start);
       AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
+#if SEARCH_WALL_THETA_ENABLED
       float int_y = 0;
+#endif
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; true; t += 0.001f) {
         auto est_q = sc.position;
@@ -373,8 +372,8 @@ private:
         wall_avoid(remain, rp);
         wall_cut(ref.v);
         /* 機体姿勢の補正 */
-        int_y += sc.position.y;
 #if SEARCH_WALL_THETA_ENABLED
+        int_y += sc.position.y;
         sc.position.th += int_y * 0.00000001f;
 #endif
       }
@@ -671,7 +670,7 @@ private:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     /* 壁に背中を確実につける */
-    mt.drive(-0.2f, -0.2f);
+    mt.drive(-0.25f, -0.25f);
     delay(200);
     mt.free();
     /* 走行開始 */

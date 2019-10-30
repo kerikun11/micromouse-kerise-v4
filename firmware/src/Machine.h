@@ -106,19 +106,19 @@ public:
     mr.autoRun(forceSearch, false);
   }
   static void selectParamPreset() {
-    sr.rp_fast = SearchRun::RunParameter();
+    ma.rp_fast = MoveAction::RunParameter();
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectRunConfig() {
     int value = ui.waitForSelect(16);
     if (value < 0)
       return;
-    sr.rp_search.diag_enabled = value & 0x01;
-    sr.rp_fast.diag_enabled = value & 0x02;
-    sr.rp_search.front_wall_fix_enabled = value & 0x04;
-    sr.rp_fast.front_wall_fix_enabled = value & 0x04;
-    sr.rp_search.wall_avoid_enabled = value & 0x08;
-    sr.rp_fast.wall_avoid_enabled = value & 0x08;
+    ma.rp_search.diag_enabled = value & 0x01;
+    ma.rp_fast.diag_enabled = value & 0x02;
+    ma.rp_search.front_wall_fix_enabled = value & 0x04;
+    ma.rp_fast.front_wall_fix_enabled = value & 0x04;
+    ma.rp_search.wall_avoid_enabled = value & 0x08;
+    ma.rp_fast.wall_avoid_enabled = value & 0x08;
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectParamManually() {
@@ -131,7 +131,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    sr.rp_fast.curve_gain *= std::pow(sr.rp_fast.cg_gain, value);
+    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, value);
     /* 最大速度 */
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
@@ -140,7 +140,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    sr.rp_fast.max_speed *= std::pow(sr.rp_fast.ms_gain, value);
+    ma.rp_fast.max_speed *= std::pow(ma.rp_fast.ms_gain, value);
     /* 加速度 */
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT7);
@@ -149,7 +149,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    sr.rp_fast.accel *= std::pow(sr.rp_fast.ms_gain, value);
+    ma.rp_fast.accel *= std::pow(ma.rp_fast.ms_gain, value);
     /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
   }
@@ -160,9 +160,9 @@ public:
     int value = ui.waitForSelect(11);
     if (value < 0)
       return;
-    sr.rp_fast.fan_duty = 0.1f * value;
-    fan.drive(sr.rp_fast.fan_duty);
-    // mt.drive(sr.fan_duty, sr.fan_duty);
+    ma.rp_fast.fan_duty = 0.1f * value;
+    fan.drive(ma.rp_fast.fan_duty);
+    // mt.drive(ma.fan_duty, ma.fan_duty);
     ui.waitForSelect(1);
     fan.drive(0);
     mt.drive(0, 0);
@@ -250,7 +250,7 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
-    // sr.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
+    // ma.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
     //             "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
     //             "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
     std::string path;
@@ -264,13 +264,13 @@ public:
       path += "r";
     }
     path += "s";
-    sr.set_path(path);
-    sr.enable();
-    while (sr.isRunning()) {
+    ma.set_path(path);
+    ma.enable();
+    while (ma.isRunning()) {
       delay(100);
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
-        sr.disable();
+        ma.disable();
         fan.free();
         delay(100);
         mt.emergencyRelease();
@@ -467,19 +467,16 @@ public:
     delay(500);
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    // sr.set_action(SearchRun::START_STEP);
-    // sr.set_action(SearchRun::TURN_RIGHT_90);
-    // sr.set_action(SearchRun::TURN_LEFT_90);
-    // sr.set_action(SearchRun::TURN_LEFT_90);
-    // sr.set_action(SearchRun::TURN_RIGHT_90);
-    // sr.set_action(SearchRun::TURN_RIGHT_90);
-    // sr.set_action(SearchRun::GO_STRAIGHT);
-    // sr.set_action(SearchRun::STOP);
-    sr.enable();
-    while (sr.isRunning()) {
+    ma.set_action(RobotBase::START_STEP);
+    ma.set_action(RobotBase::TURN_R);
+    ma.set_action(RobotBase::ST_FULL);
+    ma.set_action(RobotBase::TURN_L);
+    ma.set_action(RobotBase::ST_HALF_STOP);
+    ma.enable();
+    while (ma.isRunning()) {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
-        sr.disable();
+        ma.disable();
         delay(1000);
         mt.emergencyRelease();
         break;
@@ -493,9 +490,48 @@ public:
         return;
       led = 0;
       delay(1000);
-      if (!sr.positionRecovery())
+      if (!ma.positionRecovery())
         bz.play(Buzzer::ERROR);
       led = 15;
     }
+  }
+  static void enc_id() {
+    if (!ui.waitForCover())
+      return;
+    delay(500);
+    lgr.clear();
+    auto printLog = []() {
+      lgr.push({
+          (float)enc.getPulses(0),
+          (float)enc.getPulses(1),
+          imu.gyro.z,
+          imu.angle,
+          imu.angular_accel,
+      });
+    };
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    sc.enable();
+    AccelDesigner ad;
+    const float jerk = 2400 * M_PI;
+    const float accel = 48 * M_PI;
+    const float v_max = 1 * M_PI;
+    const float dist = 2 * M_PI;
+    ad.reset(jerk, accel, 0, v_max, 0, dist);
+    FeedbackController<float>::Model model = {.K1 = 0, .T1 = 0};
+    FeedbackController<float>::Gain gain;
+    FeedbackController<float> fc(model, gain);
+    portTickType xLastWakeTime = xTaskGetTickCount();
+    for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
+      sc.set_target(0, ad.v(t), 0, ad.a(t));
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      if ((int)(t * 1000) % 2 == 0)
+        printLog();
+    }
+    sc.set_target(0, 0);
+    delay(200);
+    bz.play(Buzzer::CANCEL);
+    sc.disable();
+    fan.drive(0);
   }
 };

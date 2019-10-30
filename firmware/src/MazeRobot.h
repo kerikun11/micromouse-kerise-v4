@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 2
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -85,7 +85,7 @@ public:
   }
   void terminate() {
     deleteTask();
-    sr.disable();
+    ma.disable();
     isRunningFlag = false;
   }
   void reset() {
@@ -103,9 +103,9 @@ public:
     for (int i = 0; i < state.try_count; i++)
       bz.play(Buzzer::SHORT7);
     for (int i = 0; i < state.try_count - 1; i++) {
-      sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
-      sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
-      sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+      ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
+      ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
+      ma.rp_fast.accel *= ma.rp_fast.ac_gain;
     }
     return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH);
   }
@@ -147,11 +147,11 @@ private:
 protected:
   void waitForEndAction() override {
     // delay(1200); // for debug
-    while (sr.isRunning())
+    while (ma.isRunning())
       delay(1);
   }
   void queueAction(const RobotBase::Action action) override {
-    return sr.set_action(action);
+    return ma.set_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {
     left = wd.wall[0];
@@ -166,8 +166,8 @@ protected:
 #endif
   }
   void backupMazeToFlash() override { backup(); }
-  void stopDequeue() override { sr.disable(); }
-  void startDequeue() override { sr.enable(); }
+  void stopDequeue() override { ma.disable(); }
+  void startDequeue() override { ma.enable(); }
   void calibration() override {
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
@@ -181,7 +181,7 @@ protected:
                                  SearchAlgorithm::State newState) override {
     const auto d = !getNextDirections().empty() ? getNextDirections().back()
                                                 : current_pose.d;
-    sr.continue_straight_if_no_front_wall =
+    ma.continue_straight_if_no_front_wall =
         newState != SearchAlgorithm::IDENTIFYING_POSITION &&
         !getNextDirectionCandidates().empty() &&
         getNextDirectionCandidates()[0] == d;
@@ -202,17 +202,17 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
   bool fastRun() {
-    if (!calcShortestDirections(sr.rp_fast.diag_enabled))
+    if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;
     /* 最短経路の作成 */
     const auto path = convertDirectionsToSearch(getShortestDirections());
-    sr.set_path(path);
+    ma.set_path(path);
 
     //> FastRun Start
-    sr.enable();
-    while (sr.isRunning())
+    ma.enable();
+    while (ma.isRunning())
       delay(100);
-    sr.disable();
+    ma.disable();
     //< FastRun End
 
     // ゴールで回収されるか待つ
@@ -243,7 +243,7 @@ protected:
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
       readyToStartWait();
-      sr.positionRecovery();
+      ma.positionRecovery();
       if (!positionIdentifyRun(!state.has_reached_goal)) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop();
@@ -252,9 +252,9 @@ protected:
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
       /* パラメータを若干落とす */
-      sr.rp_fast.curve_gain /= std::sqrt(sr.rp_fast.cg_gain);
-      sr.rp_fast.max_speed /= std::sqrt(sr.rp_fast.ms_gain);
-      sr.rp_fast.accel /= std::sqrt(sr.rp_fast.ac_gain);
+      ma.rp_fast.curve_gain /= std::sqrt(ma.rp_fast.cg_gain);
+      ma.rp_fast.max_speed /= std::sqrt(ma.rp_fast.ms_gain);
+      ma.rp_fast.accel /= std::sqrt(ma.rp_fast.ac_gain);
       crashed_flag = true;
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
@@ -281,15 +281,15 @@ protected:
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
       /* 完走した場合はパラメータを上げる */
-      sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
-      sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
-      sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+      ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
+      ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
+      ma.rp_fast.accel *= ma.rp_fast.ac_gain;
       /* 最終走行だけ例外処理 */
       if (state.try_count == 4 && !crashed_flag)
         for (int i = 0; i < 1; i++) {
-          sr.rp_fast.curve_gain *= sr.rp_fast.cg_gain;
-          sr.rp_fast.max_speed *= sr.rp_fast.ms_gain;
-          sr.rp_fast.accel *= sr.rp_fast.ac_gain;
+          ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
+          ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
+          ma.rp_fast.accel *= ma.rp_fast.ac_gain;
           bz.play(Buzzer::CONFIRM);
         }
     }
