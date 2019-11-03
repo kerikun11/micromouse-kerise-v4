@@ -217,18 +217,14 @@ private:
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
       const float wall_diff_thr = 100;
-      float fix_th = 0;
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
-        fix_th += wd.distance.side[0];
         led_flags |= 8;
       }
       if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
         sc.position.y -= wd.distance.side[1] * gain;
-        fix_th -= wd.distance.side[1];
         led_flags |= 1;
       }
-      // sc.position.th += fix_th * 0.00000001f;
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
@@ -304,7 +300,7 @@ private:
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
       // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-      if (-15 < fixed_x && fixed_x < 15) {
+      if (-30 < fixed_x && fixed_x < 30) {
         // fixed_x = std::max(fixed_x, 5.0f);
         sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
         bz.play(Buzzer::SHORT7);
@@ -369,11 +365,16 @@ private:
         const float remain = distance - est_q.x;
         if (remain < 0 || t > ad.t_end() + 0.1f)
           break;
+        /* 衝突被害軽減ブレーキ(AEBS) */
+        if (remain > field::SegWidthFull && tof.isValid() &&
+            tof.getDistance() < field::SegWidthFull)
+          wall_stop();
         wall_avoid(remain, rp);
         wall_cut(ref.v);
-        /* 機体姿勢の補正 */
 #if SEARCH_WALL_THETA_ENABLED
-        int_y += sc.position.y;
+        /* 機体姿勢の補正 */
+        int_y += wd.wall[0] ? wd.distance.side[0] : 0.0f;
+        int_y -= wd.wall[1] ? wd.distance.side[1] : 0.0f;
         sc.position.th += int_y * 0.00000001f;
 #endif
       }
@@ -492,7 +493,7 @@ private:
     }
   }
   void wall_stop() {
-    bz.play(Buzzer::ERROR);
+    bz.play(Buzzer::AEBS);
     float v = sc.est_v.tra;
     while (v > 0) {
       sc.set_target(v, 0);
@@ -617,20 +618,23 @@ private:
     case RobotBase::Action::START_INIT:
       start_init();
       break;
-    case RobotBase::Action::ST_FULL: {
-      if (wd.wall[2])
+    case RobotBase::Action::ST_FULL:
+      if (tof.getDistance() < field::SegWidthFull)
         wall_stop();
-      // wall_front_fix(rp, 2 * field::SegWidthFull);
+#if SEARCH_WALL_FRONT_ENABLED
+      wall_front_fix(rp, 2 * field::SegWidthFull);
+#endif
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
-    }
     case RobotBase::Action::ST_HALF:
       straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
                  velocity, rp);
       break;
     case RobotBase::Action::TURN_L: {
       wall_front_fix(rp, field::SegWidthFull);
-      // wall_front_fix(rp, 2 * field::SegWidthFull);
+#if SEARCH_WALL_FRONT_ENABLED
+      wall_front_fix(rp, 2 * field::SegWidthFull);
+#endif
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[0])
@@ -641,7 +645,9 @@ private:
     }
     case RobotBase::Action::TURN_R: {
       wall_front_fix(rp, field::SegWidthFull);
-      // wall_front_fix(rp, 2 * field::SegWidthFull);
+#if SEARCH_WALL_FRONT_ENABLED
+      wall_front_fix(rp, 2 * field::SegWidthFull);
+#endif
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[1])
@@ -655,9 +661,11 @@ private:
       break;
     case RobotBase::Action::ST_HALF_STOP:
       wall_front_fix(rp, field::SegWidthFull);
-      // wall_front_fix(rp, 2 * field::SegWidthFull);
+#if SEARCH_WALL_FRONT_ENABLED
+      wall_front_fix(rp, 2 * field::SegWidthFull);
+#endif
       straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
-      turn(0);
+      turn(0); //*< 姿勢を整える */
       break;
     }
   }

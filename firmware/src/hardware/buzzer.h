@@ -35,6 +35,7 @@ public:
     MAZE_BACKUP,
     MAZE_RESTORE,
     CALIBRATION,
+    AEBS,
   };
   void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
 
@@ -152,6 +153,13 @@ private:
         sound(NOTE_C, 7, 100);
         sound(NOTE_E, 7, 100);
         mute(100);
+        break;
+      case AEBS:
+        for (int i = 0; i < 8; ++i) {
+          sound(NOTE_E, 7, 150);
+          mute(50);
+        }
+        mute(200);
         break;
       default:
         sound(NOTE_C, 4, 1000);
