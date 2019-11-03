@@ -32,6 +32,7 @@ void printTask(void *arg) {
     // tof.print();
     // enc.print();
     vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
+    // std::cout << enc.getPulses(0) << "," << enc.getPulses(1) << std::endl;
   }
 }
 
@@ -47,7 +48,7 @@ void timeKeepTask(void *arg) {
 void driveTask(void *arg) {
   Machine::driveAutomatically();
   while (1) {
-    delay(1);
+    vTaskDelay(pdMS_TO_TICKS(1));
     int mode = ui.waitForSelect(16);
     switch (mode) {
     case 0: /* 迷路走行 */
@@ -88,8 +89,9 @@ void driveTask(void *arg) {
       break;
     case 14: /* テスト */
       // Machine::accel_test();
-      Machine::slalom_test();
+      // Machine::slalom_test();
       // Machine::sysid();
+      Machine::enc_id();
       break;
     case 15: /* ログの表示 */
       lgr.print();

@@ -69,7 +69,7 @@ public:
   }
   void disable() {
     enabled = false;
-    delay(2);
+    vTaskDelay(pdMS_TO_TICKS(2));
     mt.free();
   }
   void set_target(const Polar dq, const Polar ddq) {

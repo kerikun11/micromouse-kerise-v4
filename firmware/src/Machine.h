@@ -500,38 +500,56 @@ public:
       return;
     delay(500);
     lgr.clear();
-    auto printLog = []() {
-      lgr.push({
-          (float)enc.getPulses(0),
-          (float)enc.getPulses(1),
-          imu.gyro.z,
-          imu.angle,
-          imu.angular_accel,
-      });
-    };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    sc.enable();
-    AccelDesigner ad;
+    /* config */
+    const float Ts = 0.001f;
     const float jerk = 2400 * M_PI;
-    const float accel = 48 * M_PI;
+    const float accel = 24 * M_PI;
     const float v_max = 1 * M_PI;
     const float dist = 2 * M_PI;
-    ad.reset(jerk, accel, 0, v_max, 0, dist);
-    FeedbackController<float>::Model model = {.K1 = 0, .T1 = 0};
-    FeedbackController<float>::Gain gain;
+    AccelDesigner ad(jerk, accel, 0, v_max, 0, dist);
+    FeedbackController<float>::Model model = {
+        .K1 = std::numeric_limits<float>::max(), .T1 = 0};
+    FeedbackController<float>::Gain gain = {.Kp = 1.2, .Ki = 5.6, .Kd = 0.0};
     FeedbackController<float> fc(model, gain);
+    /* start */
     portTickType xLastWakeTime = xTaskGetTickCount();
-    for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
-      sc.set_target(0, ad.v(t), 0, ad.a(t));
+    fc.reset();
+    imu.angle = 0;
+    for (float t = 0; t < ad.t_end() + 0.1f; t += Ts) {
+      const auto pwm_value =
+          fc.update(ad.x(t), imu.angle, ad.v(t), imu.gyro.z, Ts);
+      mt.drive(0, pwm_value);
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      if ((int)(t * 1000) % 2 == 0)
-        printLog();
+      imu.samplingSemaphoreTake();
+      enc.samplingSemaphoreTake();
+      if ((int)(t * 1000) % 2 == 0) {
+        const auto &bd = fc.getBreakdown();
+        lgr.push({
+            (float)enc.getPulses(0),
+            (float)enc.getPulses(1),
+            ad.x(t),
+            imu.angle,
+            ad.v(t),
+            imu.gyro.z,
+            bd.ff,
+            bd.fb,
+            bd.fbp,
+            bd.fbi,
+            bd.fbd,
+            bd.u,
+        });
+      }
+      if (mt.isEmergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        break;
+      }
     }
-    sc.set_target(0, 0);
+    /* end */
+    mt.drive(0, 0);
     delay(200);
+    mt.free();
     bz.play(Buzzer::CANCEL);
-    sc.disable();
-    fan.drive(0);
   }
 };

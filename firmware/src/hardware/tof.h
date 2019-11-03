@@ -18,7 +18,7 @@ public:
     sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 0x20);
     xTaskCreate([](void *obj) { static_cast<ToF *>(obj)->task(); }, "ToF",
                 TOF_TASK_STACK_SIZE, this, TOF_TASK_PRIORITY, NULL);
-    delay(40);
+    vTaskDelay(pdMS_TO_TICKS(40));
     if (sensor.last_status != 0) {
       log_e("ToF failed :(");
       return false;

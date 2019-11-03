@@ -146,7 +146,7 @@ private:
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
         sum[i] += ref2dist(ref.side(i));
-      delay(1);
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
       wall_ref.side[i] = sum[i] / ave_count;
@@ -161,7 +161,7 @@ private:
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
         sum[i] += ref2dist(ref.front(i));
-      delay(1);
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
       wall_ref.front[i] = sum[i] / ave_count;

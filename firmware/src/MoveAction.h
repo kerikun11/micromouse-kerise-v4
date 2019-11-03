@@ -466,17 +466,17 @@ private:
     const float th_gain = 100.0f;
     for (int i = 0; i < max_v; i++) {
       sc.set_target(-i, -sc.position.th * th_gain);
-      delay(1);
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 100; i++) {
       sc.set_target(-max_v, -sc.position.th * th_gain);
-      delay(1);
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
     sc.disable();
     mt.drive(-0.1f, -0.1f);
-    delay(200);
+    vTaskDelay(pdMS_TO_TICKS(200));
     mt.drive(-0.2f, -0.2f);
-    delay(200);
+    vTaskDelay(pdMS_TO_TICKS(200));
     sc.enable(true);
   }
   void uturn() {
@@ -497,10 +497,10 @@ private:
     float v = sc.est_v.tra;
     while (v > 0) {
       sc.set_target(v, 0);
-      v -= 9;
-      delay(1);
+      v -= 12;
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
-    delay(100);
+    vTaskDelay(pdMS_TO_TICKS(100));
     sc.disable();
     mt.emergencyStop();
     vTaskDelay(portMAX_DELAY);

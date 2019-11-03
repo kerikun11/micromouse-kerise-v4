@@ -82,7 +82,7 @@ public:
   }
   bool reset() {
     device_reset();
-    delay(100);
+    vTaskDelay(pdMS_TO_TICKS(100));
     device_config();
     return whoami();
   }
