@@ -92,10 +92,9 @@ public:
       return;
     bool forceSearch = false;
     switch (mode) {
-    case 0:
-      //< デフォルト
+    case 0: /*< デフォルト */
       break;
-    case 1:
+    case 1: /*< 強制探索モード */
       forceSearch = true;
       break;
     }

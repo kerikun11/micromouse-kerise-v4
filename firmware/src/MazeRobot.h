@@ -141,7 +141,6 @@ private:
   bool isRunningFlag = false;
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
-  bool crashed_flag = false;
   State state;
 
 protected:
@@ -189,6 +188,8 @@ protected:
       state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
     }
+    if (isForceSearch)
+      setForceBackToStart(true);
     if (newState == prevState)
       return;
     /* State Change has occurred */
@@ -251,16 +252,18 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      /* パラメータを若干落とす */
-      ma.rp_fast.curve_gain /= std::sqrt(ma.rp_fast.cg_gain);
-      ma.rp_fast.max_speed /= std::sqrt(ma.rp_fast.ms_gain);
-      ma.rp_fast.accel /= std::sqrt(ma.rp_fast.ac_gain);
-      crashed_flag = true;
+      /* 最短走行でクラッシュした場合，パラメータを若干落とす */
+      if (!state.has_reached_goal) {
+        /* 最短中のクラッシュ */
+        ma.rp_fast.curve_gain /= std::sqrt(ma.rp_fast.cg_gain);
+        ma.rp_fast.max_speed /= std::sqrt(ma.rp_fast.ms_gain);
+        ma.rp_fast.accel /= std::sqrt(ma.rp_fast.ac_gain);
+      }
     }
     /* 探索 (強制探索モードまたは経路がひとつもない場合) */
     if (isForceSearch || !calcShortestDirections(true)) {
-      maze.resetLastWalls(6); //< クラッシュ後を想定して少し消す
-      mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
+      maze.resetLastWalls(12); //< クラッシュ後を想定して少し消す
+      mt.drive(-0.2f, -0.2f);  /*< 背中を確実に壁につける */
       delay(500);
       mt.free();
       state.newRun(); //< 0 -> 1
@@ -284,14 +287,6 @@ protected:
       ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
       ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
       ma.rp_fast.accel *= ma.rp_fast.ac_gain;
-      /* 最終走行だけ例外処理 */
-      if (state.try_count == 4 && !crashed_flag)
-        for (int i = 0; i < 1; i++) {
-          ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
-          ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
-          ma.rp_fast.accel *= ma.rp_fast.ac_gain;
-          bz.play(Buzzer::CONFIRM);
-        }
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);
