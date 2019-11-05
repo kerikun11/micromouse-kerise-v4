@@ -18,7 +18,6 @@
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
 #define SEARCH_WALL_THETA_ENABLED 1
-#define SEARCH_NO_FRONT_WALL_ACCEL_ENABLED 1
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -45,6 +44,7 @@ public:
     bool diag_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
+    bool unknown_accel = 1;
 
   public:
     static constexpr float cg_gain = 1.05f;
@@ -598,15 +598,13 @@ private:
   void search_run_switch(const RobotBase::Action action,
                          const RunParameter &rp) {
     const float velocity = rp.search_v;
-#if SEARCH_NO_FRONT_WALL_ACCEL_ENABLED
     const bool no_front_wall =
         !tof.isValid() ||
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 3;
-    const auto v_end =
-        (continue_straight_if_no_front_wall && no_front_wall) ? 600 : velocity;
-#else
-    const auto v_end = velocity;
-#endif
+    const auto v_end = (rp.unknown_accel &&
+                        continue_straight_if_no_front_wall && no_front_wall)
+                           ? 600
+                           : velocity;
     switch (action) {
     case RobotBase::Action::START_STEP:
       imu.angle = 0;

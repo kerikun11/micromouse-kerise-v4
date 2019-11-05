@@ -39,8 +39,8 @@ using namespace MazeLib;
         MazeLib::Position(21, 22),                                             \
   }
 #endif
-#define MAZE_BACKUP_PATH "/spiffs/maze_backup.bin"
-#define STATE_BACKUP_PATH "/spiffs/maze_state.bin"
+#define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"
+#define STATE_SAVE_PATH "/spiffs/maze_state.bin"
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
@@ -48,7 +48,7 @@ public:
     int try_count = 0;             /**< 走行回数 */
     bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
 
-    bool save(const std::string filepath = STATE_BACKUP_PATH) {
+    bool save(const std::string filepath = STATE_SAVE_PATH) {
       std::ofstream of(filepath, std::ios::binary | std::ios::app);
       if (of.fail()) {
         loge << "failed to open file! " << filepath << std::endl;
@@ -57,7 +57,7 @@ public:
       of.write((const char *)this, sizeof(State));
       return true;
     }
-    bool restore(const std::string filepath = STATE_BACKUP_PATH) const {
+    bool restore(const std::string filepath = STATE_SAVE_PATH) const {
       std::ifstream f(filepath, std::ios::binary);
       if (f.fail()) {
         loge << "failed to open file! " << filepath << std::endl;
@@ -90,13 +90,13 @@ public:
   }
   void reset() {
     Agent::reset();
-    maze.backupWallLogsToFile(MAZE_BACKUP_PATH, true);
+    maze.backupWallLogsToFile(MAZE_SAVE_PATH, true);
     state = State();
     state.save();
   }
   bool backup() {
     state.save();
-    return maze.backupWallLogsToFile(MAZE_BACKUP_PATH);
+    return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
   bool restore() {
     state.restore();
@@ -107,7 +107,7 @@ public:
       ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
       ma.rp_fast.accel *= ma.rp_fast.ac_gain;
     }
-    return maze.restoreWallLogsFromFile(MAZE_BACKUP_PATH);
+    return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(bool isForceSearch, bool isPositionIdentifying) {
     start(isForceSearch, isPositionIdentifying);
@@ -142,6 +142,7 @@ private:
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
   State state;
+  // int time_stamp_us = 0;
 
 protected:
   void waitForEndAction() override {
@@ -174,25 +175,32 @@ protected:
   }
   void calcNextDirectionsPreCallback() override {
     prevIsForceGoingToGoal = isForceGoingToGoal;
+    // time_stamp_us = esp_timer_get_time();
   }
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
                                  SearchAlgorithm::State newState) override {
     const auto d = !getNextDirections().empty() ? getNextDirections().back()
                                                 : current_pose.d;
+    /* 未知区間加速の設定 */
     ma.continue_straight_if_no_front_wall =
+        // prevState == SearchAlgorithm::SEARCHING_FOR_GOAL &&
         newState != SearchAlgorithm::IDENTIFYING_POSITION &&
         !getNextDirectionCandidates().empty() &&
         getNextDirectionCandidates()[0] == d;
+    /* ゴール判定 */
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
       state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
     }
     if (isForceSearch)
       setForceBackToStart(true);
+    // const auto now_us = esp_timer_get_time();
+    // const float dur_us = now_us - time_stamp_us;
+    // lgr.push({dur_us});
+    /* State Change has occurred */
     if (newState == prevState)
       return;
-    /* State Change has occurred */
     if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
       bz.play(Buzzer::SUCCESSFUL);
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION)
