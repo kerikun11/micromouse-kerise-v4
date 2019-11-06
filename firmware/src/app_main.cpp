@@ -89,9 +89,9 @@ void driveTask(void *arg) {
       break;
     case 14: /* テスト */
       // Machine::accel_test();
-      // Machine::slalom_test();
+      Machine::slalom_test();
       // Machine::sysid();
-      Machine::enc_id();
+      // Machine::enc_id();
       break;
     case 15: /* ログの表示 */
       lgr.print();

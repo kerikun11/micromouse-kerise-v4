@@ -89,13 +89,15 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain;
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.80f;
+static constexpr float WheelDiameter = 12.67f;
 static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 20;
-const float wall_attach_gain_Kp = 120.0f;
+static constexpr float tof_dist_offset = 18; //< 大きいほど壁に近く
+/* Reflector */
+const float wall_attach_gain_Kp = 240.0f;
 const float wall_attach_gain_Ki = 0.0f;
+const float wall_avoid_gain = 0.006f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -107,9 +109,14 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.75f, 0.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
 /* Trajectory Tracking Gain */
-static constexpr float tt_gain = 15.0f;
+static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
+    .zeta = 1.0f,
+    .omega_n = 15.0f,
+    .low_zeta = 1.0f,
+    .low_b = 0.001f,
+};
 
 #endif
 

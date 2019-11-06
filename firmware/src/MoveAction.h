@@ -34,7 +34,12 @@ public:
     float curve_gain = 1.0;
     float max_speed = 600;
     float accel = 3600;
-#else
+#elif KERISE_SELECT == 3
+    float search_v = 300;
+    float curve_gain = 1.0;
+    float max_speed = 600;
+    float accel = 3600;
+#elif KERISE_SELECT == 5
     float search_v = 240;
     float curve_gain = 1.0;
     float max_speed = 480;
