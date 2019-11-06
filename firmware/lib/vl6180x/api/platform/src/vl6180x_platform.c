@@ -17,5 +17,5 @@
  */
 void VL6180x_PollDelay(VL6180xDev_t dev)
 {
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(1));
 }

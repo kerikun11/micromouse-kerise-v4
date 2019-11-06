@@ -24,7 +24,7 @@ public:
            this);
   }
   void end() { detach(); }
-  portBASE_TYPE take(portTickType xBlockTime = portMAX_DELAY) {
+  portBASE_TYPE take(TickType_t xBlockTime = portMAX_DELAY) {
     return xSemaphoreTake(xSemaphore, xBlockTime);
   }
 

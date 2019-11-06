@@ -204,9 +204,9 @@ private:
     diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
   }
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       // データの更新
       update();
 

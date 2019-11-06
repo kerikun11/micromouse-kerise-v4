@@ -74,7 +74,7 @@ public:
     //      -ENCODER_PULSES, getPulses(0), getPulses(1));
     printf("0,%f,%f\n", position(0), position(1));
   }
-  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_end_semaphore, xBlockTime);
   }
 
@@ -112,10 +112,9 @@ private:
   }
 
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-      xLastWakeTime = xTaskGetTickCount();
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       update();
       xSemaphoreGive(sampling_end_semaphore);
     }
@@ -245,7 +244,7 @@ public:
     printf("0,%d,%d,%d,%d\n", MA730::MA730_PULSES, -MA730::MA730_PULSES,
            getRaw(0), getRaw(1));
   }
-  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_end_semaphore, xBlockTime);
   }
 
@@ -259,9 +258,9 @@ private:
   }
 
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       update();
       xSemaphoreGive(sampling_end_semaphore);
     }

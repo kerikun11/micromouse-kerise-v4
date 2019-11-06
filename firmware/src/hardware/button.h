@@ -40,10 +40,9 @@ private:
   int counter;
 
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, BUTTON_SAMPLING_MS / portTICK_RATE_MS);
-      xLastWakeTime = xTaskGetTickCount();
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(BUTTON_SAMPLING_MS));
       if (gpio_get_level(pin) == LOW) {
         if (counter < BUTTON_LONG_PRESS_LEVEL_3 + 1)
           counter++;

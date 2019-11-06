@@ -31,7 +31,7 @@ public:
 
 private:
   const i2c_port_t i2c_port;
-  xQueueHandle playList;
+  QueueHandle_t playList;
   uint8_t value;
 
   void task() {

@@ -24,14 +24,13 @@ void setup() {
 void loop() { vTaskDelay(portMAX_DELAY); }
 
 void printTask(void *arg) {
-  portTickType xLastWakeTime = xTaskGetTickCount();
+  TickType_t xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     // ref.csv();
     // wd.print();
     // tof.print();
     // enc.print();
-    vTaskDelayUntil(&xLastWakeTime, 99 / portTICK_RATE_MS);
     // std::cout << enc.getPulses(0) << "," << enc.getPulses(1) << std::endl;
   }
 }

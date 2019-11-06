@@ -300,14 +300,14 @@ public:
     imu.calibration();
     fan.drive(0.5f);
     delay(500);
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     if (dir == 1)
       mt.drive(-gain * 0.05, gain * 0.05); //< 回転
     else
       mt.drive(gain * 0.1, gain * 0.1); //< 並進
     for (int i = 0; i < 2000; i++) {
       printLog();
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     fan.drive(0);
     mt.drive(0, 0);
@@ -362,13 +362,13 @@ public:
       const float dist = 2 * M_PI;
       ad.reset(jerk, accel, 0, v_max, 0, dist);
     }
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
       else
         sc.set_target(0, ad.v(t), 0, ad.a(t));
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if ((int)(t * 1000) % 2 == 0)
         printLog();
       if (mt.isEmergency()) {
@@ -410,7 +410,7 @@ public:
     ctrl::Position offset;
     /* start */
     sc.enable();
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     tt.reset(0);
     /* accel */
     ctrl::straight::Trajectory ref;
@@ -421,7 +421,7 @@ public:
       auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.position.x -= ref.x_end();
@@ -435,7 +435,7 @@ public:
       auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     const auto &net = st.get_net_curve();
@@ -449,7 +449,7 @@ public:
       auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.position.x -= ref.x_end();
@@ -513,14 +513,14 @@ public:
     FeedbackController<float>::Gain gain = {.Kp = 1.2, .Ki = 5.6, .Kd = 0.0};
     FeedbackController<float> fc(model, gain);
     /* start */
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     fc.reset();
     imu.angle = 0;
     for (float t = 0; t < ad.t_end() + 0.1f; t += Ts) {
       const auto pwm_value =
           fc.update(ad.x(t), imu.angle, ad.v(t), imu.gyro.z, Ts);
       mt.drive(0, pwm_value);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       imu.samplingSemaphoreTake();
       enc.samplingSemaphoreTake();
       if ((int)(t * 1000) % 2 == 0) {

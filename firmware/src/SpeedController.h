@@ -102,10 +102,10 @@ private:
     fbc.reset();
   }
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       xLastWakeTime = xTaskGetTickCount();
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       /* 有効でなければスルー */
       if (enabled == false)
         continue;

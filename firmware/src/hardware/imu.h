@@ -127,10 +127,10 @@ public:
   void calibration() {
     const int ave_count = 100;
     for (int j = 0; j < 2; j++) {
-      portTickType xLastWakeTime = xTaskGetTickCount();
+      TickType_t xLastWakeTime = xTaskGetTickCount();
       MotionParameter accel_sum, gyro_sum;
       for (int i = 0; i < ave_count; i++) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
         update();
         accel_sum += accel;
         gyro_sum += gyro;
@@ -215,7 +215,7 @@ public:
   void calibrationWait() {
     xSemaphoreTake(calibration_end_semaphore, portMAX_DELAY);
   }
-  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_end_semaphore, xBlockTime);
   }
 
@@ -268,10 +268,9 @@ private:
         (icm[0].accel.y + icm[1].accel.y) / 2 / IMU_ROTATION_RADIOUS;
   }
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      xLastWakeTime = xTaskGetTickCount();
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       update();                               //< データの更新
       xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
 
@@ -326,7 +325,7 @@ public:
   void calibrationWait() {
     xSemaphoreTake(calibration_end_semaphore, portMAX_DELAY);
   }
-  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_end_semaphore, xBlockTime);
   }
 
@@ -358,10 +357,9 @@ private:
     angle += gyro.z * Ts;
   }
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      xLastWakeTime = xTaskGetTickCount();
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       update();                               //< データの更新
       xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
 

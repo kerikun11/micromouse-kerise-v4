@@ -61,7 +61,7 @@ public:
       printf("\t%04d", read(i));
     printf("\n");
   }
-  void samplingSemaphoreTake(portTickType xBlockTime = portMAX_DELAY) {
+  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
     xSemaphoreTake(sampling_semaphore, xBlockTime);
   }
 
@@ -97,9 +97,9 @@ private:
     }
   }
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS); //< 同期
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       sampling();
       xSemaphoreGive(sampling_semaphore); //< サンプリング終了を知らせる
     }

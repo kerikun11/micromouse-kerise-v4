@@ -42,10 +42,10 @@ private:
   int passed_ms;
 
   void task() {
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       if (!enabled) {
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
         passed_ms++;
         continue;
       }
@@ -55,7 +55,7 @@ private:
         while ((sensor.readReg(VL6180X::RESULT__INTERRUPT_STATUS_GPIO) &
                 0x04) == 0) {
           xLastWakeTime = xTaskGetTickCount();
-          vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+          vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
           passed_ms++;
           if (millis() - startAt > 100)
             break;

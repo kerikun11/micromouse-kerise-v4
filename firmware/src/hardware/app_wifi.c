@@ -86,7 +86,7 @@ void app_wifi_suspend() {
 void app_wifi_deinit() { ESP_ERROR_CHECK(esp_wifi_deinit()); }
 
 int app_wifi_wait_connected() {
-  portTickType timeout = 10000 / portTICK_PERIOD_MS;
+  TickType_t timeout = pdMS_TO_TICKS(10000);
   EventBits_t uxBits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
                                            false, true, timeout);
   if (uxBits & CONNECTED_BIT)

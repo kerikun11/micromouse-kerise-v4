@@ -24,10 +24,10 @@ private:
     return c;
   }
   void task() override {
-    portTickType xLastWakeTime;
+    TickType_t xLastWakeTime;
     xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
       char c = getChar();
       switch (c) {
       case 'g':

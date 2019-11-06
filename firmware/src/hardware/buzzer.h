@@ -42,14 +42,14 @@ public:
 private:
   int pin;
   uint8_t channel;
-  xQueueHandle playList;
+  QueueHandle_t playList;
   void sound(const note_t note, uint8_t octave, uint32_t time_ms) {
     ledcWriteNote(channel, note, octave);
-    vTaskDelay(time_ms / portTICK_RATE_MS);
+    vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void mute(uint32_t time_ms = 400) {
     ledcWrite(channel, 0);
-    vTaskDelay(time_ms / portTICK_RATE_MS);
+    vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void task() {
     while (1) {

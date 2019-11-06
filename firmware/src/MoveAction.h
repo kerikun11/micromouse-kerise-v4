@@ -99,14 +99,14 @@ public:
     for (auto &t : table)
       t = 255;
     AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
       float delta = sc.position.x * std::cos(-sc.position.th) -
                     sc.position.y * std::sin(-sc.position.th);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if (ad.x(t) > 2 * PI * index / table_size) {
         index++;
         table[index % table_size] = tof.getDistance();
@@ -175,7 +175,7 @@ private:
       bz.play(Buzzer::SHORT6);
       tof.disable();
       delay(10);
-      portTickType xLastWakeTime = xTaskGetTickCount();
+      TickType_t xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
         const float Kp = model::wall_attach_gain_Kp;
@@ -197,7 +197,7 @@ private:
         const float sat_tra = 120.0f;   //< [mm/s]
         const float sat_rot = M_PI / 4; //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
       sc.set_target(0, 0);
       sc.position.x = 0;  //< 直進方向の補正
@@ -316,13 +316,13 @@ private:
     static constexpr float m_ddth = 48 * M_PI;
     static constexpr float m_dth = 4 * M_PI;
     AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
       float delta = sc.position.x * std::cos(-sc.position.th) -
                     sc.position.y * std::sin(-sc.position.th);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     /* 確実に目標角度に持っていく処理 */
     float int_error = 0;
@@ -334,7 +334,7 @@ private:
       const float error = angle - sc.position.th;
       int_error += error * 0.001f;
       sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.05f * PI)
         break;
     }
@@ -359,7 +359,7 @@ private:
 #if SEARCH_WALL_THETA_ENABLED
       float int_y = 0;
 #endif
-      portTickType xLastWakeTime = xTaskGetTickCount();
+      TickType_t xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; true; t += 0.001f) {
         /* 終了条件 */
         const float remain = distance - sc.position.x;
@@ -382,7 +382,7 @@ private:
         int_y -= wd.wall[1] ? wd.distance.side[1] : 0.0f;
         sc.position.th += int_y * 0.00000001f;
 #endif
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
     }
     /* 移動した量だけ位置を更新 */
@@ -397,7 +397,7 @@ private:
     /* start */
     tt.reset(velocity);
     trajectory.reset(velocity);
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 #if SEARCH_WALL_FRONT_ENABLED
     float front_fix_x = 0;
 #endif
@@ -425,7 +425,7 @@ private:
         }
       }
 #endif
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
 #if SEARCH_WALL_FRONT_ENABLED
     /* V90ターン中の前壁補正 */
@@ -523,9 +523,9 @@ private:
   void queue_wait_decel() {
     /* Actionがキューされるまで直進で待つ */
     float v = sc.ref_v.tra;
-    portTickType xLastWakeTime = xTaskGetTickCount();
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     for (int i = 0; q.empty(); ++i) {
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if (v > 0)
         v -= 6;
       xLastWakeTime = xTaskGetTickCount();

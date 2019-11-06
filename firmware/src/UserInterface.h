@@ -49,21 +49,21 @@ public:
     led = value;
     while (1) {
       float now_enc = enc.position(0) + enc.position(1);
-      vTaskDelay(10 / portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(10));
       /* SELECT */
       if (imu.gyro.y > thr_gyro) {
         value += range - 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
       }
       if (imu.gyro.y < -thr_gyro) {
         value += 1;
         value %= range;
         led = value;
         bz.play(Buzzer::SELECT);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
       }
       if (now_enc > prev_enc + enc_interval_mm) {
         prev_enc += enc_interval_mm;
@@ -82,7 +82,7 @@ public:
       /* CONFIRM */
       if (std::abs(imu.accel.z) > thr_accel) {
         bz.play(Buzzer::CONFIRM);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return value;
       }
       if (btn.pressed) {
@@ -93,7 +93,7 @@ public:
       /* CANCEL */
       if (std::abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return -1;
       }
       if (btn.long_pressed_1) {
@@ -114,7 +114,7 @@ public:
    */
   static bool waitForCover(bool side = false) {
     while (1) {
-      vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(wait_ms));
       /* CONFIRM */
       if (!side && ref.front(0) > thr_ref_front &&
           ref.front(1) > thr_ref_front) {
@@ -128,7 +128,7 @@ public:
       /* CANCEL */
       if (std::abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;
       }
       if (btn.long_pressed_1) {
@@ -144,7 +144,7 @@ public:
   static bool waitForPickup(const int wait_ms = 2000) {
     led = 0xf;
     for (int ms = 0; ms < wait_ms; ms++) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(1));
       if (std::abs(imu.gyro.x) > thr_gyro || std::abs(imu.gyro.y) > thr_gyro ||
           std::abs(imu.gyro.z) > thr_gyro) {
         bz.play(Buzzer::CANCEL);
@@ -164,7 +164,7 @@ public:
   static bool waitForFix() {
     int fix_count = 0;
     while (1) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      vTaskDelay(pdMS_TO_TICKS(1));
       /* FIX */
       if (std::abs(imu.gyro.x) < thr_fix_gyro &&
           std::abs(imu.gyro.y) < thr_fix_gyro &&
@@ -184,7 +184,7 @@ public:
       }
       if (std::abs(imu.accel.x) > thr_accel) {
         bz.play(Buzzer::CANCEL);
-        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;
       }
     }
