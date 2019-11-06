@@ -206,17 +206,15 @@ private:
   }
   void wall_avoid(const float remain, const RunParameter &rp) {
 #if SEARCH_WALL_AVOID_ENABLED
-    /* 一定速より小さかったら行わない */
-    if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f)
-      return;
-    /* 曲線なら前半しか行わない */
-    if (std::abs(sc.position.th) > M_PI * 0.1f)
+    /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
+    if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f ||
+        std::abs(sc.position.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
-      const float wall_diff_thr = 100;
+      const float wall_diff_thr = 100; //< 吸い込まれ防止
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         led_flags |= 8;
@@ -321,6 +319,7 @@ private:
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     }
+    /* 確実に目標角度に持っていく処理 */
     float int_error = 0;
     while (1) {
       float delta = sc.position.x * std::cos(-sc.position.th) -
@@ -335,9 +334,10 @@ private:
         break;
     }
     sc.set_target(0, 0);
-    sc.position.th -= angle; //< 移動した量だけ位置を更新
-    sc.position = sc.position.rotate(-angle); //< 移動した量だけ位置を更新
-    offset += ctrl::Position(0, 0, angle).rotate(offset.th);
+    /* 移動した量だけ位置を更新 */
+    const auto net = ctrl::Position(0, 0, angle);
+    sc.position = (sc.position - net).rotate(-net.th);
+    offset += net.rotate(offset.th);
   }
   void straight_x(const float distance, const float v_max, const float v_end,
                   const RunParameter &rp) {
@@ -345,30 +345,30 @@ private:
       const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
       ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
-      tt.reset(v_start);
-      AccelDesigner ad(jerk, rp.accel, v_start, v_max, v_end,
+      ctrl::State ref_s;
+      ctrl::straight::Trajectory trajectory;
+      /* start */
+      trajectory.reset(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
+      tt.reset(v_start);
 #if SEARCH_WALL_THETA_ENABLED
       float int_y = 0;
 #endif
       portTickType xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; true; t += 0.001f) {
-        auto est_q = sc.position;
-        auto ref_q = ctrl::Position(ad.x(t), 0);
-        auto ref_dq = ctrl::Position(ad.v(t), 0);
-        auto ref_ddq = ctrl::Position(ad.a(t), 0);
-        auto ref_dddq = ctrl::Position(ad.j(t), 0);
-        auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_q, ref_dq, ref_ddq,
-                             ref_dddq);
-        sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
-        const float remain = distance - est_q.x;
-        if (remain < 0 || t > ad.t_end() + 0.1f)
+        /* 終了条件 */
+        const float remain = distance - sc.position.x;
+        if (remain < 0 || t > trajectory.t_end() + 0.1f)
           break;
         /* 衝突被害軽減ブレーキ(AEBS) */
         if (remain > field::SegWidthFull && tof.isValid() &&
             tof.getDistance() < field::SegWidthFull)
           wall_stop();
+        /* 軌道追従 */
+        trajectory.update(ref_s, t);
+        const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, ref_s);
+        sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+        /* 壁制御 */
         wall_avoid(remain, rp);
         wall_cut(ref.v);
 #if SEARCH_WALL_THETA_ENABLED
@@ -377,54 +377,60 @@ private:
         int_y -= wd.wall[1] ? wd.distance.side[1] : 0.0f;
         sc.position.th += int_y * 0.00000001f;
 #endif
+        vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       }
     }
-    sc.position.x -= distance; //< 移動した量だけ位置を更新
+    /* 移動した量だけ位置を更新 */
+    sc.position.x -= distance;
     offset += ctrl::Position(distance, 0, 0).rotate(offset.th);
   }
-  void trace(slalom::Trajectory &sd, const float velocity,
+  void trace(slalom::Trajectory &trajectory, const float velocity,
              const RunParameter &rp) {
-    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
-    tt.reset(velocity);
-    ctrl::State s;
     const float Ts = 0.001f;
-    sd.reset(velocity);
+    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+    ctrl::State s;
+    /* start */
+    tt.reset(velocity);
+    trajectory.reset(velocity);
     portTickType xLastWakeTime = xTaskGetTickCount();
 #if SEARCH_WALL_FRONT_ENABLED
     float front_fix_x = 0;
 #endif
-    s.q.x = sc.position.x; //*< 既に移動した分を反映 */
-    for (float t = 0; t < sd.t_end(); t += Ts) {
-      sd.update(s, t, Ts);
-      auto est_q = sc.position;
-      auto ref = tt.update(est_q, sc.est_v, sc.est_a, s.q, s.dq, s.ddq, s.dddq);
+    s.q.x = sc.position.x; /*< 既に移動した分を反映 */
+    for (float t = 0; t < trajectory.t_end(); t += Ts) {
+      /* 打ち切り条件を追加！！！ */
+      trajectory.update(s, t, Ts);
+      const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
       wall_avoid(0, rp);
       wall_cut(ref.v);
 #if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */
-      if (tof.isValid() && std::abs(t - sd.t_end() / 2) < 0.0005001f &&
-          (sd.getShape() == SS_FLV90 || sd.getShape() == SS_FRV90)) {
-        float tof_value =
+      if (rp.front_wall_fix_enabled && tof.isValid() &&
+          std::abs(t - trajectory.t_end() / 2) < 0.0005001f &&
+          (trajectory.getShape() == SS_FLV90 ||
+           trajectory.getShape() == SS_FRV90)) {
+        const float tof_value =
             tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
-        float fixed_x =
-            field::SegWidthFull - tof_value + 8; /*< 要調整, 大きく:前壁近く*/
+        const float fixed_x =
+            field::SegWidthFull - tof_value + 4; /*< 要調整, 大きく:前壁近く*/
         if (-20 < fixed_x && fixed_x < 20) {
           front_fix_x = fixed_x;
           bz.play(Buzzer::SHORT7);
         }
       }
 #endif
+      vTaskDelayUntil(&xLastWakeTime, 1 / portTICK_RATE_MS);
     }
 #if SEARCH_WALL_FRONT_ENABLED
     /* V90ターン中の前壁補正 */
     if (rp.front_wall_fix_enabled && front_fix_x != 0)
-      sc.position +=
-          ctrl::Position(front_fix_x, 0, 0).rotate(sd.get_net_curve().th / 2);
+      sc.fix_position(ctrl::Position(front_fix_x, 0, 0)
+                          .rotate(trajectory.get_net_curve().th / 2));
 #endif
     sc.set_target(velocity, 0);
-    const auto &net = sd.get_net_curve();
+    /* 移動した量だけ位置を更新 */
+    const auto &net = trajectory.get_net_curve();
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
@@ -449,14 +455,8 @@ private:
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         wall_front_fix(rp, field::SegWidthFull - st.get_straight_prev());
         wall_front_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
-        // 壁衝突防止
-        if (shape.total.th > 0 ? wd.wall[0] : wd.wall[1])
-          wall_stop();
       }
     }
-    /* 斜め前壁補正 */
-    // if (isDiag())
-    //   wall_front_fix(velocity, field::SegWidthDiag - st.get_straight_prev());
     /* スラローム */
     trace(st, velocity, rp);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
