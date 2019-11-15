@@ -20,25 +20,20 @@ using namespace MazeLib;
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(6, 9), MazeLib::Position(6, 10),                         \
-        MazeLib::Position(7, 9), MazeLib::Position(7, 10),                     \
-  }
+    MazeLib::Position(17, 13),
+MazeLib::Position(18, 13), MazeLib::Position(19, 13), MazeLib::Position(17, 14),
+    MazeLib::Position(18, 14), MazeLib::Position(19, 14),
+    MazeLib::Position(17, 15), MazeLib::Position(18, 15),
+    MazeLib::Position(19, 15),
+}
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
   }
-#elif GOAL == 4
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(19, 20), MazeLib::Position(19, 21),                      \
-        MazeLib::Position(19, 22), MazeLib::Position(20, 20),                  \
-        MazeLib::Position(20, 21), MazeLib::Position(20, 22),                  \
-        MazeLib::Position(21, 20), MazeLib::Position(21, 21),                  \
-        MazeLib::Position(21, 22),                                             \
-  }
 #endif
+
 #define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"
 #define STATE_SAVE_PATH "/spiffs/maze_state.bin"
 

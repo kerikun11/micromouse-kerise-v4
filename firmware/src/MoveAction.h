@@ -32,7 +32,7 @@ public:
 #if KERISE_SELECT == 4
     float search_v = 300;
     float curve_gain = 1.0;
-    float max_speed = 600;
+    float max_speed = 720;
     float accel = 3600;
 #elif KERISE_SELECT == 3
     float search_v = 300;
@@ -52,9 +52,13 @@ public:
     bool unknown_accel = 1;
 
   public:
+    // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
     static constexpr float cg_gain = 1.05f;
-    static constexpr float ms_gain = 1.21f;
-    static constexpr float ac_gain = 1.1f;
+    // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
+    static constexpr float ms_gain = 1.2f;
+    // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
+    // [int(3600*1.1**i) for i in range(0, 4)]: [3600, 3960, 4356, 4791]
+    static constexpr float ac_gain = 1.05f;
   };
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
@@ -209,7 +213,7 @@ private:
     }
 #endif
   }
-  void wall_avoid(const float remain, const RunParameter &rp) {
+  void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
 #if SEARCH_WALL_AVOID_ENABLED
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f ||
@@ -222,12 +226,18 @@ private:
       const float wall_diff_thr = 50; //< 吸い込まれ防止
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
+        int_y += wd.distance.side[0];
         led_flags |= 8;
       }
       if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
         sc.position.y -= wd.distance.side[1] * gain;
+        int_y -= wd.distance.side[1];
         led_flags |= 1;
       }
+#if SEARCH_WALL_THETA_ENABLED
+      /* 機体姿勢の補正 */
+      sc.position.th += int_y * 0.00000001f;
+#endif
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
@@ -375,14 +385,8 @@ private:
         const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, ref_s);
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         /* 壁制御 */
-        wall_avoid(remain, rp);
+        wall_avoid(remain, rp, int_y);
         wall_cut(ref.v);
-#if SEARCH_WALL_THETA_ENABLED
-        /* 機体姿勢の補正 */
-        int_y += wd.wall[0] ? wd.distance.side[0] : 0.0f;
-        int_y -= wd.wall[1] ? wd.distance.side[1] : 0.0f;
-        sc.position.th += int_y * 0.00000001f;
-#endif
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
     }
@@ -408,7 +412,8 @@ private:
       trajectory.update(s, t, Ts);
       const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      wall_avoid(0, rp);
+      float int_y = 0;
+      wall_avoid(0, rp, int_y);
       wall_cut(ref.v);
 #if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */

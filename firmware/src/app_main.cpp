@@ -81,6 +81,12 @@ void driveTask(void *arg) {
       Machine::petitcon();
       break;
     case 10: /* 迷路の表示 */
+      std::cout << "sc.position: " << sc.position << std::endl;
+      ref.print();
+      tof.print();
+      enc.print();
+      imu.print();
+      wd.print();
       mr.print();
       break;
     case 11: /* ゴール区画の設定 */

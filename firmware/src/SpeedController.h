@@ -94,7 +94,10 @@ private:
 
   void reset() {
     ref_v.clear();
+    ref_a.clear();
     est_v.clear();
+    est_a.clear();
+    enc_v.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
     accel.clear(Polar(imu.accel.y, imu.angular_accel));

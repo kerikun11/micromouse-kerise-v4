@@ -37,7 +37,6 @@ private:
         // tof.disable();
         break;
       case 'p':
-        tof.print();
         break;
       case 'f':
         bz.play(Buzzer::CANCEL);

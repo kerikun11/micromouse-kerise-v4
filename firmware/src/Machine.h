@@ -17,6 +17,7 @@ public:
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS)
       pinMode(p, INPUT_PULLUP);
+    pinMode(RX, INPUT_PULLUP);
     /* Buzzer */
     bz.begin();
     /* I2C */
@@ -51,7 +52,7 @@ public:
       bz.play(Buzzer::ERROR);
 
     // if (!ec.begin())
-    // bz.play(Buzzer::ERROR);
+    //   bz.play(Buzzer::ERROR);
     return true;
   }
   static void restore() {
@@ -232,8 +233,17 @@ public:
       mr.setGoals({MazeLib::Position(1, 0)});
       break;
     case 2:
-      mr.setGoals({MazeLib::Position(6, 9), MazeLib::Position(6, 10),
-                   MazeLib::Position(7, 9), MazeLib::Position(7, 10)});
+      mr.setGoals({
+          MazeLib::Position(17, 13),
+          MazeLib::Position(18, 13),
+          MazeLib::Position(19, 13),
+          MazeLib::Position(17, 14),
+          MazeLib::Position(18, 14),
+          MazeLib::Position(19, 14),
+          MazeLib::Position(17, 15),
+          MazeLib::Position(18, 15),
+          MazeLib::Position(19, 15),
+      });
       break;
     case 3:
       mr.setGoals({MazeLib::Position(3, 3), MazeLib::Position(3, 4),

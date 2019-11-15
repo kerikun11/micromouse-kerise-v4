@@ -67,7 +67,7 @@ public:
     pulses_ovf[0] = 0;
     pulses_ovf[1] = 0;
   }
-  void print() { log_d("Encoder L:\t%f\tR:\t%f\n", position(0), position(1)); }
+  void print() { log_d("Encoder L:\t%f\tR:\t%f", position(0), position(1)); }
   void csv() {
     //      printf("0,%d,%d,%d,%d\n", ENCODER_PULSES, -ENCODER_PULSES,
     //      getRaw(0), getRaw(1)); printf("0,%d,%d,%d,%d\n", ENCODER_PULSES,
