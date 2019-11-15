@@ -143,7 +143,7 @@ private:
       position.x += noisy_v.tra * std::cos(position.th + slip_angle) * Ts;
       position.y += noisy_v.tra * std::sin(position.th + slip_angle) * Ts;
       /* Fix Position */
-      const float delta = 0.3;
+      const float delta = 0.2;
       if (fix.x > delta) {
         position.x += delta;
         fix.x -= delta;

@@ -219,7 +219,7 @@ private:
     /* 90 [deg] の倍数 */
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
-      const float wall_diff_thr = 100; //< 吸い込まれ防止
+      const float wall_diff_thr = 50; //< 吸い込まれ防止
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         led_flags |= 8;
@@ -305,6 +305,7 @@ private:
       float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
       if (-30 < fixed_x && fixed_x < 30) {
         // fixed_x = std::max(fixed_x, 5.0f);
+        fixed_x /= 2; //*< 補正率 2: 50%
         sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
         bz.play(Buzzer::SHORT7);
       }
