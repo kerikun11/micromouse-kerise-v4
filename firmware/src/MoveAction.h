@@ -30,7 +30,7 @@ public:
   struct RunParameter {
   public:
 #if KERISE_SELECT == 4
-    float search_v = 300;
+    float search_v = 270;
     float curve_gain = 1.0;
     float max_speed = 720;
     float accel = 3600;
@@ -59,6 +59,22 @@ public:
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
     // [int(3600*1.1**i) for i in range(0, 4)]: [3600, 3960, 4356, 4791]
     static constexpr float ac_gain = 1.05f;
+
+  public:
+    void up(const int cnt = 1) {
+      for (int i = 0; i < cnt; ++i) {
+        curve_gain *= cg_gain;
+        max_speed *= ms_gain;
+        accel *= ac_gain;
+      }
+    }
+    void down(const int cnt = 1) {
+      for (int i = 0; i < cnt; ++i) {
+        curve_gain /= cg_gain;
+        max_speed /= ms_gain;
+        accel /= ac_gain;
+      }
+    }
   };
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
@@ -91,6 +107,7 @@ public:
   RunParameter rp_search;
   RunParameter rp_fast;
   bool continue_straight_if_no_front_wall = false;
+  bool wall_stop_flag = false;
 
   bool positionRecovery() {
     sc.enable();
@@ -238,6 +255,10 @@ private:
       /* 機体姿勢の補正 */
       sc.position.th += int_y * 0.00000001f;
 #endif
+      /* 櫛の壁制御 */
+      if (!wd.wall[0] && !wd.wall[1]) {
+        led_flags |= 6;
+      }
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
@@ -367,9 +388,7 @@ private:
       trajectory.reset(jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
       tt.reset(v_start);
-#if SEARCH_WALL_THETA_ENABLED
       float int_y = 0;
-#endif
       TickType_t xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; true; t += 0.001f) {
         /* 終了条件 */
@@ -513,6 +532,7 @@ private:
     }
     vTaskDelay(pdMS_TO_TICKS(100));
     sc.disable();
+    wall_stop_flag = true;
     mt.emergencyStop();
     vTaskDelay(portMAX_DELAY);
   }

@@ -32,6 +32,14 @@ MazeLib::Position(18, 13), MazeLib::Position(19, 13), MazeLib::Position(17, 14),
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
   }
+#elif GOAL == 4
+#define MAZE_GOAL                                                              \
+  {                                                                            \
+    MazeLib::Position(3, 3),
+MazeLib::Position(4, 3), MazeLib::Position(5, 3), MazeLib::Position(3, 4),
+    MazeLib::Position(4, 4), MazeLib::Position(5, 4), MazeLib::Position(3, 5),
+    MazeLib::Position(4, 5), MazeLib::Position(5, 5),
+}
 #endif
 
 #define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"
@@ -95,13 +103,7 @@ public:
   }
   bool restore() {
     state.restore();
-    for (int i = 0; i < state.try_count; i++)
-      bz.play(Buzzer::SHORT7);
-    for (int i = 0; i < state.try_count - 1; i++) {
-      ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
-      ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
-      ma.rp_fast.accel *= ma.rp_fast.ac_gain;
-    }
+    ma.rp_fast.up(state.try_count - 1);
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(bool isForceSearch, bool isPositionIdentifying) {
@@ -205,12 +207,21 @@ protected:
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
+  bool searchRun() {
+    mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
+    delay(500);
+    mt.free();
+    return RobotBase::searchRun();
+  }
   bool fastRun() {
+    /* 最短経路の作成 */
     if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;
-    /* 最短経路の作成 */
     const auto path = convertDirectionsToSearch(getShortestDirections());
     ma.set_path(path);
+
+    /* 基本パラメータを落とす */
+    ma.rp_fast.down();
 
     //> FastRun Start
     ma.enable();
@@ -218,6 +229,9 @@ protected:
       delay(100);
     ma.disable();
     //< FastRun End
+
+    /* 完走した場合はパラメータを上げる */
+    ma.rp_fast.up(1 + 2);
 
     // ゴールで回収されるか待つ
     readyToStartWait();
@@ -243,7 +257,7 @@ protected:
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
-    /* 自己位置同定 */
+    /* 自動復帰: 任意 -> ゴール -> スタート */
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
       readyToStartWait();
@@ -255,41 +269,31 @@ protected:
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
-      /* 最短走行でクラッシュした場合，パラメータを若干落とす */
-      if (!state.has_reached_goal) {
-        /* 最短中のクラッシュ */
-        ma.rp_fast.curve_gain /= std::sqrt(ma.rp_fast.cg_gain);
-        ma.rp_fast.max_speed /= std::sqrt(ma.rp_fast.ms_gain);
-        ma.rp_fast.accel /= std::sqrt(ma.rp_fast.ac_gain);
-      }
     }
-    /* 探索 (強制探索モードまたは経路がひとつもない場合) */
+    /* 探索走行: スタート -> ゴール -> スタート */
     if (isForceSearch || !calcShortestDirections(true)) {
       maze.resetLastWalls(12); //< クラッシュ後を想定して少し消す
-      mt.drive(-0.2f, -0.2f);  /*< 背中を確実に壁につける */
-      delay(500);
-      mt.free();
-      state.newRun(); //< 0 -> 1
+      state.newRun();          //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
-        waitForever();
+        waitForever(); //< 復帰しない
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
     }
-    /* 最短 */
+    /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
       state.newRun(); //< 1 -> 2
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
+        mt.emergencyStop();
         waitForever();
       }
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
-      /* 完走した場合はパラメータを上げる */
-      ma.rp_fast.curve_gain *= ma.rp_fast.cg_gain;
-      ma.rp_fast.max_speed *= ma.rp_fast.ms_gain;
-      ma.rp_fast.accel *= ma.rp_fast.ac_gain;
+      /* 5走終了 */
+      if (state.try_count >= 5)
+        break;
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);
