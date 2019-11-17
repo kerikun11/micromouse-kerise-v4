@@ -4,6 +4,10 @@
 
 %% cleaning
 clear;
+% FontSize = 18;
+% LineWidth = 2;
+% set(groot, 'DefaultAxesFontSize', FontSize);
+% set(groot, 'DefaultLineLineWidth', LineWidth);
 set(groot, 'DefaultTextInterpreter', 'Latex');
 set(groot, 'DefaultLegendInterpreter', 'Latex');
 figindex = 1;
@@ -20,7 +24,7 @@ fprintf('Log File: %s\n', filename);
 %% Select a Log File directly
 %{
 pathname = './data/';
-filename = '191022-171343.tab';
+filename = '191117-201829.tab';
 %}
 
 %% Serial input

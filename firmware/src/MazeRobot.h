@@ -13,19 +13,19 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
+#define GOAL 4
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
 #elif GOAL == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(17, 13),
-MazeLib::Position(18, 13), MazeLib::Position(19, 13), MazeLib::Position(17, 14),
-    MazeLib::Position(18, 14), MazeLib::Position(19, 14),
-    MazeLib::Position(17, 15), MazeLib::Position(18, 15),
-    MazeLib::Position(19, 15),
-}
+    MazeLib::Position(17, 13), MazeLib::Position(18, 13),                      \
+        MazeLib::Position(19, 13), MazeLib::Position(17, 14),                  \
+        MazeLib::Position(18, 14), MazeLib::Position(19, 14),                  \
+        MazeLib::Position(17, 15), MazeLib::Position(18, 15),                  \
+        MazeLib::Position(19, 15),                                             \
+  }
 #elif GOAL == 3
 #define MAZE_GOAL                                                              \
   {                                                                            \
@@ -35,11 +35,11 @@ MazeLib::Position(18, 13), MazeLib::Position(19, 13), MazeLib::Position(17, 14),
 #elif GOAL == 4
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(3, 3),
-MazeLib::Position(4, 3), MazeLib::Position(5, 3), MazeLib::Position(3, 4),
-    MazeLib::Position(4, 4), MazeLib::Position(5, 4), MazeLib::Position(3, 5),
-    MazeLib::Position(4, 5), MazeLib::Position(5, 5),
-}
+    MazeLib::Position(3, 3), MazeLib::Position(4, 3), MazeLib::Position(5, 3), \
+        MazeLib::Position(3, 4), MazeLib::Position(4, 4),                      \
+        MazeLib::Position(5, 4), MazeLib::Position(3, 5),                      \
+        MazeLib::Position(4, 5), MazeLib::Position(5, 5),                      \
+  }
 #endif
 
 #define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"
@@ -131,6 +131,7 @@ public:
   }
   bool isRunning() const { return isRunningFlag; }
   void setGoals(const Positions &goal) { replaceGoals(goal); }
+  const State &getState() const { return state; }
 
 private:
   Maze maze;
@@ -293,7 +294,8 @@ protected:
       readyToStartWait();
       /* 5走終了 */
       if (state.try_count >= 5)
-        break;
+        bz.play(Buzzer::COMPLETE);
+      // break;
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);

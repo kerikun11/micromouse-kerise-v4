@@ -125,8 +125,8 @@ public:
     gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.z;
   }
   void calibration() {
-    const int ave_count = 100;
-    for (int j = 0; j < 2; j++) {
+    const int ave_count = 125;
+    for (int j = 0; j < 4; j++) {
       TickType_t xLastWakeTime = xTaskGetTickCount();
       MotionParameter accel_sum, gyro_sum;
       for (int i = 0; i < ave_count; i++) {

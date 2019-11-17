@@ -35,9 +35,9 @@ public:
     float max_speed = 720;
     float accel = 3600;
 #elif KERISE_SELECT == 3
-    float search_v = 300;
+    float search_v = 270;
     float curve_gain = 1.0;
-    float max_speed = 600;
+    float max_speed = 720;
     float accel = 3600;
 #elif KERISE_SELECT == 5
     float search_v = 240;
@@ -53,12 +53,12 @@ public:
 
   public:
     // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
-    static constexpr float cg_gain = 1.05f;
+    static constexpr float cg_gain = 1.03f;
     // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
     static constexpr float ms_gain = 1.2f;
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
     // [int(3600*1.1**i) for i in range(0, 4)]: [3600, 3960, 4356, 4791]
-    static constexpr float ac_gain = 1.05f;
+    static constexpr float ac_gain = 1.03f;
 
   public:
     void up(const int cnt = 1) {
@@ -240,7 +240,7 @@ private:
     /* 90 [deg] の倍数 */
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
-      const float wall_diff_thr = 50; //< 吸い込まれ防止
+      const float wall_diff_thr = 100; //< 吸い込まれ防止
       if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         int_y += wd.distance.side[0];
@@ -650,9 +650,7 @@ private:
     case RobotBase::Action::ST_FULL:
       if (tof.getDistance() < field::SegWidthFull)
         wall_stop();
-#if SEARCH_WALL_FRONT_ENABLED
       wall_front_fix(rp, 2 * field::SegWidthFull);
-#endif
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
     case RobotBase::Action::ST_HALF:
@@ -661,9 +659,7 @@ private:
       break;
     case RobotBase::Action::TURN_L: {
       wall_front_fix(rp, field::SegWidthFull);
-#if SEARCH_WALL_FRONT_ENABLED
       wall_front_fix(rp, 2 * field::SegWidthFull);
-#endif
       slalom::Trajectory st(SS_SL90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[0])
@@ -674,9 +670,7 @@ private:
     }
     case RobotBase::Action::TURN_R: {
       wall_front_fix(rp, field::SegWidthFull);
-#if SEARCH_WALL_FRONT_ENABLED
       wall_front_fix(rp, 2 * field::SegWidthFull);
-#endif
       slalom::Trajectory st(SS_SR90);
       straight_x(st.get_straight_prev(), velocity, velocity, rp);
       if (wd.wall[1])
@@ -690,9 +684,7 @@ private:
       break;
     case RobotBase::Action::ST_HALF_STOP:
       wall_front_fix(rp, field::SegWidthFull);
-#if SEARCH_WALL_FRONT_ENABLED
       wall_front_fix(rp, 2 * field::SegWidthFull);
-#endif
       straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
       turn(0); //*< 姿勢を整える */
       break;

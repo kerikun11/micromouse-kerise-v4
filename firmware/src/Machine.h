@@ -409,14 +409,15 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    const float velocity = 450;
+    const auto &shape = SS_FL135;
+    const float velocity =
+        shape.v_ref * ma.rp_fast.curve_gain * std::pow(1.05f, 4);
     const float Ts = 0.001f;
     const float j_max = 240000;
     const float a_max = 9000;
     const float v_max = velocity;
     const float dist = 1 * 90;
     ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
-    const auto &shape = SS_FL90;
     ctrl::Position offset;
     /* start */
     sc.enable();
