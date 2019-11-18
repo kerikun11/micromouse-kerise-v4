@@ -28,7 +28,7 @@ WallDetector wd;
 
 /* Conductor */
 Logger lgr;
-MoveAction ma;
+MoveAction ma(model::TrajectoryTrackerGain);
 MazeRobot mr;
 
 /* Other */

@@ -146,7 +146,7 @@ subplot(4, 1, 4); hold off;
 plot(time, pos_th); grid on;
 title('Orientation');
 xlabel('Time [ms]');
-ylabel('Orientation $\theta$ [mm/s]');
+ylabel('Orientation $\theta$ [rad]');
 legend({'Reference', 'Estimation'});
 
 %% save the figure

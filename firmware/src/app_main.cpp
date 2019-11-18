@@ -92,6 +92,9 @@ void driveTask(void *arg) {
     case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
       break;
+    case 13:
+      Machine::selectTrajectoryGain();
+      break;
     case 14: /* テスト */
       // Machine::accel_test();
       Machine::slalom_test();

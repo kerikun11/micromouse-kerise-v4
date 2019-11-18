@@ -55,7 +55,7 @@ public:
     // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
     static constexpr float cg_gain = 1.03f;
     // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
-    static constexpr float ms_gain = 1.2f;
+    static constexpr float ms_gain = 1.1f;
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
     // [int(3600*1.1**i) for i in range(0, 4)]: [3600, 3960, 4356, 4791]
     static constexpr float ac_gain = 1.03f;
@@ -81,7 +81,7 @@ public:
 #endif
 
 public:
-  MoveAction() {}
+  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {}
   ~MoveAction() {}
   void enable() {
     deleteTask();
@@ -108,6 +108,7 @@ public:
   RunParameter rp_fast;
   bool continue_straight_if_no_front_wall = false;
   bool wall_stop_flag = false;
+  ctrl::TrajectoryTracker::Gain tt_gain;
 
   bool positionRecovery() {
     sc.enable();
@@ -280,8 +281,6 @@ private:
 #if SEARCH_WALL_CUT_ENABLED
     if (!wallCutFlag)
       return;
-    if (!diag_enabled)
-      return;
     if (velocity < 120)
       return;
     /* 曲線なら前半しか使わない */
@@ -381,7 +380,7 @@ private:
     if (distance - sc.position.x > 0) {
       const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
-      ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+      ctrl::TrajectoryTracker tt{tt_gain};
       ctrl::State ref_s;
       ctrl::straight::Trajectory trajectory;
       /* start */
@@ -416,7 +415,7 @@ private:
   void trace(slalom::Trajectory &trajectory, const float velocity,
              const RunParameter &rp) {
     const float Ts = 0.001f;
-    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+    ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State s;
     /* start */
     tt.reset(velocity);

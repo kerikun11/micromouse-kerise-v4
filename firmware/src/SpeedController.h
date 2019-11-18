@@ -47,8 +47,8 @@ public:
   Polar est_a;
   WheelParameter enc_v;
   Position position;
-  const ctrl::FeedbackController<ctrl::Polar>::Model &M;
-  const ctrl::FeedbackController<ctrl::Polar>::Gain &G;
+  ctrl::FeedbackController<ctrl::Polar>::Model M;
+  ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
 
 public:
@@ -141,8 +141,6 @@ private:
       const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
       /* calculate odometry value */
       position.th += est_v.rot * Ts;
-      // position.x += est_v.tra * std::cos(position.th + slip_angle) * Ts;
-      // position.y += est_v.tra * std::sin(position.th + slip_angle) * Ts;
       position.x += noisy_v.tra * std::cos(position.th + slip_angle) * Ts;
       position.y += noisy_v.tra * std::sin(position.th + slip_angle) * Ts;
       /* Fix Position */

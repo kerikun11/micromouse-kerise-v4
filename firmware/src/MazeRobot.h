@@ -231,11 +231,14 @@ protected:
     ma.disable();
     //< FastRun End
 
-    /* 完走した場合はパラメータを上げる */
-    ma.rp_fast.up(1 + 2);
+    /* 落とした分を回復 */
+    ma.rp_fast.up(1);
 
     // ゴールで回収されるか待つ
     readyToStartWait();
+
+    /* 完走した場合はパラメータを上げる */
+    ma.rp_fast.up(2);
 
     // 帰る
     return endFastRunBackingToStartRun();
@@ -258,6 +261,10 @@ protected:
     vTaskDelay(portMAX_DELAY);
   }
   void task() override {
+    /* 迷路のチェック */
+    if (!calcShortestDirections(true)) {
+      maze.resetLastWalls(12); //< クラッシュ後を想定して少し消す
+    }
     /* 自動復帰: 任意 -> ゴール -> スタート */
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
@@ -273,8 +280,7 @@ protected:
     }
     /* 探索走行: スタート -> ゴール -> スタート */
     if (isForceSearch || !calcShortestDirections(true)) {
-      maze.resetLastWalls(12); //< クラッシュ後を想定して少し消す
-      state.newRun();          //< 0 -> 1
+      state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
         waitForever(); //< 復帰しない
@@ -285,6 +291,10 @@ protected:
     /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
       state.newRun(); //< 1 -> 2
+      /* 5走終了 */
+      if (state.try_count > 5)
+        bz.play(Buzzer::COMPLETE);
+      // break;
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop();
@@ -292,10 +302,6 @@ protected:
       }
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
-      /* 5走終了 */
-      if (state.try_count >= 5)
-        bz.play(Buzzer::COMPLETE);
-      // break;
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);

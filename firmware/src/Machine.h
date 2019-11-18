@@ -82,11 +82,11 @@ public:
     }
     /* 探索状態のお知らせ */
     if (mr.getMaze().getWallLogs().empty()) //< 完全に未探索状態
-      bz.play(Buzzer::MAZE_BACKUP);
+      bz.play(Buzzer::CONFIRM);
     else if (mr.isComplete()) //< 完全に探索終了
       bz.play(Buzzer::SUCCESSFUL);
     else if (mr.calcShortestDirections(true)) //< 探索中だが経路はある
-      bz.play(Buzzer::CONFIRM);
+      bz.play(Buzzer::MAZE_BACKUP);
     /* 走行オプション */
     int mode = ui.waitForSelect(2);
     if (mode < 0)
@@ -106,7 +106,16 @@ public:
     mr.autoRun(forceSearch, false);
   }
   static void selectParamPreset() {
+    for (int i = 0; i < 1; i++)
+      bz.play(Buzzer::SHORT7);
+    int value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
     ma.rp_fast = MoveAction::RunParameter();
+    if (value <= 7)
+      ma.rp_fast.up(value);
+    else
+      ma.rp_fast.down(16 - value);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectRunConfig() {
@@ -410,8 +419,7 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     const auto &shape = SS_FL135;
-    const float velocity =
-        shape.v_ref * ma.rp_fast.curve_gain * std::pow(1.05f, 4);
+    const float velocity = 450.0f;
     const float Ts = 0.001f;
     const float j_max = 240000;
     const float a_max = 9000;
@@ -438,6 +446,7 @@ public:
     sc.position.x -= ref.x_end();
     offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
+#if 1
     slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
@@ -452,6 +461,7 @@ public:
     const auto &net = st.get_net_curve();
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
+#endif
     /* decel */
     ref.reset(j_max, a_max, sc.ref_v.tra, v_max, 0, dist + shape.straight_post);
     for (float t = 0; t < ref.t_end(); t += Ts) {
@@ -470,6 +480,10 @@ public:
     delay(200);
     bz.play(Buzzer::CANCEL);
     sc.disable();
+    if (mt.isEmergency()) {
+      bz.play(Buzzer::EMERGENCY);
+      mt.emergencyRelease();
+    }
   }
   static void SearchRun_test() {
     if (!ui.waitForCover())
@@ -504,6 +518,38 @@ public:
         bz.play(Buzzer::ERROR);
       led = 15;
     }
+  }
+  static void selectTrajectoryGain() {
+    int value;
+    /* ターン速度 */
+    for (int i = 0; i < 1; i++)
+      bz.play(Buzzer::SHORT7);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, value);
+    /* 最大速度 */
+    for (int i = 0; i < 2; i++)
+      bz.play(Buzzer::SHORT7);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    ma.rp_fast.max_speed *= std::pow(ma.rp_fast.ms_gain, value);
+    /* 加速度 */
+    for (int i = 0; i < 3; i++)
+      bz.play(Buzzer::SHORT7);
+    value = ui.waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    ma.rp_fast.accel *= std::pow(ma.rp_fast.ms_gain, value);
+    /* 成功 */
+    bz.play(Buzzer::SUCCESSFUL);
   }
   static void enc_id() {
     if (!ui.waitForCover())
