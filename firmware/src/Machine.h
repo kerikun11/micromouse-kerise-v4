@@ -402,6 +402,30 @@ public:
     fan.drive(0);
   }
   static void slalom_test() {
+    ctrl::TrajectoryTracker::Gain gain;
+    // int mode = ui.waitForSelect(3);
+    int mode = 0;
+    if (mode < 0)
+      return;
+    switch (mode) {
+    case 0:
+      break;
+    case 1: {
+      int value = ui.waitForSelect(16);
+      if (value < 0)
+        return;
+      value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
+      gain.zeta *= std::pow(2, value);
+    } break;
+    case 2: {
+      int value = ui.waitForSelect(16);
+      if (value < 0)
+        return;
+      value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
+      gain.omega_n *= std::pow(2, value);
+    } break;
+    }
+    led = 15;
     if (!ui.waitForCover())
       return;
     delay(500);
@@ -425,7 +449,7 @@ public:
     const float a_max = 9000;
     const float v_max = velocity;
     const float dist = 1 * 90;
-    ctrl::TrajectoryTracker tt{model::TrajectoryTrackerGain};
+    ctrl::TrajectoryTracker tt(gain);
     ctrl::Position offset;
     /* start */
     sc.enable();
@@ -446,7 +470,7 @@ public:
     sc.position.x -= ref.x_end();
     offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
-#if 1
+#if 0
     slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
@@ -519,38 +543,7 @@ public:
       led = 15;
     }
   }
-  static void selectTrajectoryGain() {
-    int value;
-    /* ターン速度 */
-    for (int i = 0; i < 1; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, value);
-    /* 最大速度 */
-    for (int i = 0; i < 2; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    ma.rp_fast.max_speed *= std::pow(ma.rp_fast.ms_gain, value);
-    /* 加速度 */
-    for (int i = 0; i < 3; i++)
-      bz.play(Buzzer::SHORT7);
-    value = ui.waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    ma.rp_fast.accel *= std::pow(ma.rp_fast.ms_gain, value);
-    /* 成功 */
-    bz.play(Buzzer::SUCCESSFUL);
-  }
+  static void selectTrajectoryGain() { bz.play(Buzzer::SUCCESSFUL); }
   static void enc_id() {
     if (!ui.waitForCover())
       return;

@@ -258,7 +258,6 @@ private:
 #endif
       /* 櫛の壁制御 */
       if (!wd.wall[0] && !wd.wall[1]) {
-        led_flags |= 6;
       }
     }
     /* 45 [deg] の倍数 */
@@ -328,6 +327,8 @@ private:
   }
   void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
 #if SEARCH_WALL_FRONT_ENABLED
+    if (std::abs(sc.position.th) > M_PI * 0.01f)
+      return;
     if (rp.front_wall_fix_enabled && tof.isValid()) {
       float value =
           tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
