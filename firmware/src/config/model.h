@@ -19,7 +19,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 4
+#define KERISE_SELECT 3
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -106,14 +106,16 @@ const float wall_avoid_gain = 0.006f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f),
+  .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.12f, 0.08f), /*< 東 */
+  //   .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0006f, 0.08f),
-  .Ki = ctrl::Polar(0.1f, 3.0f), //< 守り
-                                 // .Kp = ctrl::Polar(0.0012f, 0.12f), .Ki =
-                                 // ctrl::Polar(0.3f, 6.0f), //< 攻め
+  .Kp = ctrl::Polar(0.0006f, 0.1f), .Ki = ctrl::Polar(0.1f, 3.0f), /*< 東 */
+      //     .Kp = ctrl::Polar(0.0006f, 0.08f),
+      // .Ki = ctrl::Polar(0.1f, 3.0f), /*< 守 */
+      //     .Kp = ctrl::Polar(0.0012f, 0.12f),
+      // .Ki = ctrl::Polar(0.3f, 6.0f), /*< 攻 */
       .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */

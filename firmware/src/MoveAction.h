@@ -17,7 +17,7 @@
 #define SEARCH_WALL_CUT_ENABLED 0
 #define SEARCH_WALL_FRONT_ENABLED 1
 #define SEARCH_WALL_AVOID_ENABLED 1
-#define SEARCH_WALL_THETA_ENABLED 1
+#define SEARCH_WALL_THETA_ENABLED 0
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -257,7 +257,12 @@ private:
       sc.position.th += int_y * 0.00000001f;
 #endif
       /* 櫛の壁制御 */
-      if (!wd.wall[0] && !wd.wall[1]) {
+      const float wall_diff_comb_thr = 1000.0f;
+      if (std::abs(wd.diff.side[0]) > wall_diff_comb_thr) {
+        led_flags |= 4;
+      }
+      if (std::abs(wd.diff.side[1]) > wall_diff_comb_thr) {
+        led_flags |= 2;
       }
     }
     /* 45 [deg] の倍数 */

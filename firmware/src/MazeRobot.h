@@ -49,7 +49,10 @@ class MazeRobot : public RobotBase, private TaskBase {
 public:
   struct State {
     int try_count = 0;             /**< 走行回数 */
+    int max_parameter = -1;        /**< 成功パラメータ */
+    int running_parameter = 0;     /**< 走行パラメータ */
     bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
+    bool is_fast_run = false;      /**< 最短走行かどうか */
 
     bool save(const std::string filepath = STATE_SAVE_PATH) {
       std::ofstream of(filepath, std::ios::binary | std::ios::app);
@@ -102,8 +105,9 @@ public:
     return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
   bool restore() {
-    state.restore();
-    ma.rp_fast.up(state.try_count - 1);
+    /* パラメータを復元する処理！！！ */
+    // state.restore();
+    state.try_count = 1; //< 探索済みの最短初回
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(bool isForceSearch, bool isPositionIdentifying) {
@@ -215,32 +219,41 @@ protected:
     return RobotBase::searchRun();
   }
   bool fastRun() {
+    /* 走行パラメータ選択 */
+    if (state.is_fast_run) {
+      /* クラッシュ後の場合 */
+      if (state.max_parameter < 0) //< つまり，最短初回のミス
+        ma.rp_fast.diag_enabled = false;
+      else
+        ma.rp_fast.down(), state.running_parameter -= 1;
+    } else {
+      /* 初回 or 完走した場合 */
+      if (state.try_count == 2) //< 初回
+        ma.rp_fast.up(2), state.running_parameter += 2;
+      if (ma.rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
+        ma.rp_fast.up(2), state.running_parameter += 2;
+      else //< 斜めなし -> 斜めあり
+        ma.rp_fast.diag_enabled = true;
+    }
+    state.is_fast_run = true, state.save();
     /* 最短経路の作成 */
     if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;
     const auto path = convertDirectionsToSearch(getShortestDirections());
     ma.set_path(path);
-
-    /* 基本パラメータを落とす */
-    ma.rp_fast.down();
-
     //> FastRun Start
     ma.enable();
     while (ma.isRunning())
       delay(100);
     ma.disable();
     //< FastRun End
-
-    /* 落とした分を回復 */
-    ma.rp_fast.up(1);
-
-    // ゴールで回収されるか待つ
+    /* 最短成功 */
+    state.is_fast_run = false;
+    state.max_parameter = state.running_parameter;
+    state.save();
+    /* ゴールで回収されるか待つ */
     readyToStartWait();
-
-    /* 完走した場合はパラメータを上げる */
-    ma.rp_fast.up(2);
-
-    // 帰る
+    /* 帰る */
     return endFastRunBackingToStartRun();
   }
   void readyToStartWait(const int wait_ms = 1000) {
