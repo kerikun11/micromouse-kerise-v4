@@ -179,7 +179,6 @@ protected:
                                                 : current_pose.d;
     /* 未知区間加速の設定 */
     ma.continue_straight_if_no_front_wall =
-        prevState == SearchAlgorithm::SEARCHING_FOR_GOAL &&
         newState != SearchAlgorithm::IDENTIFYING_POSITION &&
         !getNextDirectionCandidates().empty() &&
         getNextDirectionCandidates()[0] == d;

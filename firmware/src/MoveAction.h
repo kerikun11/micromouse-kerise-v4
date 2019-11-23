@@ -682,10 +682,10 @@ private:
       straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
                  velocity, rp);
       break;
-    case RobotBase::Action::TURN_L: {
+    case RobotBase::Action::TURN_L:
       wall_front_fix(rp, field::SegWidthFull);
       wall_front_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 10.0f) {
+      if (sc.position.x < 5.0f) {
         slalom::Trajectory st(SS_SL90);
         straight_x(st.get_straight_prev(), velocity, velocity, rp);
         if (wd.is_wall[0])
@@ -701,11 +701,10 @@ private:
                    velocity, rp);
       }
       break;
-    }
-    case RobotBase::Action::TURN_R: {
+    case RobotBase::Action::TURN_R:
       wall_front_fix(rp, field::SegWidthFull);
       wall_front_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 10.0f) {
+      if (sc.position.x < 5.0f) {
         slalom::Trajectory st(SS_SR90);
         straight_x(st.get_straight_prev(), velocity, velocity, rp);
         if (wd.is_wall[1])
@@ -721,7 +720,6 @@ private:
                    velocity, rp);
       }
       break;
-    }
     case RobotBase::Action::ROTATE_180:
       uturn();
       break;
