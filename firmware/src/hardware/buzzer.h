@@ -5,7 +5,7 @@
 #define BUZZER_TASK_PRIORITY 1
 #define BUZZER_TASK_STACK_SIZE 4096
 
-#define BUZZER_QUEUE_SIZE 5
+#define BUZZER_QUEUE_SIZE 10
 
 class Buzzer {
 public:

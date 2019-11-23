@@ -131,8 +131,8 @@ public:
       ma.rp_fast.diag_enabled = value & 0x02;
       break;
     case 1: /* 未知区間加速 */
-      ma.rp_search.unknown_accel = value & 0x01;
-      ma.rp_fast.unknown_accel = value & 0x02;
+      ma.rp_search.unknown_accel_enabled = value & 0x01;
+      ma.rp_fast.unknown_accel_enabled = value & 0x02;
       break;
     case 2: /* 前壁修正 */
       ma.rp_search.front_wall_fix_enabled = value & 1;

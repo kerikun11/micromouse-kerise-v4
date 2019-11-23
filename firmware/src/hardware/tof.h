@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Accumulator.h"
 #include "VL6180X.h"
 #include "i2c.h"
 
@@ -28,6 +29,7 @@ public:
   void enable() { enabled = true; }
   void disable() { enabled = false; }
   uint16_t getDistance() const { return distance; }
+  const auto &getLog() const { return log; }
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const { log_d("ToF: %d [mm]", getDistance()); }
@@ -40,6 +42,7 @@ private:
   bool enabled = true;
   uint16_t distance;
   int passed_ms;
+  Accumulator<uint16_t, 10> log;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -64,6 +67,7 @@ private:
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
       sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
       distance = range + model::tof_dist_offset;
+      log.push(distance);
       if (range != 255) {
         passed_ms = 0;
       }

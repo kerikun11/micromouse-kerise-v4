@@ -29,7 +29,7 @@ public:
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 0; //< for debug!
-    bool unknown_accel = 1;
+    bool unknown_accel_enabled = 1;
     float search_v = 300;
     float curve_gain = 1.0;
     float max_speed = 720;
@@ -218,7 +218,7 @@ private:
   }
   void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
-    if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f ||
+    if (!rp.wall_avoid_enabled || sc.est_v.tra < 180.0f ||
         std::abs(sc.position.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
@@ -323,17 +323,29 @@ private:
   void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
     if (!rp.front_wall_fix_enabled && !tof.isValid())
       return;
-    if (std::abs(sc.position.th) > M_PI * 0.01f)
+    if (std::abs(sc.position.th) > M_PI * 0.05f)
       return;
-    float value =
-        tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
-    // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
-    float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-    if (-30 < fixed_x && fixed_x < 30) {
-      // fixed_x = std::max(fixed_x, 5.0f);
-      fixed_x /= 2; //*< 補正率 2: 50%
-      sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
+    const float wall_fix_offset = 6; /*< 調整値．大きく:壁に近く */
+    const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
+                              (tof.passedTimeMs() + 5) * 1e-3f * sc.ref_v.tra +
+                              wall_fix_offset - sc.position.x;
+    const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
+                              (tof.passedTimeMs() + 15) * 1e-3f * sc.ref_v.tra +
+                              wall_fix_offset - sc.position.x;
+    if (std::abs(fixed_x_now) < 5.0f) {
+      sc.fix_position(ctrl::Position(fixed_x_now, 0, 0));
       bz.play(Buzzer::SHORT7);
+    } else if (std::abs(fixed_x_pre) < 5.0f) {
+      sc.fix_position(ctrl::Position(fixed_x_pre, 0, 0));
+      bz.play(Buzzer::SHORT6);
+    } else if (std::abs(fixed_x_now) < 10.0f) {
+      sc.fix_position(ctrl::Position(fixed_x_now, 0, 0));
+      bz.play(Buzzer::SHORT7);
+      bz.play(Buzzer::SHORT7);
+    } else if (std::abs(fixed_x_pre) < 10.0f) {
+      bz.play(Buzzer::SHORT6);
+      bz.play(Buzzer::SHORT6);
+      sc.fix_position(ctrl::Position(fixed_x_pre, 0, 0));
     }
   }
   void turn(const float angle) {
@@ -619,7 +631,7 @@ private:
     const bool no_front_wall =
         !tof.isValid() ||
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 3;
-    const auto v_end = (rp.unknown_accel &&
+    const auto v_end = (rp.unknown_accel_enabled &&
                         continue_straight_if_no_front_wall && no_front_wall)
                            ? 600
                            : velocity;
