@@ -156,16 +156,9 @@ protected:
     return ma.set_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {
-    left = wd.wall[0];
-    right = wd.wall[1];
-    front = wd.wall[2];
-    // bz.play(Buzzer::SHORT6);
-#if 0
-    /* 前1区画先の壁を読める場合 */
-    if (!front)
-      updateWall(current_pose.p.next(current_pose.d), current_pose.d,
-                 tof.getDistance() < 210);
-#endif
+    left = ma.is_wall[0];
+    right = ma.is_wall[1];
+    front = ma.is_wall[2];
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma.disable(); }

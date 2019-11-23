@@ -81,20 +81,12 @@ public:
     path = "";
     isRunningFlag = false;
   }
+  bool isRunning() { return isRunningFlag; }
   void set_action(RobotBase::Action action) {
     q.push(action);
     isRunningFlag = true;
   }
   void set_path(std::string path) { this->path = path; }
-  bool isRunning() { return isRunningFlag; }
-
-public:
-  RunParameter rp_search;
-  RunParameter rp_fast;
-  bool continue_straight_if_no_front_wall = false;
-  bool wall_stop_flag = false;
-  ctrl::TrajectoryTracker::Gain tt_gain;
-
   bool positionRecovery() {
     /* 1周回って壁を探す */
     sc.enable();
@@ -154,7 +146,7 @@ public:
     delay(20); //< ToFが有効化するのを待つ
     /* 壁のない方向を向く */
     while (1) {
-      if (!wd.wall[2])
+      if (!wd.is_wall[2])
         break;
       wall_attach(true);
       turn(-M_PI / 2);
@@ -163,9 +155,21 @@ public:
     return true;
   }
 
+public:
+  RunParameter rp_search;
+  RunParameter rp_fast;
+  ctrl::TrajectoryTracker::Gain tt_gain;
+
+  /* for communication with MazeRobot */
+public:
+  bool continue_straight_if_no_front_wall = false;
+  bool wall_stop_flag = false;
+  std::array<bool, 3> is_wall;
+
 private:
   std::queue<RobotBase::Action> q;
   bool isRunningFlag = false;
+  bool isNeutralTurnMode = false;
   ctrl::Position offset;
   std::string path;
   bool prev_wall[2];
@@ -235,12 +239,12 @@ private:
     if (isAlong()) {
       const float gain = model::wall_avoid_gain;
       const float wall_diff_thr = 100; //< 吸い込まれ防止
-      if (wd.wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
+      if (wd.is_wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
         int_y += wd.distance.side[0];
         led_flags |= 8;
       }
-      if (wd.wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
+      if (wd.is_wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
         sc.position.y -= wd.distance.side[1] * gain;
         int_y -= wd.distance.side[1];
         led_flags |= 1;
@@ -290,7 +294,7 @@ private:
     if (std::abs(sc.position.th) > M_PI * 0.1f)
       return;
     for (int i = 0; i < 2; i++) {
-      if (prev_wall[i] && !wd.wall[i]) {
+      if (prev_wall[i] && !wd.is_wall[i]) {
         /* 90 [deg] の倍数 */
         if (isAlong()) {
           Position prev = sc.position;
@@ -325,7 +329,7 @@ private:
           }
         }
       }
-      prev_wall[i] = wd.wall[i];
+      prev_wall[i] = wd.is_wall[i];
     }
 #endif
   }
@@ -557,22 +561,28 @@ private:
     isRunningFlag = false;
     vTaskDelay(portMAX_DELAY);
   }
-  void queue_wait_decel() {
+  void queue_wait_decel(const RunParameter &rp) {
     /* Actionがキューされるまで直進で待つ */
-    float v = sc.ref_v.tra;
+    ctrl::TrajectoryTracker tt(tt_gain);
+    ctrl::State ref_s;
+    const auto v_start = sc.ref_v.tra;
+    ctrl::AccelCurve ac(240000, 3600, v_start, 0);
+    /* start */
+    tt.reset(v_start);
+    float int_y = 0;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    for (int i = 0; q.empty(); ++i) {
+    for (float t = 0; q.empty(); t += 0.001f) {
+      /* 軌道追従 */
+      const auto ref =
+          tt.update(sc.position, sc.est_v, sc.est_a, ctrl::Position(ac.x(t)),
+                    ctrl::Position(ac.v(t)), ctrl::Position(ac.a(t)),
+                    ctrl::Position(ac.j(t)));
+      sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      /* 壁制御 */
+      wall_avoid(0, rp, int_y);
+      wall_cut(ref.v);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      if (v > 0)
-        v -= 6;
-      xLastWakeTime = xTaskGetTickCount();
-      const auto cur = sc.position;
-      float th = atan2f(-cur.y, (2 + 20 * v / 240)) - cur.th;
-      sc.set_target(v, 40 * th);
-      if (i == 60)
-        bz.play(Buzzer::MAZE_BACKUP);
     }
-    sc.position.y = 0; /**< 横のステップ変化を抑制 */
   }
   void task() override {
     if (q.size())
@@ -622,10 +632,14 @@ private:
                             field::SegWidthFull / 2, 0);
     sc.enable();
     while (1) {
+      /* 壁を確認 */
+      is_wall = wd.is_wall;
+      // bz.play(Buzzer::SHORT7);
+      /* 探索器に終了を通知 */
       if (q.empty())
         isRunningFlag = false;
       /* Actionがキューされるまで直進で待つ */
-      queue_wait_decel();
+      queue_wait_decel(rp);
       /* 既知区間走行 */
       if (q.size() >= 2)
         search_run_known(rp);
@@ -671,23 +685,41 @@ private:
     case RobotBase::Action::TURN_L: {
       wall_front_fix(rp, field::SegWidthFull);
       wall_front_fix(rp, 2 * field::SegWidthFull);
-      slalom::Trajectory st(SS_SL90);
-      straight_x(st.get_straight_prev(), velocity, velocity, rp);
-      if (wd.wall[0])
-        wall_stop();
-      trace(st, velocity, rp);
-      straight_x(st.get_straight_post(), velocity, velocity, rp);
+      if (sc.position.x < 10.0f) {
+        slalom::Trajectory st(SS_SL90);
+        straight_x(st.get_straight_prev(), velocity, velocity, rp);
+        if (wd.is_wall[0])
+          wall_stop();
+        trace(st, velocity, rp);
+        straight_x(st.get_straight_post(), velocity, velocity, rp);
+      } else {
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
+                   rp);
+        wall_attach();
+        turn(M_PI / 2);
+        straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
+                   velocity, rp);
+      }
       break;
     }
     case RobotBase::Action::TURN_R: {
       wall_front_fix(rp, field::SegWidthFull);
       wall_front_fix(rp, 2 * field::SegWidthFull);
-      slalom::Trajectory st(SS_SR90);
-      straight_x(st.get_straight_prev(), velocity, velocity, rp);
-      if (wd.wall[1])
-        wall_stop();
-      trace(st, velocity, rp);
-      straight_x(st.get_straight_post(), velocity, velocity, rp);
+      if (sc.position.x < 10.0f) {
+        slalom::Trajectory st(SS_SR90);
+        straight_x(st.get_straight_prev(), velocity, velocity, rp);
+        if (wd.is_wall[1])
+          wall_stop();
+        trace(st, velocity, rp);
+        straight_x(st.get_straight_post(), velocity, velocity, rp);
+      } else {
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
+                   rp);
+        wall_attach();
+        turn(-M_PI / 2);
+        straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
+                   velocity, rp);
+      }
       break;
     }
     case RobotBase::Action::ROTATE_180:

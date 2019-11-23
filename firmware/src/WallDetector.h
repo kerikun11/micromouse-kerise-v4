@@ -110,7 +110,8 @@ public:
   void print() {
     log_i("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]", distance.side[0],
           distance.front[0], distance.front[1], distance.side[1],
-          wall[0] ? 'X' : '.', wall[2] ? 'X' : '.', wall[1] ? 'X' : '.');
+          is_wall[0] ? 'X' : '.', is_wall[2] ? 'X' : '.',
+          is_wall[1] ? 'X' : '.');
   }
   void printDiff() {
     std::cout << diff.side[0] << "," << diff.side[1] << std::endl;
@@ -125,7 +126,7 @@ public:
   }
   WallValue distance;
   WallValue diff;
-  bool wall[3];
+  std::array<bool, 3> is_wall;
 
 private:
   SemaphoreHandle_t calibrationStartSemaphore;
@@ -179,19 +180,19 @@ private:
 
     // 前壁の更新
     if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
-      wall[2] = true;
+      is_wall[2] = true;
     else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
-      wall[2] = false;
+      is_wall[2] = false;
     if (tof.passedTimeMs() > 50)
-      wall[2] = false;
+      is_wall[2] = false;
 
     // 横壁の更新
     for (int i = 0; i < 2; i++) {
       const float value = distance.side[i];
       if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
-        wall[i] = true;
+        is_wall[i] = true;
       else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
-        wall[i] = false;
+        is_wall[i] = false;
     }
 
     // 変化量の更新
