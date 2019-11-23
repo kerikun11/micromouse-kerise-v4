@@ -13,7 +13,7 @@
 #define WALL_DETECTOR_BACKUP_PATH "/spiffs/WallDetector.bin"
 
 #define WALL_DETECTOR_THRESHOLD_FRONT 120
-#define WALL_DETECTOR_THRESHOLD_SIDE -20
+#define WALL_DETECTOR_THRESHOLD_SIDE -30
 
 class WallDetector {
 public:

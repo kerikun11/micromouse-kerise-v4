@@ -27,6 +27,7 @@ public:
     ERROR,
     SHORT6,
     SHORT7,
+    SHORT8,
     BOOT,
     SHUTDOWN,
     LOW_BATTERY,
@@ -135,6 +136,10 @@ private:
         break;
       case SHORT7:
         sound(NOTE_C, 7, 50);
+        mute(50);
+        break;
+      case SHORT8:
+        sound(NOTE_C, 8, 50);
         mute(50);
         break;
       case MAZE_BACKUP:

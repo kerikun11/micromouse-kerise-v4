@@ -179,9 +179,8 @@ private:
     if ((force && tof.getDistance() < 210) || tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       led = 6;
-      bz.play(Buzzer::SHORT6);
       tof.disable();
-      delay(10);
+      vTaskDelay(pdMS_TO_TICKS(10)); /*< ノイズ防止のためToFを無効化 */
       TickType_t xLastWakeTime = xTaskGetTickCount();
       WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
@@ -332,20 +331,23 @@ private:
     const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
                               (tof.passedTimeMs() + 15) * 1e-3f * sc.ref_v.tra +
                               wall_fix_offset - sc.position.x;
-    if (std::abs(fixed_x_now) < 5.0f) {
-      sc.fix_position(ctrl::Position(fixed_x_now, 0, 0));
+    /* 誤差の小さい方を選ぶ */
+    const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
+                             ? fixed_x_now
+                             : fixed_x_pre;
+    const auto fixed_x_abs = std::abs(fixed_x);
+    if (fixed_x_abs < 5.0f) {
+      sc.fix_position(ctrl::Position(fixed_x, 0, 0));
+      bz.play(Buzzer::SHORT8);
+    } else if (fixed_x_abs < 10.0f) {
+      sc.fix_position(ctrl::Position(fixed_x, 0, 0));
       bz.play(Buzzer::SHORT7);
-    } else if (std::abs(fixed_x_pre) < 5.0f) {
-      sc.fix_position(ctrl::Position(fixed_x_pre, 0, 0));
+    } else if (fixed_x_abs < 20.0f) {
+      sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0));
       bz.play(Buzzer::SHORT6);
-    } else if (std::abs(fixed_x_now) < 10.0f) {
-      sc.fix_position(ctrl::Position(fixed_x_now, 0, 0));
-      bz.play(Buzzer::SHORT7);
-      bz.play(Buzzer::SHORT7);
-    } else if (std::abs(fixed_x_pre) < 10.0f) {
-      bz.play(Buzzer::SHORT6);
-      bz.play(Buzzer::SHORT6);
-      sc.fix_position(ctrl::Position(fixed_x_pre, 0, 0));
+    } else if (std::abs(fixed_x_pre) < 30.0f && std::abs(fixed_x_now) < 30.0f) {
+      sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0));
+      bz.play(Buzzer::CANCEL);
     }
   }
   void turn(const float angle) {
