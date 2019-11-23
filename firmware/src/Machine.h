@@ -553,13 +553,12 @@ public:
   }
   static void position_recovery(const bool pi_enabled = false) {
     while (1) {
+      led = 15;
       if (!ui.waitForCover(true))
         return;
       led = 0;
-      delay(1000);
-      if (!ma.positionRecovery())
-        bz.play(Buzzer::ERROR);
-      led = 15;
+      delay(500);
+      ma.positionRecovery();
     }
   }
   static void selectTrajectoryGain() { bz.play(Buzzer::SUCCESSFUL); }

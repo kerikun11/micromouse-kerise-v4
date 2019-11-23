@@ -94,7 +94,7 @@ void driveTask(void *arg) {
       Machine::setGoalPositions();
       break;
     case 13:
-      Machine::selectTrajectoryGain();
+      Machine::position_recovery();
       break;
     case 14: /* テスト */
       // Machine::accel_test();

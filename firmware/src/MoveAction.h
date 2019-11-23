@@ -96,34 +96,38 @@ public:
   ctrl::TrajectoryTracker::Gain tt_gain;
 
   bool positionRecovery() {
+    /* 1周回って壁を探す */
     sc.enable();
     static constexpr float m_dddth = 4800 * M_PI;
     static constexpr float m_ddth = 48 * M_PI;
     static constexpr float m_dth = 2 * M_PI;
     const float angle = 2 * M_PI;
-    constexpr int table_size = 180;
-    std::array<float, table_size> table;
-    for (auto &t : table)
-      t = 255;
+    constexpr int table_size = 96;
+    std::array<uint16_t, table_size> table;
+    std::bitset<table_size> is_valid;
+    table.fill(255);
     AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const float back_gain = 10.0f;
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
       float delta = sc.position.x * std::cos(-sc.position.th) -
                     sc.position.y * std::sin(-sc.position.th);
+      constexpr float back_gain = 10.0f;
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if (ad.x(t) > 2 * PI * index / table_size) {
         index++;
         table[index % table_size] = tof.getDistance();
+        is_valid[index % table_size] = tof.isValid();
       }
     }
     /* 最小分散を探す */
     float min_var = 999;
     int min_i = 0;
     for (int i = 0; i < table_size; ++i) {
-      const int window = table_size / 6;
+      if (!is_valid[i])
+        continue;
+      const int window = table_size / 12;
       int sum = 0;
       for (int j = -window / 2; j < window / 2; ++j)
         sum += table[(table_size + i + j) % table_size];
@@ -136,18 +140,23 @@ public:
         min_i = i;
       }
     }
+    /* 最小分散の方向を向く */
     sc.enable(); //< reset
     turn(2 * M_PI * min_i / table_size);
-    sc.position.clear();
+    /* 壁が遠い場合は直進する */
+    if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
+      straight_x(tof.getDistance() - field::SegWidthFull / 2, 240, 0,
+                 rp_search);
+    }
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
-    // wall_attach(true);
-    delay(50); //< ToFが有効化するのを待つ
+    delay(20); //< ToFが有効化するのを待つ
+    /* 壁のない方向を向く */
     while (1) {
       if (!wd.wall[2])
         break;
-      wall_attach();
+      wall_attach(true);
       turn(-M_PI / 2);
     }
     sc.disable();
@@ -176,7 +185,8 @@ private:
 
   void wall_attach(bool force = false) {
 #if SEARCH_WALL_ATTACH_ENABLED
-    if ((force && tof.getDistance() < 210) || tof.getDistance() < 90 ||
+    if ((force && tof.getDistance() < field::SegWidthFull * 5 / 4) ||
+        tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       led = 6;
       tof.disable();
