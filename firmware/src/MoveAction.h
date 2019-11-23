@@ -14,10 +14,6 @@
 #include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
-#define SEARCH_WALL_CUT_ENABLED 0
-#define SEARCH_WALL_FRONT_ENABLED 1
-#define SEARCH_WALL_AVOID_ENABLED 1
-#define SEARCH_WALL_THETA_ENABLED 1
 
 #define SEARCH_RUN_TASK_PRIORITY 3
 #define SEARCH_RUN_STACK_SIZE 8192
@@ -29,27 +25,16 @@ class MoveAction : TaskBase {
 public:
   struct RunParameter {
   public:
-#if KERISE_SELECT == 4
-    float search_v = 270;
-    float curve_gain = 1.0;
-    float max_speed = 720;
-    float accel = 3600;
-#elif KERISE_SELECT == 3
-    float search_v = 270;
-    float curve_gain = 1.0;
-    float max_speed = 720;
-    float accel = 3600;
-#elif KERISE_SELECT == 5
-    float search_v = 240;
-    float curve_gain = 1.0;
-    float max_speed = 480;
-    float accel = 2400;
-#endif
-    float fan_duty = 0.2f;
     bool diag_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
+    bool wall_theta_fix_enabled = 0; //< for debug!
     bool unknown_accel = 1;
+    float search_v = 300;
+    float curve_gain = 1.0;
+    float max_speed = 720;
+    float accel = 3600;
+    float fan_duty = 0.2f;
 
   public:
     // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
@@ -232,7 +217,6 @@ private:
 #endif
   }
   void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
-#if SEARCH_WALL_AVOID_ENABLED
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sc.est_v.tra < 150.0f ||
         std::abs(sc.position.th) > M_PI * 0.1f)
@@ -252,17 +236,24 @@ private:
         int_y -= wd.distance.side[1];
         led_flags |= 1;
       }
-#if SEARCH_WALL_THETA_ENABLED
       /* 機体姿勢の補正 */
-      sc.position.th += int_y * 0.00000001f;
-#endif
-      /* 櫛の壁制御 */
-      const float wall_diff_comb_thr = 1000.0f;
-      if (std::abs(wd.diff.side[0]) > wall_diff_comb_thr) {
-        led_flags |= 4;
+      if (rp.wall_theta_fix_enabled) {
+        sc.position.th += int_y * 0.00000001f;
       }
-      if (std::abs(wd.diff.side[1]) > wall_diff_comb_thr) {
-        led_flags |= 2;
+      /* 櫛の壁制御 */
+      if (tof.getDistance() > field::SegWidthFull * 3 / 2) {
+        const float comb_threashold = -50.0f;
+        const float comb_shift = 0.1f;
+        if (wd.distance.front[0] > comb_threashold) {
+          sc.position.y += comb_shift;
+          led_flags |= 4;
+          bz.play(Buzzer::SHORT7);
+        }
+        if (wd.distance.front[1] > comb_threashold) {
+          sc.position.y -= comb_shift;
+          led_flags |= 2;
+          bz.play(Buzzer::SHORT7);
+        }
       }
     }
     /* 45 [deg] の倍数 */
@@ -279,10 +270,9 @@ private:
       }
     }
     led = led_flags;
-#endif
   }
   void wall_cut(const float velocity) {
-#if SEARCH_WALL_CUT_ENABLED
+#if 0
     if (!wallCutFlag)
       return;
     if (velocity < 120)
@@ -331,22 +321,20 @@ private:
 #endif
   }
   void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
-#if SEARCH_WALL_FRONT_ENABLED
+    if (!rp.front_wall_fix_enabled && !tof.isValid())
+      return;
     if (std::abs(sc.position.th) > M_PI * 0.01f)
       return;
-    if (rp.front_wall_fix_enabled && tof.isValid()) {
-      float value =
-          tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
-      // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
-      float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
-      if (-30 < fixed_x && fixed_x < 30) {
-        // fixed_x = std::max(fixed_x, 5.0f);
-        fixed_x /= 2; //*< 補正率 2: 50%
-        sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
-        bz.play(Buzzer::SHORT7);
-      }
+    float value =
+        tof.getDistance() - (tof.passedTimeMs() + 5) / 1000.0f * sc.ref_v.tra;
+    // value = value * std::cos(sc.position.th); /*< 機体姿勢考慮 */
+    float fixed_x = dist_to_wall - value + 6; /*< 大きく:壁に近く */
+    if (-30 < fixed_x && fixed_x < 30) {
+      // fixed_x = std::max(fixed_x, 5.0f);
+      fixed_x /= 2; //*< 補正率 2: 50%
+      sc.fix_position(ctrl::Position(fixed_x - sc.position.x, 0, 0));
+      bz.play(Buzzer::SHORT7);
     }
-#endif
   }
   void turn(const float angle) {
     static constexpr float m_dddth = 4800 * M_PI;
@@ -427,9 +415,7 @@ private:
     tt.reset(velocity);
     trajectory.reset(velocity);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-#if SEARCH_WALL_FRONT_ENABLED
-    float front_fix_x = 0;
-#endif
+    float front_fix_x = 0; /*< V90の前壁修正 */
     s.q.x = sc.position.x; /*< 既に移動した分を反映 */
     for (float t = 0; t < trajectory.t_end(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
@@ -439,7 +425,6 @@ private:
       float int_y = 0;
       wall_avoid(0, rp, int_y);
       wall_cut(ref.v);
-#if SEARCH_WALL_FRONT_ENABLED
       /* V90ターン中の前壁補正 */
       if (rp.front_wall_fix_enabled && tof.isValid() &&
           std::abs(t - trajectory.t_end() / 2) < 0.0005001f &&
@@ -454,15 +439,12 @@ private:
           bz.play(Buzzer::SHORT7);
         }
       }
-#endif
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
-#if SEARCH_WALL_FRONT_ENABLED
     /* V90ターン中の前壁補正 */
     if (rp.front_wall_fix_enabled && front_fix_x != 0)
       sc.fix_position(ctrl::Position(front_fix_x, 0, 0)
                           .rotate(trajectory.get_net_curve().th / 2));
-#endif
     sc.set_target(velocity, 0);
     /* 移動した量だけ位置を更新 */
     const auto &net = trajectory.get_net_curve();

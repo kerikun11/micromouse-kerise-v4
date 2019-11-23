@@ -119,15 +119,34 @@ public:
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectRunConfig() {
-    int value = ui.waitForSelect(16);
+    int mode = ui.waitForSelect(16);
+    if (mode < 0)
+      return;
+    int value = ui.waitForSelect(4);
     if (value < 0)
       return;
-    ma.rp_search.diag_enabled = value & 0x01;
-    ma.rp_fast.diag_enabled = value & 0x02;
-    ma.rp_search.front_wall_fix_enabled = value & 0x04;
-    ma.rp_fast.front_wall_fix_enabled = value & 0x04;
-    ma.rp_search.wall_avoid_enabled = value & 0x08;
-    ma.rp_fast.wall_avoid_enabled = value & 0x08;
+    switch (mode) {
+    case 0: /* 斜め走行 */
+      ma.rp_search.diag_enabled = value & 0x01;
+      ma.rp_fast.diag_enabled = value & 0x02;
+      break;
+    case 1: /* 未知区間加速 */
+      ma.rp_search.unknown_accel = value & 0x01;
+      ma.rp_fast.unknown_accel = value & 0x02;
+      break;
+    case 2: /* 前壁修正 */
+      ma.rp_search.front_wall_fix_enabled = value & 1;
+      ma.rp_fast.front_wall_fix_enabled = value & 2;
+      break;
+    case 3: /* 横壁補正 */
+      ma.rp_search.wall_avoid_enabled = value & 1;
+      ma.rp_fast.wall_avoid_enabled = value & 2;
+      break;
+    case 4: /* 横壁姿勢補正 */
+      ma.rp_search.wall_theta_fix_enabled = value & 1;
+      ma.rp_fast.wall_theta_fix_enabled = value & 2;
+      break;
+    }
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectParamManually() {

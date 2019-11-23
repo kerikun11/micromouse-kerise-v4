@@ -222,13 +222,13 @@ protected:
     /* 走行パラメータ選択 */
     if (state.is_fast_run) {
       /* クラッシュ後の場合 */
-      if (state.max_parameter < 0) //< つまり，最短初回のミス
-        ma.rp_fast.diag_enabled = false;
-      else
-        ma.rp_fast.down(), state.running_parameter -= 1;
+      if (state.max_parameter < 0) { /*< 最短未成功の状態 */
+        ma.rp_fast.diag_enabled = !ma.rp_fast.diag_enabled; //< 斜めを交互に
+        ma.rp_fast.down(state.running_parameter), state.running_parameter = 0;
+      }
     } else {
       /* 初回 or 完走した場合 */
-      if (state.try_count == 2) //< 初回
+      if (state.try_count == 2) //< 最短初回だけ特別にパラメータを上げる
         ma.rp_fast.up(2), state.running_parameter += 2;
       if (ma.rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
         ma.rp_fast.up(2), state.running_parameter += 2;

@@ -19,7 +19,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 4
+#define KERISE_SELECT 3
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -109,8 +109,8 @@ const float wall_avoid_gain = 0.006f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.12f, 0.08f), /*< 東 */
-  //   .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f),
+  .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f), /*< 守 */
+  // .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.12f, 0.08f), /*< 東 */
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
@@ -123,7 +123,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
-    .zeta = 1.0f,
+    .zeta = 0.8f,
     .omega_n = 15.0f,
     .low_zeta = 1.0f,
     .low_b = 0.001f,

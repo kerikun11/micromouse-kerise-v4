@@ -27,6 +27,7 @@ void printTask(void *arg) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
     // ref.csv();
     // wd.print();
     // tof.print();
@@ -59,7 +60,7 @@ void driveTask(void *arg) {
     case 2: /* プリセット走行パラメータ */
       Machine::selectParamPreset();
       break;
-    case 3: /* 壁制御，斜め走行の設定 */
+    case 3: /* 斜め走行などの設定 */
       Machine::selectRunConfig();
       break;
     case 4: /* ファンの設定 */
