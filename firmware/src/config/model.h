@@ -64,7 +64,7 @@ static constexpr float WheelDiameter = 12.67f;
 static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 23; //< 大きいほど壁に近く
+static constexpr float tof_dist_offset = 18; //< 大きいほど壁に近く
 /* Reflector */
 const float wall_attach_gain_Kp = 240.0f;
 const float wall_attach_gain_Ki = 0.0f;
@@ -101,7 +101,7 @@ static constexpr float WheelDiameter = 12.98f;
 static constexpr float CenterShift = 5.0f;
 static constexpr float TailLength = 16.4f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 16; //< 大きいほど壁に近く
+static constexpr float tof_dist_offset = 18; //< 大きいほど壁に近く
 /* Reflector */
 const float wall_attach_gain_Kp = 240.0f;
 const float wall_attach_gain_Ki = 0.0f;

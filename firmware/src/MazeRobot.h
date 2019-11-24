@@ -211,6 +211,7 @@ protected:
     return RobotBase::searchRun();
   }
   bool fastRun() {
+#if 1
     /* 走行パラメータ選択 */
     if (state.is_fast_run) {
       /* クラッシュ後の場合 */
@@ -228,6 +229,7 @@ protected:
         ma.rp_fast.diag_enabled = true;
     }
     state.is_fast_run = true, state.save();
+#endif
     /* 最短経路の作成 */
     if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;

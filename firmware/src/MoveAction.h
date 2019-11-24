@@ -334,16 +334,16 @@ private:
 #endif
   }
   void wall_front_fix(const RunParameter rp, const float dist_to_wall) {
-    if (!rp.front_wall_fix_enabled && !tof.isValid())
+    if (!rp.front_wall_fix_enabled)
       return;
-    if (std::abs(sc.position.th) > M_PI * 0.05f)
+    if (!tof.isValid() || std::abs(sc.position.th) > M_PI * 0.05f)
       return;
-    const float wall_fix_offset = 6; /*< 調整値．大きく:壁に近く */
+    const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
-                              (tof.passedTimeMs() + 5) * 1e-3f * sc.ref_v.tra +
+                              (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra +
                               wall_fix_offset - sc.position.x;
     const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
-                              (tof.passedTimeMs() + 15) * 1e-3f * sc.ref_v.tra +
+                              (tof.passedTimeMs() + 10) * 1e-3f * sc.ref_v.tra +
                               wall_fix_offset - sc.position.x;
     /* 誤差の小さい方を選ぶ */
     const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
@@ -443,8 +443,8 @@ private:
     tt.reset(velocity);
     trajectory.reset(velocity);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    float front_fix_x = 0; /*< V90の前壁修正 */
-    s.q.x = sc.position.x; /*< 既に移動した分を反映 */
+    bool front_fix_ready = true; /*< V90の前壁修正 */
+    s.q.x = sc.position.x;       /*< 既に移動した分を反映 */
     for (float t = 0; t < trajectory.t_end(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
       trajectory.update(s, t, Ts);
@@ -454,25 +454,47 @@ private:
       wall_avoid(0, rp, int_y);
       wall_cut(ref.v);
       /* V90ターン中の前壁補正 */
-      if (rp.front_wall_fix_enabled && tof.isValid() &&
-          std::abs(t - trajectory.t_end() / 2) < 0.0005001f &&
+      if (rp.front_wall_fix_enabled && front_fix_ready && tof.isValid() &&
+          std::abs(offset.th + sc.position.th -
+                   round2(offset.th + sc.position.th, M_PI / 2)) <
+              0.002f * M_PI &&
           (trajectory.getShape() == SS_FLV90 ||
            trajectory.getShape() == SS_FRV90)) {
-        const float tof_value =
-            tof.getDistance() - tof.passedTimeMs() / 1000.0f * velocity;
-        const float fixed_x =
-            field::SegWidthFull - tof_value + 4; /*< 要調整, 大きく:前壁近く*/
-        if (-20 < fixed_x && fixed_x < 20) {
-          front_fix_x = fixed_x;
+        front_fix_ready = false; /*< 複数実行を回避 */
+        const auto rotate_th = trajectory.get_net_curve().th / 2;
+        const auto pos_x = (sc.position - trajectory.get_net_curve() / 2)
+                               .rotate(-rotate_th)
+                               .x; /*< 現在位置 */
+        const float dist_to_wall = field::SegWidthFull;
+        const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
+        const float fixed_x_now =
+            dist_to_wall - tof.getLog()[0] +
+            (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra + wall_fix_offset -
+            pos_x;
+        const float fixed_x_pre =
+            dist_to_wall - tof.getLog()[1] +
+            (tof.passedTimeMs() + 10) * 1e-3f * sc.ref_v.tra + wall_fix_offset -
+            pos_x;
+        /* 誤差の小さい方を選ぶ */
+        const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
+                                 ? fixed_x_now
+                                 : fixed_x_pre;
+        const auto fixed_x_abs = std::abs(fixed_x);
+        if (fixed_x_abs < 5.0f) {
+          sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
+          bz.play(Buzzer::SHORT8);
+        } else if (fixed_x_abs < 10.0f) {
+          sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
           bz.play(Buzzer::SHORT7);
+        } else if (fixed_x_abs < 20.0f) {
+          sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0).rotate(rotate_th));
+          bz.play(Buzzer::SHORT6);
+        } else {
+          bz.play(Buzzer::CANCEL);
         }
       }
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
-    /* V90ターン中の前壁補正 */
-    if (rp.front_wall_fix_enabled && front_fix_x != 0)
-      sc.fix_position(ctrl::Position(front_fix_x, 0, 0)
-                          .rotate(trajectory.get_net_curve().th / 2));
     sc.set_target(velocity, 0);
     /* 移動した量だけ位置を更新 */
     const auto &net = trajectory.get_net_curve();
