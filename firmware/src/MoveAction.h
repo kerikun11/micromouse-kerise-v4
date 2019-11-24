@@ -731,13 +731,12 @@ private:
   void search_run_switch(const RobotBase::Action action,
                          const RunParameter &rp) {
     const float velocity = rp.search_v;
-    const bool no_front_wall =
-        !tof.isValid() ||
-        tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 3;
-    const auto v_end = (rp.unknown_accel_enabled &&
-                        continue_straight_if_no_front_wall && no_front_wall)
-                           ? 600
-                           : velocity;
+    const bool no_front_front_wall =
+        tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 2;
+    const bool unknown_accel_is_true = rp.unknown_accel_enabled &&
+                                       continue_straight_if_no_front_wall &&
+                                       no_front_front_wall;
+    const auto v_end = unknown_accel_is_true ? 600 : velocity;
     switch (action) {
     case RobotBase::Action::START_STEP:
       imu.angle = 0;
