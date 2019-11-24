@@ -62,7 +62,7 @@ static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.67f;
 static constexpr float CenterShift = 5.0f;
-static constexpr float TailLength = 16.4f + CenterShift;
+static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 /* Reflector */
@@ -99,7 +99,7 @@ static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.98f;
 static constexpr float CenterShift = 5.0f;
-static constexpr float TailLength = 16.4f + CenterShift;
+static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 18; //< 大きいほど壁に近く
 /* Reflector */
