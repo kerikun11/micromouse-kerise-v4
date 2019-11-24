@@ -338,7 +338,7 @@ private:
       return;
     if (!tof.isValid() || std::abs(sc.position.th) > M_PI * 0.05f)
       return;
-    const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
+    const float wall_fix_offset = 8; /*< 調整値．大きく:前壁から遠く */
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
                               (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra +
                               wall_fix_offset - sc.position.x;
@@ -445,6 +445,8 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     bool front_fix_ready = true; /*< V90の前壁修正 */
     s.q.x = sc.position.x;       /*< 既に移動した分を反映 */
+    if (std::abs(sc.position.x) > 5.0f)
+      bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.t_end(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
       trajectory.update(s, t, Ts);
@@ -466,7 +468,7 @@ private:
                                .rotate(-rotate_th)
                                .x; /*< 現在位置 */
         const float dist_to_wall = field::SegWidthFull;
-        const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
+        const float wall_fix_offset = 4; /*< 調整値．大きく:前壁から遠く */
         const float fixed_x_now =
             dist_to_wall - tof.getLog()[0] +
             (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra + wall_fix_offset -
