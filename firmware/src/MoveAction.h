@@ -146,7 +146,7 @@ public:
     delay(20); //< ToFが有効化するのを待つ
     /* 壁のない方向を向く */
     while (1) {
-      if (!wd.is_wall[2])
+      if (tof.getDistance() > field::SegWidthFull)
         break;
       wall_attach(true);
       turn(-M_PI / 2);
