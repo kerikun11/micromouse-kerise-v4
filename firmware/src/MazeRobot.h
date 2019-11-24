@@ -178,7 +178,10 @@ protected:
     const auto d = !getNextDirections().empty() ? getNextDirections().back()
                                                 : current_pose.d;
     /* 未知区間加速の設定 */
+    /* 自己位置同定中は，直進優先ではないので，未知区間加速できない */
+    /* ゴール区画内で未知区間加速してしまうのも防ぐ必要があった */
     ma.continue_straight_if_no_front_wall =
+        newState != SearchAlgorithm::GOING_TO_GOAL &&
         newState != SearchAlgorithm::IDENTIFYING_POSITION &&
         !getNextDirectionCandidates().empty() &&
         getNextDirectionCandidates()[0] == d;
