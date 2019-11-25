@@ -761,7 +761,7 @@ private:
     case RobotBase::Action::TURN_L:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f) {
+      if (sc.position.x < 5.0f && sc.ref_v.tra < rp.search_v * 1.2f) {
         slalom::Trajectory st(SS_SL90);
         straight_x(st.get_straight_prev(), velocity, velocity, rp);
         if (wd.is_wall[0])
@@ -780,7 +780,7 @@ private:
     case RobotBase::Action::TURN_R:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f) {
+      if (sc.position.x < 5.0f && sc.ref_v.tra < rp.search_v * 1.2f) {
         slalom::Trajectory st(SS_SR90);
         straight_x(st.get_straight_prev(), velocity, velocity, rp);
         if (wd.is_wall[1])
