@@ -28,7 +28,7 @@ public:
     bool diag_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
-    bool wall_theta_fix_enabled = 0; //< for debug!
+    bool wall_theta_fix_enabled = 1;
     bool unknown_accel_enabled = 1;
     float search_v = 300;
     float curve_gain = 1.0;
@@ -237,7 +237,9 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = model::wall_avoid_gain;
+      const float gain = (wd.is_wall[0] && wd.is_wall[1])
+                             ? model::wall_avoid_gain
+                             : model::wall_avoid_gain * 2;
       const float wall_diff_thr = 100; //< 吸い込まれ防止
       if (wd.is_wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
         sc.position.y += wd.distance.side[0] * gain;
