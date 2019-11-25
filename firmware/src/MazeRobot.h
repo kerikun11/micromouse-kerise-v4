@@ -148,7 +148,7 @@ private:
 
 protected:
   void waitForEndAction() override {
-    // delay(1200); // for debug
+    // delay(300); // for debug
     while (ma.isRunning())
       delay(1);
   }
