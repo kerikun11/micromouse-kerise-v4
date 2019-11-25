@@ -113,17 +113,22 @@ public:
     state.try_count = 1; //< 探索済みの最短初回
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
-  void autoRun(bool isForceSearch, bool isPositionIdentifying) {
+  void autoRun(const bool isForceSearch, const bool isPositionIdentifying) {
+    auto emergency_loop_avoidance_ms = millis() - 12000;
     start(isForceSearch, isPositionIdentifying);
     while (isRunning()) {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
         terminate();
         fan.free();
+        /* フェイルセーフループ回避のリセット */
+        if (millis() - emergency_loop_avoidance_ms < 3000)
+          esp_restart();
         delay(1000);
         mt.emergencyRelease();
         /* EmergencyStopのタイミング次第でdisabledの場合がある */
         tof.enable();
+        emergency_loop_avoidance_ms = millis();
         start(false, true); /*< Position Identification Run */
       }
       delay(100);
