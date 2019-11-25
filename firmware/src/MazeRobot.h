@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 5
+#define GOAL 1
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -233,6 +233,7 @@ protected:
         ma.rp_fast.up(2), state.running_parameter += 2;
       else //< 斜めなし -> 斜めあり
         ma.rp_fast.diag_enabled = true;
+      ma.rp_search.diag_enabled = true;
     }
     state.is_fast_run = true, state.save();
 #endif
@@ -275,14 +276,17 @@ protected:
   }
   void task() override {
     /* 迷路のチェック */
-    if (!calcShortestDirections(true)) {
-      maze.resetLastWalls(12); //< クラッシュ後を想定して少し消す
-    }
+    if (!isComplete())
+      maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
     /* 自動復帰: 任意 -> ゴール -> スタート */
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
       readyToStartWait();
+      /* 既知区間斜めを無効化 */
+      ma.rp_search.diag_enabled = false;
+      /* 復帰 */
       ma.positionRecovery();
+      /* 同定 */
       if (!positionIdentifyRun(!state.has_reached_goal)) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop();

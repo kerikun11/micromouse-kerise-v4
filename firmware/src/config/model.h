@@ -61,7 +61,7 @@ static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.67f;
-static constexpr float CenterShift = 8.0f;
+static constexpr float CenterShift = 6.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
@@ -98,14 +98,14 @@ static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.98f;
-static constexpr float CenterShift = 8.0f;
+static constexpr float CenterShift = 6.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 18; //< 大きいほど壁に近く
 /* Reflector */
 const float wall_attach_gain_Kp = 240.0f;
 const float wall_attach_gain_Ki = 0.0f;
-const float wall_avoid_gain = 0.006f;
+const float wall_avoid_gain = 0.003f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
