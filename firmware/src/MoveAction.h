@@ -466,7 +466,7 @@ private:
         if (remain < 0 || t > trajectory.t_end() + 0.1f)
           break;
         /* 衝突被害軽減ブレーキ(AEBS) */
-        if (remain > field::SegWidthFull && tof.isValid() &&
+        if (isAlong() && remain > field::SegWidthFull && tof.isValid() &&
             tof.getDistance() < field::SegWidthFull)
           wall_stop();
         /* 軌道追従 */

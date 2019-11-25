@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 4
+#define GOAL 5
 #if GOAL == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -40,6 +40,9 @@ using namespace MazeLib;
         MazeLib::Position(5, 4), MazeLib::Position(3, 5),                      \
         MazeLib::Position(4, 5), MazeLib::Position(5, 5),                      \
   }
+#elif GOAL == 5
+#define MAZE_GOAL                                                              \
+  { MazeLib::Position(8, 8) }
 #endif
 
 #define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"

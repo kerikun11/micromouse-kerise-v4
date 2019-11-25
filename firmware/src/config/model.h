@@ -109,8 +109,8 @@ const float wall_avoid_gain = 0.006f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f), /*< 守 */
-  // .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.12f, 0.08f), /*< 東 */
+  .K1 = ctrl::Polar(5789, 49.74f), .T1 = ctrl::Polar(0.12f, 0.08f), /*< 東 */
+  // .K1 = ctrl::Polar(5789, 500.0f), .T1 = ctrl::Polar(0.12f, 0.48f), /*< 守 */
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
