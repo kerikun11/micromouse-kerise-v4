@@ -26,11 +26,10 @@ public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
+    bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 1;
-    bool unknown_accel_enabled = 1;
-    float search_v = 300;
     float curve_gain = 1.0;
     float max_speed = 720;
     float accel = 3600;
@@ -64,6 +63,8 @@ public:
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
 #endif
+  static constexpr float unknown_accel_velocity = 540;
+  static constexpr float v_search = 300;
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {}
@@ -699,7 +700,7 @@ private:
       }
       /* 最後の直線を消化 */
       if (straight > 0.1f) {
-        straight_x(straight, rp.max_speed, rp.search_v, rp);
+        straight_x(straight, rp.max_speed, v_search, rp);
         straight = 0;
       }
     }
@@ -732,13 +733,12 @@ private:
   }
   void search_run_switch(const RobotBase::Action action,
                          const RunParameter &rp) {
-    const float velocity = rp.search_v;
     const bool no_front_front_wall =
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 2;
-    const bool unknown_accel_is_true = rp.unknown_accel_enabled &&
-                                       continue_straight_if_no_front_wall &&
-                                       no_front_front_wall;
-    const auto v_end = unknown_accel_is_true ? 600 : velocity;
+    const bool unknown_accel = rp.unknown_accel_enabled &&
+                               continue_straight_if_no_front_wall &&
+                               no_front_front_wall;
+    const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
     switch (action) {
     case RobotBase::Action::START_STEP:
       imu.angle = 0;
@@ -757,45 +757,45 @@ private:
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
     case RobotBase::Action::ST_HALF:
-      straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
-                 velocity, rp);
+      straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
+                 v_search, rp);
       break;
     case RobotBase::Action::TURN_L:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f && sc.ref_v.tra < rp.search_v * 1.2f) {
+      if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         slalom::Trajectory st(SS_SL90);
-        straight_x(st.get_straight_prev(), velocity, velocity, rp);
+        straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
-        trace(st, velocity, rp);
-        straight_x(st.get_straight_post(), velocity, velocity, rp);
+        trace(st, v_search, rp);
+        straight_x(st.get_straight_post(), v_search, v_search, rp);
       } else {
-        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
                    rp);
         wall_attach();
         turn(M_PI / 2);
-        straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
-                   velocity, rp);
+        straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
+                   v_search, rp);
       }
       break;
     case RobotBase::Action::TURN_R:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f && sc.ref_v.tra < rp.search_v * 1.2f) {
+      if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         slalom::Trajectory st(SS_SR90);
-        straight_x(st.get_straight_prev(), velocity, velocity, rp);
+        straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();
-        trace(st, velocity, rp);
-        straight_x(st.get_straight_post(), velocity, velocity, rp);
+        trace(st, v_search, rp);
+        straight_x(st.get_straight_post(), v_search, v_search, rp);
       } else {
-        straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0,
+        straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
                    rp);
         wall_attach();
         turn(-M_PI / 2);
-        straight_x(field::SegWidthFull / 2 - model::CenterShift, velocity,
-                   velocity, rp);
+        straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
+                   v_search, rp);
       }
       break;
     case RobotBase::Action::ROTATE_180:
@@ -804,7 +804,7 @@ private:
     case RobotBase::Action::ST_HALF_STOP:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      straight_x(field::SegWidthFull / 2 + model::CenterShift, velocity, 0, rp);
+      straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0, rp);
       turn(0); //*< 姿勢を整える */
       break;
     }
