@@ -40,7 +40,7 @@ void timeKeepTask(void *arg) {
   const int searching_time_ms = 1 * 60 * 1000;
   while (millis() < searching_time_ms)
     delay(1000);
-  bz.play(Buzzer::LOW_BATTERY);
+  bz.play(Buzzer::TIMEOUT);
   mr.setForceBackToStart();
   vTaskDelay(portMAX_DELAY);
 }

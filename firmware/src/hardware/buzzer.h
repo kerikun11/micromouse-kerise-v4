@@ -30,7 +30,7 @@ public:
     SHORT8,
     BOOT,
     SHUTDOWN,
-    LOW_BATTERY,
+    TIMEOUT,
     EMERGENCY,
     COMPLETE,
     MAZE_BACKUP,
@@ -98,7 +98,7 @@ private:
         sound(NOTE_Bb, 5, 600);
         mute();
         break;
-      case LOW_BATTERY:
+      case TIMEOUT:
         sound(NOTE_C, 7, 400);
         mute(200);
         sound(NOTE_C, 7, 400);

@@ -50,14 +50,24 @@ using namespace MazeLib;
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
+#if 0
+  static constexpr int competition_limit_time_s = 10 * 60;
+  static constexpr int expected_fast_run_time_s = 1 * 60;
+#else
+  static constexpr int competition_limit_time_s = 150;
+  static constexpr int expected_fast_run_time_s = 30;
+#endif
   struct State {
     int try_count = 0;             /**< 走行回数 */
     int max_parameter = -1;        /**< 成功パラメータ */
     int running_parameter = 0;     /**< 走行パラメータ */
     bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
     bool is_fast_run = false;      /**< 最短走行かどうか */
+    bool offset_ms = 0;            /**< リセット後を想定 */
 
+    int getTimeSecond() const { return (offset_ms + millis()) / 1000; }
     bool save(const std::string filepath = STATE_SAVE_PATH) {
+      offset_ms = millis();
       std::ofstream of(filepath, std::ios::binary | std::ios::app);
       if (of.fail()) {
         loge << "failed to open file! " << filepath << std::endl;
@@ -109,8 +119,8 @@ public:
   }
   bool restore() {
     /* パラメータを復元する処理！！！ */
+    state.try_count = 1; //< 探索済みの最短初回の想定
     // state.restore();
-    state.try_count = 1; //< 探索済みの最短初回
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(const bool isForceSearch, const bool isPositionIdentifying) {
@@ -154,6 +164,7 @@ private:
   State state;
   // int time_stamp_us = 0;
 
+  /* override virtual functions */
 protected:
   void waitForEndAction() override {
     // delay(300); // for debug
@@ -177,8 +188,17 @@ protected:
     enc.clearOffset();
   }
   void calcNextDirectionsPreCallback() override {
+    /* ゴール判定用フラグ */
     prevIsForceGoingToGoal = isForceGoingToGoal;
+    /* 計算時間計測 */
     // time_stamp_us = esp_timer_get_time();
+    /* ウルトラマンタイマー */
+    const int time_limit_s = competition_limit_time_s -
+                             (5 - state.try_count) * expected_fast_run_time_s;
+    if (!isForceBackToStart && state.getTimeSecond() > time_limit_s) {
+      setForceBackToStart();
+      bz.play(Buzzer::TIMEOUT);
+    }
   }
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
@@ -198,8 +218,7 @@ protected:
       state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
     }
-    if (isForceSearch)
-      setForceBackToStart(true);
+    /* 計算時間計測 */
     // const auto now_us = esp_timer_get_time();
     // const float dur_us = now_us - time_stamp_us;
     // lgr.push({dur_us});
@@ -215,6 +234,7 @@ protected:
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
+private:
   bool searchRun() {
     mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
     delay(500);
