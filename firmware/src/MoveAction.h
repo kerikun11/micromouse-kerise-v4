@@ -254,7 +254,7 @@ private:
       }
       /* 機体姿勢の補正 */
       if (rp.wall_theta_fix_enabled) {
-        sc.position.th += int_y * 0.00000001f;
+        sc.position.th += int_y * 1e-8f;
       }
       /* 櫛の壁制御 */
       if (tof.getDistance() > field::SegWidthFull * 3 / 2) {

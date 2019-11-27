@@ -465,7 +465,7 @@ public:
     const float velocity = 450.0f;
     const float Ts = 0.001f;
     const float j_max = 240000;
-    const float a_max = 9000;
+    const float a_max = 6000;
     const float v_max = velocity;
     const float dist = 1 * 90;
     ctrl::TrajectoryTracker tt(gain);
@@ -489,7 +489,7 @@ public:
     sc.position.x -= ref.x_end();
     offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
-#if 0
+#if 1
     slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
