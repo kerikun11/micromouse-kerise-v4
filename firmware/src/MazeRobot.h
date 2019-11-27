@@ -50,10 +50,14 @@ using namespace MazeLib;
 
 class MazeRobot : public RobotBase, private TaskBase {
 public:
-#if 0
+#define MAZEROBOT_TIMEOUT_SELECT 0
+#if MAZEROBOT_TIMEOUT_SELECT == 0 /* 32 x 32 */
   static constexpr int competition_limit_time_s = 10 * 60;
-  static constexpr int expected_fast_run_time_s = 1 * 60;
-#else
+  static constexpr int expected_fast_run_time_s = 60;
+#elif MAZEROBOT_TIMEOUT_SELECT == 1 /* 16 x 16 */
+  static constexpr int competition_limit_time_s = 5 * 60;
+  static constexpr int expected_fast_run_time_s = 30;
+#elif MAZEROBOT_TIMEOUT_SELECT == 2 /* 9 x 9 */
   static constexpr int competition_limit_time_s = 150;
   static constexpr int expected_fast_run_time_s = 30;
 #endif
