@@ -286,21 +286,6 @@ private:
         led_flags |= 2;
       }
     }
-    /* V90の横壁制御 */
-    // const auto th_abs = offset.th + sc.position.th;
-    // const auto th_abs_to_wall = round2(th_abs, M_PI / 2);
-    // if (std::abs(th_abs - th_abs_to_wall) < 0.001f * M_PI) {
-    //   const float shift = 0.06f;
-    //   const float threashold = -5;
-    //   if (wd.distance.front[0] > threashold) {
-    //     sc.position.y += shift;
-    //     led_flags |= 4;
-    //   }
-    //   if (wd.distance.front[1] > threashold) {
-    //     sc.position.y -= shift;
-    //     led_flags |= 2;
-    //   }
-    // }
     led = led_flags;
   }
   void wall_cut(const RunParameter &rp) {
@@ -548,7 +533,7 @@ private:
     const float velocity = st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
     /* ターン前の直線を消化 */
-    if (straight > 1.0f) {
+    if (straight > 0.1f) {
       straight_x(straight, rp.max_speed, velocity, rp);
       straight = 0;
     }
