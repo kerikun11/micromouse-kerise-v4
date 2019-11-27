@@ -264,6 +264,16 @@ private:
         ma.rp_fast.diag_enabled = true;
       ma.rp_search.diag_enabled = true;
     }
+    /* 残り時間が足りない場合 */
+    const int remaining_time_s =
+        competition_limit_time_s - state.getTimeSecond();
+    if (remaining_time_s < expected_fast_run_time_s * (5 - state.try_count)) {
+      ma.rp_fast.down(state.running_parameter), state.running_parameter = 0;
+      ma.rp_search.diag_enabled = false;
+      ma.rp_fast.diag_enabled = false;
+      bz.play(Buzzer::TIMEOUT);
+    }
+    /* 保存 */
     state.is_fast_run = true, state.save();
 #endif
     /* 最短経路の作成 */
