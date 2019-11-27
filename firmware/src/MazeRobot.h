@@ -122,9 +122,9 @@ public:
     return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
   bool restore() {
-    /* パラメータを復元する処理！！！ */
-    state.try_count = 1; //< 探索済みの最短初回の想定
-    // state.restore();
+    /* リセット前の状態を復元 */
+    // state.try_count = 1; //< 探索済みの最短初回の想定
+    state.restore();
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(const bool isForceSearch, const bool isPositionIdentifying) {
