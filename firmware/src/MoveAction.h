@@ -30,6 +30,7 @@ public:
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 1;
+    bool wall_cut_enabled = 0;
     float curve_gain = 1.0;
     float max_speed = 720;
     float accel = 3600;
@@ -285,60 +286,82 @@ private:
         led_flags |= 2;
       }
     }
+    /* V90の横壁制御 */
+    // const auto th_abs = offset.th + sc.position.th;
+    // const auto th_abs_to_wall = round2(th_abs, M_PI / 2);
+    // if (std::abs(th_abs - th_abs_to_wall) < 0.001f * M_PI) {
+    //   const float shift = 0.06f;
+    //   const float threashold = -5;
+    //   if (wd.distance.front[0] > threashold) {
+    //     sc.position.y += shift;
+    //     led_flags |= 4;
+    //   }
+    //   if (wd.distance.front[1] > threashold) {
+    //     sc.position.y -= shift;
+    //     led_flags |= 2;
+    //   }
+    // }
     led = led_flags;
   }
-  void wall_cut(const float velocity) {
-#if 0
-    if (!wallCutFlag)
-      return;
-    if (velocity < 120)
+  void wall_cut(const RunParameter &rp) {
+    if (!rp.wall_cut_enabled)
       return;
     /* 曲線なら前半しか使わない */
-    if (std::abs(sc.position.th) > M_PI * 0.1f)
+    if (std::abs(sc.position.th) > M_PI * 0.01f)
       return;
+    /* 左右 */
     for (int i = 0; i < 2; i++) {
+      /* 壁の変化 */
       if (prev_wall[i] && !wd.is_wall[i]) {
         /* 90 [deg] の倍数 */
         if (isAlong()) {
-          Position prev = sc.position;
-          Position fix = sc.position.rotate(-origin.th);
-          const float wall_cut_offset = -15; /*< from wall_cut_line */
-          fix.x = round2(fix.x, field::SegWidthFull) + wall_cut_offset;
-          fix = fix.rotate(origin.th);
-          const float diff =
-              fix.rotate(-origin.th).x - prev.rotate(-origin.th).x;
-          if (-30 < diff && diff < 5) {
-            sc.position = fix;
+          const float wall_cut_offset = -15; /*< 大きいほど前へ */
+          const float x_abs = offset.rotate(offset.th).x + sc.position.x;
+          const float x_abs_cut = round2(x_abs, field::SegWidthFull);
+          const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
+          const auto fixed_x_abs = std::abs(fixed_x);
+          if (fixed_x_abs < 3.0f) {
+            sc.fix_position(ctrl::Position(fixed_x, 0, 0));
+            bz.play(Buzzer::SHORT8);
+          } else if (fixed_x_abs < 10.0f) {
+            sc.fix_position(ctrl::Position(fixed_x, 0, 0));
+            bz.play(Buzzer::SHORT7);
+          } else if (fixed_x_abs < 20.0f) {
+            sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0));
             bz.play(Buzzer::SHORT6);
+          } else {
+            bz.play(Buzzer::CANCEL);
           }
         }
         /* 45 [deg] + 90 [deg] の倍数 */
         if (isDiag()) {
-          Position prev = sc.position;
-          Position fix = sc.position.rotate(-origin.th);
-          const float extra = 31;
-          if (i == 0) {
-            fix.x = round2(fix.x - extra - field::SegWidthDiag / 2,
-                           field::SegWidthDiag) +
-                    field::SegWidthDiag / 2 + extra;
-          } else {
-            fix.x = round2(fix.x - extra, field::SegWidthDiag) + extra;
-          }
-          fix = fix.rotate(origin.th);
-          if (fabs(prev.rotate(-origin.th).x - fix.rotate(-origin.th).x) <
-              10.0f) {
-            // sc.position = fix;
+          const float wall_cut_offset = -9; /*< 大きいほど前に */
+                                            /* 壁切れ方向 */
+          const float th_ref = (i == 0) ? (-M_PI / 4) : (M_PI / 4);
+          /* 壁に沿った方向の位置 */
+          const float x_abs = offset.rotate(offset.th + th_ref).x +
+                              sc.position.rotate(th_ref).x;
+          const float x_abs_cut = round2(x_abs, field::SegWidthFull);
+          const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
+          const auto fixed_x_abs = std::abs(fixed_x);
+          if (fixed_x_abs < 5.0f) {
+            sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(-th_ref));
+            bz.play(Buzzer::SHORT8);
+          } else if (fixed_x_abs < 10.0f) {
+            sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(-th_ref));
+            bz.play(Buzzer::SHORT7);
+          } else if (fixed_x_abs < 20.0f) {
+            sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT6);
+          } else {
+            bz.play(Buzzer::CANCEL);
           }
         }
       }
       prev_wall[i] = wd.is_wall[i];
     }
-#endif
   }
   void front_wall_fix(const RunParameter &rp, const float dist_to_wall_ref) {
-    // front_wall_fix_trace(rp, dist_to_wall_ref);
-    // return;
     if (!rp.front_wall_fix_enabled)
       return;
     if (!tof.isValid() || std::abs(sc.position.th) > M_PI * 0.05f)
@@ -401,14 +424,14 @@ private:
     if (fixed_x_abs < 3.0f) {
       sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT8);
-    } else if (fixed_x_abs < 10.0f) {
+    } else if (fixed_x_abs < 5.0f) {
       sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT7);
-    } else if (fixed_x_abs < 20.0f) {
+    } else if (fixed_x_abs < 10.0f) {
       sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT6);
-    } else if (std::abs(fixed_x_pre) < 30.0f && std::abs(fixed_x_now) < 30.0f) {
-      sc.fix_position(ctrl::Position(fixed_x / 2, 0, 0));
+    } else if (std::abs(fixed_x_pre) < 20.0f && std::abs(fixed_x_now) < 20.0f) {
+      sc.fix_position(ctrl::Position(fixed_x / 3, 0, 0));
       bz.play(Buzzer::CANCEL);
       return false;
     }
@@ -476,7 +499,7 @@ private:
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         /* 壁制御 */
         wall_avoid(remain, rp, int_y);
-        wall_cut(ref.v);
+        wall_cut(rp);
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
     }
@@ -504,52 +527,12 @@ private:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       float int_y = 0;
       wall_avoid(0, rp, int_y);
-      wall_cut(ref.v);
+      wall_cut(rp);
       /* ターン中の前壁補正 */
       const auto &shape = trajectory.getShape();
       if (front_fix_ready && t > trajectory.t_end() / 4)
         if (!(shape == SS_FLS90) && !(shape == SS_FRS90))
           front_fix_ready = !front_wall_fix_trace(rp, field::SegWidthFull);
-      /* V90ターン中の前壁補正 */
-      // if (rp.front_wall_fix_enabled && front_fix_ready && tof.isValid() &&
-      //     std::abs(offset.th + sc.position.th -
-      //              round2(offset.th + sc.position.th, M_PI / 2)) <
-      //         0.002f * M_PI &&
-      //     (trajectory.getShape() == SS_FLV90 ||
-      //      trajectory.getShape() == SS_FRV90)) {
-      //   front_fix_ready = false; /*< 複数実行を回避 */
-      //   const auto rotate_th = trajectory.get_net_curve().th / 2;
-      //   const auto pos_x = (sc.position - trajectory.get_net_curve() / 2)
-      //                          .rotate(-rotate_th)
-      //                          .x; /*< 現在位置 */
-      //   const float dist_to_wall = field::SegWidthFull;
-      //   const float wall_fix_offset = 4; /*< 調整値．大きく:前壁から遠く */
-      //   const float fixed_x_now =
-      //       dist_to_wall - tof.getLog()[0] +
-      //       (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra + wall_fix_offset
-      //       - pos_x;
-      //   const float fixed_x_pre =
-      //       dist_to_wall - tof.getLog()[1] +
-      //       (tof.passedTimeMs() + 10) * 1e-3f * sc.ref_v.tra +
-      //       wall_fix_offset - pos_x;
-      //   /* 誤差の小さい方を選ぶ */
-      //   const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
-      //                            ? fixed_x_now
-      //                            : fixed_x_pre;
-      //   const auto fixed_x_abs = std::abs(fixed_x);
-      //   if (fixed_x_abs < 5.0f) {
-      //     sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
-      //     bz.play(Buzzer::SHORT8);
-      //   } else if (fixed_x_abs < 10.0f) {
-      //     sc.fix_position(ctrl::Position(fixed_x, 0, 0).rotate(rotate_th));
-      //     bz.play(Buzzer::SHORT7);
-      //   } else if (fixed_x_abs < 20.0f) {
-      //     sc.fix_position(ctrl::Position(fixed_x / 2, 0,
-      //     0).rotate(rotate_th)); bz.play(Buzzer::SHORT6);
-      //   } else {
-      //     bz.play(Buzzer::CANCEL);
-      //   }
-      // }
       /* 同期 */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
@@ -576,6 +559,8 @@ private:
                                st.get_straight_prev());
         front_wall_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2 -
                                st.get_straight_prev());
+        /* 前壁制御で発生した直線を走行 */
+        straight_x(0, velocity, velocity, rp);
       }
       if (shape == SS_FLS90 || shape == SS_FRS90) {
         front_wall_fix(rp, field::SegWidthFull - st.get_straight_prev());
@@ -660,7 +645,7 @@ private:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       /* 壁制御 */
       wall_avoid(0, rp, int_y);
-      wall_cut(ref.v);
+      wall_cut(rp);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
   }

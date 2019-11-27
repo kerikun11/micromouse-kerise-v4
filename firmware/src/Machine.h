@@ -146,6 +146,10 @@ public:
       ma.rp_search.wall_theta_fix_enabled = value & 1;
       ma.rp_fast.wall_theta_fix_enabled = value & 2;
       break;
+    case 5: /* 壁切れ */
+      ma.rp_search.wall_cut_enabled = value & 1;
+      ma.rp_fast.wall_cut_enabled = value & 2;
+      break;
     }
     bz.play(Buzzer::SUCCESSFUL);
   }
