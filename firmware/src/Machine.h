@@ -60,6 +60,9 @@ public:
       bz.play(Buzzer::ERROR);
     else
       bz.play(Buzzer::MAZE_RESTORE);
+    /* ゴールが封印されていないか確認 */
+    if (!mr.isSolvable())
+      bz.play(Buzzer::ERROR);
   }
   static void reset() {
     if (!ui.waitForCover())
@@ -74,19 +77,21 @@ public:
     mr.autoRun(false, true);
   }
   static void driveNormally() {
-    /* 異常検出 */
-    if (mr.isComplete() && !mr.calcShortestDirections(true)) {
-      bz.play(Buzzer::ERROR);
-      mr.resetLastWalls(3);
-      return;
-    }
     /* 探索状態のお知らせ */
     if (mr.getMaze().getWallLogs().empty()) //< 完全に未探索状態
       bz.play(Buzzer::CONFIRM);
     else if (mr.isComplete()) //< 完全に探索終了
       bz.play(Buzzer::SUCCESSFUL);
     else if (mr.calcShortestDirections(true)) //< 探索中だが経路はある
+      bz.play(Buzzer::MAZE_RESTORE);
+    else //< 行きの探索中
       bz.play(Buzzer::MAZE_BACKUP);
+    /* 異常検出 */
+    if (!mr.isSolvable()) {
+      bz.play(Buzzer::ERROR);
+      mr.resetLastWalls(6);
+      return;
+    }
     /* 走行オプション */
     int mode = ui.waitForSelect(2);
     if (mode < 0)

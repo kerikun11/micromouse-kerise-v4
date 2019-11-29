@@ -143,6 +143,9 @@ public:
         /* EmergencyStopのタイミング次第でdisabledの場合がある */
         tof.enable();
         emergency_loop_avoidance_ms = millis();
+        /* 回収されるか待つ */
+        if (!ui.waitForPickup())
+          return;
         start(false, true); /*< Position Identification Run */
       }
       delay(100);
@@ -315,12 +318,22 @@ private:
   }
   void task() override {
     /* 迷路のチェック */
-    if (!isComplete())
+    if (!isComplete()) {
+      bz.play(Buzzer::CANCEL);
       maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
+    }
+    if (!isSolvable())
+      bz.play(Buzzer::ERROR);
+    while (!isSolvable()) {
+      maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
+      if (getMaze().getWallLogs().empty()) {
+        bz.play(Buzzer::ERROR);
+        waitForever();
+      }
+    }
     /* 自動復帰: 任意 -> ゴール -> スタート */
     if (isPositionIdentifying) {
       isPositionIdentifying = false;
-      readyToStartWait();
       /* 既知区間斜めを無効化 */
       ma.rp_search.diag_enabled = false;
       /* 復帰 */
