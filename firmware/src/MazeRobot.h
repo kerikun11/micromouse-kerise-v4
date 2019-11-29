@@ -118,6 +118,10 @@ public:
     state.save();
   }
   bool backup() {
+    if (calibration_counter++ % 12 == 0) {
+      delay(400); //< 静止するのを待つ時間
+      calibration();
+    }
     state.save();
     return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
@@ -169,6 +173,7 @@ private:
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
   State state;
+  int calibration_counter = 1;
   // int time_stamp_us = 0;
 
   /* override virtual functions */
@@ -236,7 +241,8 @@ protected:
       bz.play(Buzzer::SUCCESSFUL);
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION)
       bz.play(Buzzer::COMPLETE);
-    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY)
+    if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
+        !isForceBackToStart)
       bz.play(Buzzer::COMPLETE);
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
