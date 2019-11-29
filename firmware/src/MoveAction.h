@@ -202,8 +202,8 @@ private:
       for (int i = 0; i < 2000; i++) {
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
-        const float sat_integral = 60.0f;
-        const float end = 0.2f;
+        const float sat_integral = 30.0f;
+        const float end = model::wall_attach_end;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
