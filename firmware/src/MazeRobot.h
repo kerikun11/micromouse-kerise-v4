@@ -13,11 +13,11 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL 1
-#if GOAL == 1
+#define GOAL_SELECT 2
+#if GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
-#elif GOAL == 2
+#elif GOAL_SELECT == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(17, 13), MazeLib::Position(18, 13),                      \
@@ -26,13 +26,13 @@ using namespace MazeLib;
         MazeLib::Position(17, 15), MazeLib::Position(18, 15),                  \
         MazeLib::Position(19, 15),                                             \
   }
-#elif GOAL == 3
+#elif GOAL_SELECT == 3
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
   }
-#elif GOAL == 4
+#elif GOAL_SELECT == 4
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 3), MazeLib::Position(5, 3), \
@@ -40,7 +40,7 @@ using namespace MazeLib;
         MazeLib::Position(5, 4), MazeLib::Position(3, 5),                      \
         MazeLib::Position(4, 5), MazeLib::Position(5, 5),                      \
   }
-#elif GOAL == 5
+#elif GOAL_SELECT == 5
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(8, 8) }
 #endif
