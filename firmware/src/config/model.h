@@ -90,7 +90,7 @@ static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
-    .omega_n = 20.0f,
+    .omega_n = 18.0f,
     .low_zeta = 1.0f,
     .low_b = 0.001f,
 };
@@ -130,7 +130,7 @@ static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
-    .omega_n = 20.0f,
+    .omega_n = 10.0f,
     .low_zeta = 1.0f,
     .low_b = 0.001f,
 };

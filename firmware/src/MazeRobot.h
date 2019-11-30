@@ -35,10 +35,8 @@ using namespace MazeLib;
 #elif GOAL_SELECT == 4
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(3, 3), MazeLib::Position(4, 3), MazeLib::Position(5, 3), \
-        MazeLib::Position(3, 4), MazeLib::Position(4, 4),                      \
-        MazeLib::Position(5, 4), MazeLib::Position(3, 5),                      \
-        MazeLib::Position(4, 5), MazeLib::Position(5, 5),                      \
+    MazeLib::Position(8, 7), MazeLib::Position(8, 8), MazeLib::Position(9, 7), \
+        MazeLib::Position(9, 8),                                               \
   }
 #elif GOAL_SELECT == 5
 #define MAZE_GOAL                                                              \
@@ -118,10 +116,10 @@ public:
     state.save();
   }
   bool backup() {
-    if (calibration_counter++ % 12 == 0) {
-      delay(400); //< 静止するのを待つ時間
-      calibration();
-    }
+    // if (calibration_counter++ % 12 == 0) {
+    //   delay(400); //< 静止するのを待つ時間
+    //   calibration();
+    // }
     state.save();
     return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
