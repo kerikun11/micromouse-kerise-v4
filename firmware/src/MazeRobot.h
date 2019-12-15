@@ -20,11 +20,8 @@ using namespace MazeLib;
 #elif GOAL_SELECT == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(17, 13), MazeLib::Position(18, 13),                      \
-        MazeLib::Position(19, 13), MazeLib::Position(17, 14),                  \
-        MazeLib::Position(18, 14), MazeLib::Position(19, 14),                  \
-        MazeLib::Position(17, 15), MazeLib::Position(18, 15),                  \
-        MazeLib::Position(19, 15),                                             \
+    MazeLib::Position(4, 4), MazeLib::Position(4, 5), MazeLib::Position(5, 4), \
+        MazeLib::Position(5, 5),                                               \
   }
 #elif GOAL_SELECT == 3
 #define MAZE_GOAL                                                              \
