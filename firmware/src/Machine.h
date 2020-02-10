@@ -107,7 +107,7 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    // delay(3000); //< 動画用 delay
+    // delay(5000); //< 動画用 delay
     mr.autoRun(forceSearch, false);
   }
   static void selectParamPreset() {
@@ -256,7 +256,7 @@ public:
   static void setGoalPositions() {
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
-    int value = ui.waitForSelect(5);
+    int value = ui.waitForSelect(6);
     if (value < 0)
       return;
     switch (value) {
@@ -287,6 +287,9 @@ public:
                    MazeLib::Position(4, 3), MazeLib::Position(4, 4)});
       break;
     case 4:
+      mr.setGoals({MazeLib::Position(8, 8)});
+      break;
+    case 5:
       mr.setGoals({MazeLib::Position(15, 15)});
       break;
     }

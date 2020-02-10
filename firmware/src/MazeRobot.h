@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL_SELECT 2
+#define GOAL_SELECT 1
 #if GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -32,8 +32,8 @@ using namespace MazeLib;
 #elif GOAL_SELECT == 4
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(8, 7), MazeLib::Position(8, 8), MazeLib::Position(9, 7), \
-        MazeLib::Position(9, 8),                                               \
+    MazeLib::Position(7, 7), MazeLib::Position(7, 8), MazeLib::Position(8, 7), \
+        MazeLib::Position(8, 8),                                               \
   }
 #elif GOAL_SELECT == 5
 #define MAZE_GOAL                                                              \
@@ -250,7 +250,7 @@ private:
     return RobotBase::searchRun();
   }
   bool fastRun() {
-#if 1
+#if 0
     /* 走行パラメータ選択 */
     if (state.is_fast_run) {
       /* クラッシュ後の場合 */
@@ -276,6 +276,21 @@ private:
       ma.rp_search.diag_enabled = false;
       ma.rp_fast.diag_enabled = false;
       bz.play(Buzzer::TIMEOUT);
+    }
+    /* 保存 */
+    state.is_fast_run = true, state.save();
+#else
+    /* 走行パラメータ選択 */
+    if (state.is_fast_run) {
+      /* クラッシュ後の場合 */
+      ma.rp_fast.down(1), state.running_parameter -= 1;
+    } else {
+      /* 初回 or 完走した場合 */
+      if (ma.rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
+        ma.rp_fast.up(2), state.running_parameter += 2;
+      else //< 斜めなし -> 斜めあり
+        ma.rp_fast.diag_enabled = true;
+      ma.rp_search.diag_enabled = true;
     }
     /* 保存 */
     state.is_fast_run = true, state.save();
