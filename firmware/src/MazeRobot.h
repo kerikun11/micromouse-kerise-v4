@@ -341,7 +341,7 @@ private:
     if (!isSolvable())
       bz.play(Buzzer::ERROR);
     while (!isSolvable()) {
-      maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
+      maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
       if (getMaze().getWallLogs().empty()) {
         bz.play(Buzzer::ERROR);
         waitForever();
@@ -354,8 +354,10 @@ private:
       ma.rp_search.diag_enabled = false;
       /* 復帰 */
       ma.positionRecovery();
+      /* ゴール区画の訪問を指定 */
+      setForceGoingToGoal(!state.has_reached_goal);
       /* 同定 */
-      if (!positionIdentifyRun(!state.has_reached_goal)) {
+      if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop();
         waitForever();
@@ -378,8 +380,8 @@ private:
       state.newRun(); //< 1 -> 2
       /* 5走終了 */
       if (state.try_count > 5)
+        // break;
         bz.play(Buzzer::COMPLETE);
-      // break;
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop();
