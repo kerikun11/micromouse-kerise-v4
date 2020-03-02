@@ -578,6 +578,12 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
+    // sc.enable();
+    // mt.drive(0.1, 0.1);
+    // if (!ui.waitForCover())
+    //   return;
+    // mt.free();
+    // return;
     lgr.clear();
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();

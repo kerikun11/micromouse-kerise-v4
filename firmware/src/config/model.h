@@ -34,6 +34,7 @@ static constexpr float tof_dist_offset = 12;
 /* Reflector */
 const float wall_attach_gain_Kp = 12.0f;
 const float wall_attach_gain_Ki = 0.0f;
+const float wall_attach_end = 0.1f;
 const float wall_avoid_gain = 0.001f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
@@ -51,7 +52,7 @@ static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 1.0f,
     .omega_n = 10.0f,
-    .low_zeta = 1.0f,
+    .low_zeta = 0.5f,
     .low_b = 0.001f,
 };
 

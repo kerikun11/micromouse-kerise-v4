@@ -33,6 +33,8 @@ void printTask(void *arg) {
     // tof.print();
     // enc.print();
     // std::cout << enc.getPulses(0) << "," << enc.getPulses(1) << std::endl;
+    // std::cout << "0,600,";
+    // std::cout << sc.enc_v.wheel[0] << "," << sc.enc_v.wheel[1] << std::endl;
   }
 }
 
@@ -46,7 +48,7 @@ void timeKeepTask(void *arg) {
 }
 
 void driveTask(void *arg) {
-  Machine::driveAutomatically();
+  // Machine::driveAutomatically();
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(1));
     int mode = ui.waitForSelect(16);
