@@ -6,10 +6,12 @@
 
 #include "config/io_mapping.h"
 
+#include "polar.h"
+#include "trajectory_tracker.h"
+
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
-#include <json11.hpp>
 
 class Machine {
 public:
@@ -398,7 +400,7 @@ public:
     fan.drive(0.4);
     delay(500);
     sc.enable();
-    AccelDesigner ad;
+    ctrl::AccelDesigner ad;
     if (dir == 0) {
       const float jerk = 240000;
       const float accel = 9000;
@@ -502,7 +504,7 @@ public:
     offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
 #if 1
-    slalom::Trajectory st(shape);
+    ctrl::slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
     for (float t = 0; t < st.t_end(); t += Ts) {
@@ -593,11 +595,12 @@ public:
     const float accel = 24 * M_PI;
     const float v_max = 1 * M_PI;
     const float dist = 2 * M_PI;
-    AccelDesigner ad(jerk, accel, 0, v_max, 0, dist);
-    FeedbackController<float>::Model model = {
+    ctrl::AccelDesigner ad(jerk, accel, 0, v_max, 0, dist);
+    ctrl::FeedbackController<float>::Model model = {
         .K1 = std::numeric_limits<float>::max(), .T1 = 0};
-    FeedbackController<float>::Gain gain = {.Kp = 1.2, .Ki = 5.6, .Kd = 0.0};
-    FeedbackController<float> fc(model, gain);
+    ctrl::FeedbackController<float>::Gain gain = {
+        .Kp = 1.2, .Ki = 5.6, .Kd = 0.0};
+    ctrl::FeedbackController<float> fc(model, gain);
     /* start */
     TickType_t xLastWakeTime = xTaskGetTickCount();
     fc.reset();

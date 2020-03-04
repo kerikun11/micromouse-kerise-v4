@@ -1,17 +1,15 @@
 #pragma once
 
+#include "accumulator.h"
 #include "config/model.h"
 #include "global.h"
 
-#include "Accumulator.h"
-#include "Position.h"
-#include "ctrl/FeedbackController.h"
-#include <cmath>
+#include "feedback_controller.h"
+#include "polar.h"
+#include "position.h"
 
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
-
-namespace ctrl {
 
 struct WheelParameter {
 public:
@@ -41,12 +39,12 @@ public:
   constexpr static float Ts = 0.001f;
 
 public:
-  Polar ref_v;
-  Polar ref_a;
-  Polar est_v;
-  Polar est_a;
+  ctrl::Polar ref_v;
+  ctrl::Polar ref_a;
+  ctrl::Polar est_v;
+  ctrl::Polar est_a;
   WheelParameter enc_v;
-  Position position;
+  ctrl::Position position;
   ctrl::FeedbackController<ctrl::Polar>::Model M;
   ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
@@ -72,7 +70,7 @@ public:
     vTaskDelay(pdMS_TO_TICKS(2));
     mt.free();
   }
-  void set_target(const Polar dq, const Polar ddq) {
+  void set_target(const ctrl::Polar dq, const ctrl::Polar ddq) {
     ref_v = dq;
     ref_a = ddq;
   }
@@ -83,14 +81,14 @@ public:
     ref_a.tra = tra_a;
     ref_a.rot = rot_a;
   }
-  void fix_position(const Position fix) { this->fix += fix; }
+  void fix_position(const ctrl::Position fix) { this->fix += fix; }
 
 private:
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
-  Accumulator<Polar, acc_num> accel;
-  Position fix;
+  Accumulator<ctrl::Polar, acc_num> accel;
+  ctrl::Position fix;
 
   void reset() {
     ref_v.clear();
@@ -100,7 +98,7 @@ private:
     enc_v.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(enc.position(i));
-    accel.clear(Polar(imu.accel.y, imu.angular_accel));
+    accel.clear(ctrl::Polar(imu.accel.y, imu.angular_accel));
     fix.clear();
     fbc.reset();
   }
@@ -118,21 +116,22 @@ private:
       /* 最新のデータの追加 */
       for (int i = 0; i < 2; i++)
         wheel_position[i].push(enc.position(i));
-      accel.push(Polar(imu.accel.y, imu.angular_accel));
+      accel.push(ctrl::Polar(imu.accel.y, imu.angular_accel));
       /* approximated differential of encoder value */
       for (int i = 0; i < 2; i++)
         enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
       enc_v.wheel2pole();
       /* calculate estimated velocity value with complementary filter */
-      Polar noisy_v = Polar(enc_v.tra, imu.gyro.z);
-      Polar alpha = model::alpha;
-      est_v = alpha * (est_v + accel[0] * Ts) + (Polar(1, 1) - alpha) * noisy_v;
+      const ctrl::Polar noisy_v = ctrl::Polar(enc_v.tra, imu.gyro.z);
+      const ctrl::Polar alpha = model::alpha;
+      est_v = alpha * (est_v + accel[0] * Ts) +
+              (ctrl::Polar(1, 1) - alpha) * noisy_v;
       /* estimated acceleration */
       est_a = accel[0];
       /* calculate pwm value */
-      auto pwm_value = fbc.update(ref_v, est_v, ref_a, est_a, Ts);
-      float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
-      float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
+      const auto pwm_value = fbc.update(ref_v, est_v, ref_a, est_a, Ts);
+      const float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
+      const float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
       /* drive the motors */
       mt.drive(pwm_value_L, pwm_value_R);
       /* estimates slip angle */
@@ -162,5 +161,3 @@ private:
     }
   }
 };
-
-}; // namespace ctrl

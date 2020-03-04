@@ -113,16 +113,10 @@ public:
     state.save();
   }
   bool backup() {
-    // if (calibration_counter++ % 12 == 0) {
-    //   delay(400); //< 静止するのを待つ時間
-    //   calibration();
-    // }
     state.save();
     return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
   }
   bool restore() {
-    /* リセット前の状態を復元 */
-    // state.try_count = 1; //< 探索済みの最短初回の想定
     state.restore();
     return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
   }
@@ -168,7 +162,6 @@ private:
   bool isPositionIdentifying = false;
   bool prevIsForceGoingToGoal = false;
   State state;
-  int calibration_counter = 1;
   // int time_stamp_us = 0;
 
   /* override virtual functions */
@@ -336,7 +329,7 @@ private:
     /* 迷路のチェック */
     if (!isComplete()) {
       bz.play(Buzzer::CANCEL);
-      maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
+      // maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
     }
     if (!isSolvable())
       bz.play(Buzzer::ERROR);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Accumulator.h"
 #include "TimerSemaphore.h"
+#include "accumulator.h"
 #include <Arduino.h>
 #include <array>
 

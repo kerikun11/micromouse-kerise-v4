@@ -27,19 +27,19 @@ extern Reflector ref;
 extern ToF tof;
 
 /* Supporter */
-#include "UserInterface.h"
+#include "user_interface.h"
 extern UserInterface ui;
-#include "SpeedController.h"
-extern ctrl::SpeedController sc;
-#include "WallDetector.h"
+#include "speed_controller.h"
+extern SpeedController sc;
+#include "wall_detector.h"
 extern WallDetector wd;
 
 /* Conductor */
-#include "Logger.h"
+#include "logger.h"
 extern Logger lgr;
-#include "MoveAction.h"
+#include "move_action.h"
 extern MoveAction ma;
-#include "MazeRobot.h"
+#include "maze_robot.h"
 extern MazeRobot mr;
-#include "ExternalController.h"
+#include "external_controller.h"
 extern ExternalController ec;

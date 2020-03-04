@@ -3,12 +3,13 @@
 #include "config/model.h"
 #include "global.h"
 
-#include "TrajectoryTracker.h"
+#include "accel_designer.h"
+#include "slalom.h"
 #include "slalom_shapes.h"
 #include "straight.h"
+#include "trajectory_tracker.h"
 
 #include "TaskBase.h"
-#include <AccelDesigner.h>
 #include <cmath>
 #include <queue>
 #include <vector>
@@ -42,7 +43,6 @@ public:
     // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
     static constexpr float ms_gain = 1.1f;
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
-    // [int(3600*1.1**i) for i in range(0, 4)]: [3600, 3960, 4356, 4791]
     static constexpr float ac_gain = 1.03f;
 
   public:
@@ -100,7 +100,7 @@ public:
     std::array<uint16_t, table_size> table;
     std::bitset<table_size> is_valid;
     table.fill(255);
-    AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
+    ctrl::AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -426,7 +426,7 @@ private:
     static constexpr float m_dddth = 4800 * M_PI;
     static constexpr float m_ddth = 48 * M_PI;
     static constexpr float m_dth = 4 * M_PI;
-    AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
+    ctrl::AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -492,7 +492,7 @@ private:
     sc.position.x -= distance;
     offset += ctrl::Position(distance, 0, 0).rotate(offset.th);
   }
-  void trace(slalom::Trajectory &trajectory, const float velocity,
+  void trace(ctrl::slalom::Trajectory &trajectory, const float velocity,
              const RunParameter &rp) {
     const float Ts = 0.001f;
     ctrl::TrajectoryTracker tt(tt_gain);
@@ -527,9 +527,9 @@ private:
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
-  void SlalomProcess(const slalom::Shape &shape, float &straight,
+  void SlalomProcess(const ctrl::slalom::Shape &shape, float &straight,
                      const bool reverse, const RunParameter &rp) {
-    slalom::Trajectory st(shape);
+    ctrl::slalom::Trajectory st(shape);
     const float velocity = st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
     /* ターン前の直線を消化 */
@@ -734,7 +734,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        slalom::Trajectory st(SS_SL90);
+        ctrl::slalom::Trajectory st(SS_SL90);
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
@@ -753,7 +753,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        slalom::Trajectory st(SS_SR90);
+        ctrl::slalom::Trajectory st(SS_SR90);
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();

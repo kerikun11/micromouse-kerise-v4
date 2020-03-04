@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Accumulator.h"
 #include "VL6180X.h"
+#include "accumulator.h"
 #include "i2c.h"
 
 #include "config/model.h"

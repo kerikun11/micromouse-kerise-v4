@@ -2,8 +2,6 @@
 
 #include "slalom.h"
 
-using namespace ctrl;
-
 static const auto SS_SL90 =     ctrl::slalom::Shape(ctrl::Position(       45,        45,    1.5708), ctrl::Position(  44.0068,    44.001,    1.5708),  0.993221,  0.999035,    265.76); /*< T:  0.287496 [s] */
 static const auto SS_SR90 =     ctrl::slalom::Shape(ctrl::Position(       45,       -45,   -1.5708), ctrl::Position(  44.0068,   -44.001,   -1.5708),  0.993221,  0.999035,    265.76); /*< T:  0.287496 [s] */
 static const auto SS_FL45 =     ctrl::slalom::Shape(ctrl::Position(       90,        45,  0.785398), ctrl::Position(   74.835,        31,  0.785398),   1.16494,    19.799,   425.285); /*< T:  0.248639 [s] */

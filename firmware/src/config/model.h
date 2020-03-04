@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Position.h"
-#include "TrajectoryTracker.h"
-#include "ctrl/FeedbackController.h"
+#include "feedback_controller.h"
+#include "trajectory_tracker.h"
 
 #ifndef M_PI
 static constexpr float M_PI = 3.14159265358979323846f;
