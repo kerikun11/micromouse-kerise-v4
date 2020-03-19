@@ -139,9 +139,9 @@ private:
       const float k = 0.0f;
       const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
       /* calculate odometry value */
-      position.th += est_v.rot * Ts;
-      position.x += noisy_v.tra * std::cos(position.th + slip_angle) * Ts;
-      position.y += noisy_v.tra * std::sin(position.th + slip_angle) * Ts;
+      position.th += imu.gyro.z * Ts;
+      position.x += enc_v.tra * std::cos(position.th + slip_angle) * Ts;
+      position.y += enc_v.tra * std::sin(position.th + slip_angle) * Ts;
       /* Fix Position */
       const float delta = 0.2;
       if (fix.x > delta) {

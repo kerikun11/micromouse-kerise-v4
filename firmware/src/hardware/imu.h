@@ -236,6 +236,15 @@ private:
     icm[0].update();
     icm[1].update();
 
+#if 1
+    gyro.x = (-icm[0].gyro.x + icm[1].gyro.x) / 2;
+    gyro.y = (-icm[0].gyro.y + icm[1].gyro.y) / 2;
+    gyro.z = (icm[0].gyro.z + icm[1].gyro.z) / 2;
+    accel.x = (-icm[0].accel.x + icm[1].accel.x) / 2;
+    accel.y = (-icm[0].accel.y + icm[1].accel.y) / 2;
+    accel.z = (icm[0].accel.z + icm[1].accel.z) / 2;
+#endif
+
 #if 0
     gyro.x = -icm[0].gyro.x;
     gyro.y = -icm[0].gyro.y;
@@ -252,15 +261,6 @@ private:
     accel.x = icm[1].accel.x;
     accel.y = icm[1].accel.y;
     accel.z = icm[1].accel.z;
-#endif
-
-#if 1
-    gyro.x = (-icm[0].gyro.x + icm[1].gyro.x) / 2;
-    gyro.y = (-icm[0].gyro.y + icm[1].gyro.y) / 2;
-    gyro.z = (icm[0].gyro.z + icm[1].gyro.z) / 2;
-    accel.x = (-icm[0].accel.x + icm[1].accel.x) / 2;
-    accel.y = (-icm[0].accel.y + icm[1].accel.y) / 2;
-    accel.z = (icm[0].accel.z + icm[1].accel.z) / 2;
 #endif
 
     angle += gyro.z * Ts;

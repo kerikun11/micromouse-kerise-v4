@@ -24,6 +24,10 @@ using namespace MazeLib;
 
 class MoveAction : TaskBase {
 public:
+  static constexpr float unknown_accel_velocity = 540;
+  static constexpr float v_search = 300;
+
+public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
@@ -64,8 +68,6 @@ public:
 #ifndef M_PI
   static constexpr float M_PI = 3.14159265358979323846f;
 #endif
-  static constexpr float unknown_accel_velocity = 540;
-  static constexpr float v_search = 300;
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {}
@@ -492,18 +494,18 @@ private:
     sc.position.x -= distance;
     offset += ctrl::Position(distance, 0, 0).rotate(offset.th);
   }
-  void trace(ctrl::slalom::Trajectory &trajectory, const float velocity,
-             const RunParameter &rp) {
+  void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
     const float Ts = 0.001f;
+    const float velocity = sc.est_v.tra;
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State s;
     /* start */
     tt.reset(velocity);
     trajectory.reset(velocity);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    bool front_fix_ready = true; /*< V90の前壁修正 */
-    s.q.x = sc.position.x;       /*< 既に移動した分を反映 */
-    if (std::abs(sc.position.x) > 5.0f)
+    bool front_fix_ready = 1; /*< V90の前壁修正 */
+    s.q.x = sc.position.x;    /*< 既に移動した分を反映 */
+    if (std::abs(sc.position.x) > 1.0f)
       bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.t_end(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
@@ -553,7 +555,7 @@ private:
       }
     }
     /* スラローム */
-    trace(st, velocity, rp);
+    trace(st, rp);
     straight += reverse ? st.get_straight_prev() : st.get_straight_post();
   }
   void put_back() {
@@ -678,8 +680,9 @@ private:
   void search_run_task() {
     const auto &rp = rp_search;
     /* スタート */
-    offset = ctrl::Position(field::SegWidthFull / 2 + model::CenterShift,
-                            field::SegWidthFull / 2, 0);
+    offset =
+        ctrl::Position(field::SegWidthFull / 2,
+                       field::SegWidthFull / 2 + model::CenterShift, M_PI / 2);
     sc.enable();
     while (1) {
       /* 壁を確認 */
@@ -738,7 +741,7 @@ private:
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
-        trace(st, v_search, rp);
+        trace(st, rp);
         straight_x(st.get_straight_post(), v_search, v_search, rp);
       } else {
         straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
@@ -757,7 +760,7 @@ private:
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();
-        trace(st, v_search, rp);
+        trace(st, rp);
         straight_x(st.get_straight_post(), v_search, v_search, rp);
       } else {
         straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
