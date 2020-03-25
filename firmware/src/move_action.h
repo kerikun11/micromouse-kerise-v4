@@ -12,7 +12,6 @@
 #include "TaskBase.h"
 #include <cmath>
 #include <queue>
-#include <vector>
 
 #define SEARCH_WALL_ATTACH_ENABLED 1
 
@@ -33,6 +32,7 @@ public:
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 1;
+    bool front_wall_fix_trace_enabled = 1;
     bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 1;
     bool wall_cut_enabled = 0;
@@ -43,11 +43,11 @@ public:
 
   public:
     // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
-    static constexpr float cg_gain = 1.03f;
+    static constexpr float cg_gain = 1.05f;
     // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
     static constexpr float ms_gain = 1.1f;
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
-    static constexpr float ac_gain = 1.03f;
+    static constexpr float ac_gain = 1.05f;
 
   public:
     void up(const int cnt = 1) {
@@ -70,7 +70,9 @@ public:
 #endif
 
 public:
-  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {}
+  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
+    rp_search.diag_enabled = 0;
+  }
   ~MoveAction() {}
   void enable() {
     deleteTask();
@@ -503,8 +505,9 @@ private:
     tt.reset(velocity);
     trajectory.reset(velocity);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    bool front_fix_ready = 1; /*< V90の前壁修正 */
-    s.q.x = sc.position.x;    /*< 既に移動した分を反映 */
+    bool front_fix_ready =
+        rp.front_wall_fix_trace_enabled; /*< ターン中の前壁修正 */
+    s.q.x = sc.position.x;               /*< 既に移動した分を反映 */
     if (std::abs(sc.position.x) > 1.0f)
       bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.t_end(); t += Ts) {

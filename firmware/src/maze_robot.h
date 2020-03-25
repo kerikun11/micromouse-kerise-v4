@@ -13,7 +13,7 @@ using namespace MazeLib;
 #define MAZE_ROBOT_TASK_PRIORITY 2
 #define MAZE_ROBOT_STACK_SIZE 8192
 
-#define GOAL_SELECT 5
+#define GOAL_SELECT 1
 #if GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -230,7 +230,7 @@ protected:
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION)
       bz.play(Buzzer::COMPLETE);
     if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
-        !isForceBackToStart)
+        newState != SearchAlgorithm::IMPOSSIBLE && !isForceBackToStart)
       bz.play(Buzzer::COMPLETE);
   }
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
@@ -352,7 +352,7 @@ private:
       /* 同定 */
       if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
-        mt.emergencyStop();
+        mt.emergencyStop(); //< 復帰用
         waitForever();
       }
       bz.play(Buzzer::COMPLETE);
@@ -363,7 +363,7 @@ private:
       state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
-        waitForever(); //< 復帰しない
+        waitForever();
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
@@ -371,13 +371,12 @@ private:
     /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
       state.newRun(); //< 1 -> 2
-      /* 5走終了 */
-      if (state.try_count > 5)
-        // break;
-        bz.play(Buzzer::COMPLETE);
+      /* 5走終了離脱 */
+      // if (state.try_count > 5)
+      // break;
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
-        mt.emergencyStop();
+        mt.emergencyStop(); //< 復帰用
         waitForever();
       }
       bz.play(Buzzer::SUCCESSFUL);
