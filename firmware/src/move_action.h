@@ -9,7 +9,8 @@
 #include "straight.h"
 #include "trajectory_tracker.h"
 
-#include "TaskBase.h"
+#include <TaskBase.h>
+
 #include <cmath>
 #include <queue>
 
@@ -30,7 +31,7 @@ public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 1;
+    bool unknown_accel_enabled = 0;
     bool front_wall_fix_enabled = 1;
     bool front_wall_fix_trace_enabled = 1;
     bool wall_avoid_enabled = 1;
@@ -39,6 +40,7 @@ public:
     float curve_gain = 1.0;
     float max_speed = 720;
     float accel = 3600;
+    float jerk = 240000;
     float fan_duty = 0.2f;
 
   public:
@@ -71,7 +73,7 @@ public:
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
-    rp_search.diag_enabled = 0;
+    // rp_search.diag_enabled = 0;
   }
   ~MoveAction() {}
   void enable() {
@@ -462,13 +464,12 @@ private:
   void straight_x(const float distance, const float v_max, const float v_end,
                   const RunParameter &rp) {
     if (distance - sc.position.x > 0) {
-      const float jerk = 240000;
       const float v_start = sc.ref_v.tra;
       ctrl::TrajectoryTracker tt{tt_gain};
       ctrl::State ref_s;
       ctrl::straight::Trajectory trajectory;
       /* start */
-      trajectory.reset(jerk, rp.accel, v_start, v_max, v_end,
+      trajectory.reset(rp.jerk, rp.accel, v_start, v_max, v_end,
                        distance - sc.position.x, sc.position.x);
       tt.reset(v_start);
       float int_y = 0;
@@ -535,7 +536,8 @@ private:
   void SlalomProcess(const ctrl::slalom::Shape &shape, float &straight,
                      const bool reverse, const RunParameter &rp) {
     ctrl::slalom::Trajectory st(shape);
-    const float velocity = st.get_v_ref() * rp.curve_gain;
+    const float velocity =
+        path.empty() ? v_search : st.get_v_ref() * rp.curve_gain;
     straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
     /* ターン前の直線を消化 */
     if (straight > 0.1f) {
@@ -621,7 +623,7 @@ private:
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
     const auto v_start = sc.ref_v.tra;
-    ctrl::AccelCurve ac(240000, 3600, v_start, 0);
+    ctrl::AccelCurve ac(rp.jerk, rp.accel, v_start, 0);
     /* start */
     tt.reset(v_start);
     float int_y = 0;
@@ -640,13 +642,14 @@ private:
     }
   }
   void task() override {
-    if (q.size())
-      search_run_task();
-    else
+    if (q.empty())
       fast_run_task();
+    else
+      search_run_task();
     vTaskDelay(portMAX_DELAY);
   }
   void search_run_known(const RunParameter &rp) {
+    /* path の作成 */
     std::string path;
     while (1) {
       if (q.empty())
@@ -662,6 +665,7 @@ private:
         break;
       }
     }
+    /* 既知区間走行 */
     if (path.size()) {
       /* 既知区間斜めパターンに変換 */
       path =
@@ -700,7 +704,7 @@ private:
       if (q.size() >= 2)
         search_run_known(rp);
       /* 探索走行 */
-      if (q.size()) {
+      if (!q.empty()) {
         const auto action = q.front();
         q.pop();
         search_run_switch(action, rp);
