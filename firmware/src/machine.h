@@ -436,6 +436,10 @@ public:
   }
   static void slalom_test() {
     ctrl::TrajectoryTracker::Gain gain;
+    // gain.omega_n = 0;
+    // gain.zeta = 0;
+    // gain.low_b = 0;
+    // gain.low_zeta = 0;
     // int mode = ui.waitForSelect(3);
     int mode = 0;
     if (mode < 0)
@@ -475,8 +479,8 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    const auto &shape = SS_FL135;
-    const float velocity = 450.0f;
+    const auto &shape = SS_F90L;
+    const float velocity = 800.0f;
     const float Ts = 0.001f;
     const float j_max = 240000;
     const float a_max = 6000;

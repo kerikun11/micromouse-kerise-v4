@@ -522,7 +522,7 @@ private:
       /* ターン中の前壁補正 */
       const auto &shape = trajectory.getShape();
       if (front_fix_ready && t > trajectory.t_end() / 4)
-        if (!(shape == SS_FLS90) && !(shape == SS_FRS90))
+        if (!(shape == SS_FS90L) && !(shape == SS_FS90R))
           front_fix_ready = !front_wall_fix_trace(rp, field::SegWidthFull);
       /* 同期 */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -554,7 +554,7 @@ private:
         /* 前壁制御で発生した直線を走行 */
         straight_x(0, velocity, velocity, rp);
       }
-      if (shape == SS_FLS90 || shape == SS_FRS90) {
+      if (shape == SS_FS90L || shape == SS_FS90R) {
         front_wall_fix(rp, field::SegWidthFull - st.get_straight_prev());
         front_wall_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
       }
@@ -744,7 +744,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        ctrl::slalom::Trajectory st(SS_SL90);
+        ctrl::slalom::Trajectory st(SS_S90L);
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
@@ -763,7 +763,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        ctrl::slalom::Trajectory st(SS_SR90);
+        ctrl::slalom::Trajectory st(SS_S90R);
         straight_x(st.get_straight_prev(), v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();
@@ -837,52 +837,52 @@ private:
                        float &straight, const RunParameter &rp) {
     switch (action) {
     case MazeLib::RobotBase::FastAction::FL45:
-      SlalomProcess(SS_FL45, straight, false, rp);
+      SlalomProcess(SS_F45L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45:
-      SlalomProcess(SS_FR45, straight, false, rp);
+      SlalomProcess(SS_F45R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL45P:
-      SlalomProcess(SS_FL45, straight, true, rp);
+      SlalomProcess(SS_F45L, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45P:
-      SlalomProcess(SS_FR45, straight, true, rp);
+      SlalomProcess(SS_F45R, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLV90:
-      SlalomProcess(SS_FLV90, straight, false, rp);
+      SlalomProcess(SS_FV90L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRV90:
-      SlalomProcess(SS_FRV90, straight, false, rp);
+      SlalomProcess(SS_FV90R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLS90:
-      SlalomProcess(SS_FLS90, straight, false, rp);
+      SlalomProcess(SS_FS90L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRS90:
-      SlalomProcess(SS_FRS90, straight, false, rp);
+      SlalomProcess(SS_FS90R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL90:
-      SlalomProcess(SS_FL90, straight, false, rp);
+      SlalomProcess(SS_F90L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR90:
-      SlalomProcess(SS_FR90, straight, false, rp);
+      SlalomProcess(SS_F90R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135:
-      SlalomProcess(SS_FL135, straight, false, rp);
+      SlalomProcess(SS_F135L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135:
-      SlalomProcess(SS_FR135, straight, false, rp);
+      SlalomProcess(SS_F135R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135P:
-      SlalomProcess(SS_FL135, straight, true, rp);
+      SlalomProcess(SS_F135L, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135P:
-      SlalomProcess(SS_FR135, straight, true, rp);
+      SlalomProcess(SS_F135R, straight, true, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL180:
-      SlalomProcess(SS_FL180, straight, false, rp);
+      SlalomProcess(SS_F180L, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR180:
-      SlalomProcess(SS_FR180, straight, false, rp);
+      SlalomProcess(SS_F180R, straight, false, rp);
       break;
     case MazeLib::RobotBase::FastAction::F_ST_FULL:
       straight += field::SegWidthFull;
