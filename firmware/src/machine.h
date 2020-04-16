@@ -511,7 +511,7 @@ public:
     ctrl::slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
-    for (float t = 0; t < st.t_end(); t += Ts) {
+    for (float t = 0; t < st.getTimeCurve(); t += Ts) {
       st.update(ref_s, t, Ts);
       auto est_q = sc.position;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
@@ -519,7 +519,7 @@ public:
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
-    const auto &net = st.get_net_curve();
+    const auto &net = st.getShape().curve;
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
 #endif

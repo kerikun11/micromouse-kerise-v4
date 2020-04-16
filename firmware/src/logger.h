@@ -12,10 +12,11 @@ public:
   auto clear() { return buf.clear(); }
   auto push(const std::vector<float> &data) { return buf.push_back(data); }
   auto size() const { return buf.size(); }
+  auto reserve(std::size_t n) { return buf.reserve(n); }
   void print(std::ostream &os = std::cout) const {
-    for (const auto data : buf) {
+    for (const auto &data : buf) {
       bool first = true;
-      for (const auto value : data) {
+      for (const auto &value : data) {
         if (!first)
           os << "\t";
         if (first)
@@ -25,10 +26,6 @@ public:
       os << std::endl;
       vTaskDelay(1);
     }
-  }
-  friend std::ostream &operator<<(std::ostream &os, const Logger &obj) {
-    obj.print(os);
-    return os;
   }
 
 private:

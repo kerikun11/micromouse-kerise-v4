@@ -511,7 +511,7 @@ private:
     s.q.x = sc.position.x;               /*< 既に移動した分を反映 */
     if (std::abs(sc.position.x) > 1.0f)
       bz.play(Buzzer::CONFIRM);
-    for (float t = 0; t < trajectory.t_end(); t += Ts) {
+    for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
       trajectory.update(s, t, Ts);
       const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, s);
@@ -521,24 +521,26 @@ private:
       wall_cut(rp);
       /* ターン中の前壁補正 */
       const auto &shape = trajectory.getShape();
-      if (front_fix_ready && t > trajectory.t_end() / 4)
-        if (!(shape == SS_FS90L) && !(shape == SS_FS90R))
+      if (front_fix_ready && t > trajectory.getTimeCurve() / 4)
+        if (!(&shape == &SS_FS90L) && !(&shape == &SS_FS90R))
           front_fix_ready = !front_wall_fix_trace(rp, field::SegWidthFull);
       /* 同期 */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     sc.set_target(velocity, 0);
     /* 移動した量だけ位置を更新 */
-    const auto &net = trajectory.get_net_curve();
+    const auto &net = trajectory.getShape().curve;
     sc.position = (sc.position - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
   void SlalomProcess(const ctrl::slalom::Shape &shape, float &straight,
                      const bool reverse, const RunParameter &rp) {
     ctrl::slalom::Trajectory st(shape);
+    const auto straight_prev = shape.straight_prev;
+    const auto straight_post = shape.straight_post;
     const float velocity =
-        path.empty() ? v_search : st.get_v_ref() * rp.curve_gain;
-    straight += !reverse ? st.get_straight_prev() : st.get_straight_post();
+        path.empty() ? v_search : shape.v_ref * rp.curve_gain;
+    straight += !reverse ? straight_prev : straight_post;
     /* ターン前の直線を消化 */
     if (straight > 0.1f) {
       straight_x(straight, rp.max_speed, velocity, rp);
@@ -548,20 +550,20 @@ private:
     if (isAlong()) {
       if (rp.diag_enabled && reverse == false) {
         front_wall_fix(rp, field::SegWidthFull + field::SegWidthFull / 2 -
-                               st.get_straight_prev());
+                               straight_prev);
         front_wall_fix(rp, 2 * field::SegWidthFull + field::SegWidthFull / 2 -
-                               st.get_straight_prev());
+                               straight_prev);
         /* 前壁制御で発生した直線を走行 */
         straight_x(0, velocity, velocity, rp);
       }
-      if (shape == SS_FS90L || shape == SS_FS90R) {
-        front_wall_fix(rp, field::SegWidthFull - st.get_straight_prev());
-        front_wall_fix(rp, 2 * field::SegWidthFull - st.get_straight_prev());
+      if (&shape == &SS_FS90L || &shape == &SS_FS90R) {
+        front_wall_fix(rp, field::SegWidthFull - straight_prev);
+        front_wall_fix(rp, 2 * field::SegWidthFull - straight_prev);
       }
     }
     /* スラローム */
     trace(st, rp);
-    straight += reverse ? st.get_straight_prev() : st.get_straight_post();
+    straight += reverse ? straight_prev : straight_post;
   }
   void put_back() {
     const int max_v = 150;
@@ -745,11 +747,11 @@ private:
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         ctrl::slalom::Trajectory st(SS_S90L);
-        straight_x(st.get_straight_prev(), v_search, v_search, rp);
+        straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
         trace(st, rp);
-        straight_x(st.get_straight_post(), v_search, v_search, rp);
+        straight_x(st.getShape().straight_post, v_search, v_search, rp);
       } else {
         straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
                    rp);
@@ -764,11 +766,11 @@ private:
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         ctrl::slalom::Trajectory st(SS_S90R);
-        straight_x(st.get_straight_prev(), v_search, v_search, rp);
+        straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();
         trace(st, rp);
-        straight_x(st.get_straight_post(), v_search, v_search, rp);
+        straight_x(st.getShape().straight_post, v_search, v_search, rp);
       } else {
         straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0,
                    rp);
