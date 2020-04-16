@@ -57,8 +57,15 @@ legends = ['Reference', 'Estimated']
 axs[0].legend(legends)
 axs[int(axs.size/2)].legend(legends)
 
+# ============================================================================ #
+# fit
 fig.tight_layout()
 
 # ============================================================================ #
+# save
+for ext in ['.png', '.svg']:
+    fig.savefig(filename + ext)
+
+# ============================================================================ #
 # show
-plt.show()
+# plt.show()
