@@ -97,15 +97,15 @@ public:
   bool positionRecovery() {
     /* 1周回って壁を探す */
     sc.enable();
-    static constexpr float m_dddth = 4800 * M_PI;
-    static constexpr float m_ddth = 48 * M_PI;
-    static constexpr float m_dth = 2 * M_PI;
+    static constexpr float dddth_max = 4800 * M_PI;
+    static constexpr float ddth_max = 48 * M_PI;
+    static constexpr float dth_max = 2 * M_PI;
     const float angle = 2 * M_PI;
     constexpr int table_size = 96;
     std::array<uint16_t, table_size> table;
     std::bitset<table_size> is_valid;
     table.fill(255);
-    ctrl::AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
+    ctrl::AccelDesigner ad(dddth_max, ddth_max, 0, dth_max, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -427,10 +427,10 @@ private:
     return true;
   }
   void turn(const float angle) {
-    static constexpr float m_dddth = 4800 * M_PI;
-    static constexpr float m_ddth = 48 * M_PI;
-    static constexpr float m_dth = 4 * M_PI;
-    ctrl::AccelDesigner ad(m_dddth, m_ddth, 0, m_dth, 0, angle);
+    static constexpr float dddth_max = 4800 * M_PI;
+    static constexpr float ddth_max = 48 * M_PI;
+    static constexpr float dth_max = 4 * M_PI;
+    ctrl::AccelDesigner ad(dddth_max, ddth_max, 0, dth_max, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
