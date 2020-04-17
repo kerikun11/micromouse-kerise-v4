@@ -487,7 +487,7 @@ public:
     const float v_max = velocity;
     const float dist = 1 * 90;
     ctrl::TrajectoryTracker tt(gain);
-    ctrl::Position offset;
+    ctrl::Pose offset;
     /* start */
     sc.enable();
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -505,7 +505,7 @@ public:
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.position.x -= ref.x_end();
-    offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
+    offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
 #if 1
     ctrl::slalom::Trajectory st(shape);
@@ -535,7 +535,7 @@ public:
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.position.x -= ref.x_end();
-    offset += ctrl::Position(ref.x_end(), 0, 0).rotate(offset.th);
+    offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* end */
     sc.set_target(0, 0);
     delay(200);

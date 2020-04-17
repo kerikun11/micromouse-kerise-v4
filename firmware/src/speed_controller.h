@@ -6,7 +6,7 @@
 
 #include "feedback_controller.h"
 #include "polar.h"
-#include "position.h"
+#include "pose.h"
 
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
@@ -44,7 +44,7 @@ public:
   ctrl::Polar est_v;
   ctrl::Polar est_a;
   WheelParameter enc_v;
-  ctrl::Position position;
+  ctrl::Pose position;
   ctrl::FeedbackController<ctrl::Polar>::Model M;
   ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
@@ -81,14 +81,14 @@ public:
     ref_a.tra = tra_a;
     ref_a.rot = rot_a;
   }
-  void fix_position(const ctrl::Position fix) { this->fix += fix; }
+  void fix_position(const ctrl::Pose fix) { this->fix += fix; }
 
 private:
   bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<ctrl::Polar, acc_num> accel;
-  ctrl::Position fix;
+  ctrl::Pose fix;
 
   void reset() {
     ref_v.clear();
