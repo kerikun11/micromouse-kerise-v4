@@ -498,13 +498,13 @@ public:
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
-      auto est_q = sc.position;
+      auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
-    sc.position.x -= ref.x_end();
+    sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
 #if 1
@@ -513,14 +513,14 @@ public:
     ctrl::State ref_s;
     for (float t = 0; t < st.getTimeCurve(); t += Ts) {
       st.update(ref_s, t, Ts);
-      auto est_q = sc.position;
+      auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     const auto &net = st.getShape().curve;
-    sc.position = (sc.position - net).rotate(-net.th);
+    sc.est_p = (sc.est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
 #endif
     /* decel */
@@ -528,13 +528,13 @@ public:
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
-      auto est_q = sc.position;
+      auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
-    sc.position.x -= ref.x_end();
+    sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* end */
     sc.set_target(0, 0);

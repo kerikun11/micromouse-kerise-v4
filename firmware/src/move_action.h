@@ -20,7 +20,6 @@
 #define SEARCH_RUN_STACK_SIZE 8192
 
 #include <RobotBase.h>
-using namespace MazeLib;
 
 class MoveAction : TaskBase {
 public:
@@ -90,7 +89,7 @@ public:
     isRunningFlag = false;
   }
   bool isRunning() { return isRunningFlag; }
-  void set_action(RobotBase::Action action) {
+  void set_action(MazeLib::RobotBase::Action action) {
     q.push(action);
     isRunningFlag = true;
   }
@@ -110,8 +109,8 @@ public:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
-      float delta = sc.position.x * std::cos(-sc.position.th) -
-                    sc.position.y * std::sin(-sc.position.th);
+      float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
+                    sc.est_p.y * std::sin(-sc.est_p.th);
       constexpr float back_gain = 10.0f;
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -175,7 +174,7 @@ public:
   std::array<bool, 3> is_wall;
 
 private:
-  std::queue<RobotBase::Action> q;
+  std::queue<MazeLib::RobotBase::Action> q;
   bool isRunningFlag = false;
   bool isNeutralTurnMode = false;
   ctrl::Pose offset;
@@ -228,10 +227,10 @@ private:
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
       sc.set_target(0, 0);
-      sc.position.x = 0;  //< 直進方向の補正
-      sc.position.th = 0; //< 回転方向の補正
+      sc.est_p.x = 0;  //< 直進方向の補正
+      sc.est_p.th = 0; //< 回転方向の補正
       if (force)
-        sc.position.y = 0; //< 強制の場合は大きくずれうる
+        sc.est_p.y = 0; //< 強制の場合は大きくずれうる
       tof.enable();
       led = 0;
     }
@@ -240,7 +239,7 @@ private:
   void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sc.est_v.tra < 180.0f ||
-        std::abs(sc.position.th) > M_PI * 0.1f)
+        std::abs(sc.est_p.th) > M_PI * 0.1f)
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
@@ -250,30 +249,30 @@ private:
                              : model::wall_avoid_gain * 2;
       const float wall_diff_thr = 100; //< 吸い込まれ防止
       if (wd.is_wall[0] && std::abs(wd.diff.side[0]) < wall_diff_thr) {
-        sc.position.y += wd.distance.side[0] * gain;
+        sc.est_p.y += wd.distance.side[0] * gain;
         int_y += wd.distance.side[0];
         led_flags |= 8;
       }
       if (wd.is_wall[1] && std::abs(wd.diff.side[1]) < wall_diff_thr) {
-        sc.position.y -= wd.distance.side[1] * gain;
+        sc.est_p.y -= wd.distance.side[1] * gain;
         int_y -= wd.distance.side[1];
         led_flags |= 1;
       }
       /* 機体姿勢の補正 */
       if (rp.wall_theta_fix_enabled) {
-        sc.position.th += int_y * 1e-8f;
+        sc.est_p.th += int_y * 1e-8f;
       }
       /* 櫛の壁制御 */
       if (tof.getDistance() > field::SegWidthFull * 3 / 2) {
         const float comb_threashold = -50.0f;
         const float comb_shift = 0.1f;
         if (wd.distance.front[0] > comb_threashold) {
-          sc.position.y += comb_shift;
+          sc.est_p.y += comb_shift;
           led_flags |= 4;
           bz.play(Buzzer::SHORT7);
         }
         if (wd.distance.front[1] > comb_threashold) {
-          sc.position.y -= comb_shift;
+          sc.est_p.y -= comb_shift;
           led_flags |= 2;
           bz.play(Buzzer::SHORT7);
         }
@@ -284,11 +283,11 @@ private:
       const float shift = 0.06f;
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
-        sc.position.y += shift;
+        sc.est_p.y += shift;
         led_flags |= 4;
       }
       if (wd.distance.front[1] > threashold) {
-        sc.position.y -= shift;
+        sc.est_p.y -= shift;
         led_flags |= 2;
       }
     }
@@ -298,7 +297,7 @@ private:
     if (!rp.wall_cut_enabled)
       return;
     /* 曲線なら前半しか使わない */
-    if (std::abs(sc.position.th) > M_PI * 0.01f)
+    if (std::abs(sc.est_p.th) > M_PI * 0.01f)
       return;
     /* 左右 */
     for (int i = 0; i < 2; i++) {
@@ -307,18 +306,18 @@ private:
         /* 90 [deg] の倍数 */
         if (isAlong()) {
           const float wall_cut_offset = -15; /*< 大きいほど前へ */
-          const float x_abs = offset.rotate(offset.th).x + sc.position.x;
+          const float x_abs = offset.rotate(offset.th).x + sc.est_p.x;
           const float x_abs_cut = round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
           if (fixed_x_abs < 3.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x, 0, 0));
+            sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
             bz.play(Buzzer::SHORT8);
           } else if (fixed_x_abs < 10.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x, 0, 0));
+            sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
             bz.play(Buzzer::SHORT7);
           } else if (fixed_x_abs < 20.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x / 2, 0, 0));
+            sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
             bz.play(Buzzer::SHORT6);
           } else {
             bz.play(Buzzer::CANCEL);
@@ -330,19 +329,19 @@ private:
                                             /* 壁切れ方向 */
           const float th_ref = (i == 0) ? (-M_PI / 4) : (M_PI / 4);
           /* 壁に沿った方向の位置 */
-          const float x_abs = offset.rotate(offset.th + th_ref).x +
-                              sc.position.rotate(th_ref).x;
+          const float x_abs =
+              offset.rotate(offset.th + th_ref).x + sc.est_p.rotate(th_ref).x;
           const float x_abs_cut = round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
           if (fixed_x_abs < 5.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
+            sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT8);
           } else if (fixed_x_abs < 10.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
+            sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT7);
           } else if (fixed_x_abs < 20.0f) {
-            sc.fix_position(ctrl::Pose(fixed_x / 2, 0, 0).rotate(-th_ref));
+            sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT6);
           } else {
             bz.play(Buzzer::CANCEL);
@@ -355,11 +354,10 @@ private:
   void front_wall_fix(const RunParameter &rp, const float dist_to_wall_ref) {
     if (!rp.front_wall_fix_enabled)
       return;
-    if (!tof.isValid() || std::abs(sc.position.th) > M_PI * 0.05f)
+    if (!tof.isValid() || std::abs(sc.est_p.th) > M_PI * 0.05f)
       return;
     const float wall_fix_offset = 8; /*< 調整値．大きく:前壁から遠く */
-    const float dist_to_wall =
-        dist_to_wall_ref - sc.position.x + wall_fix_offset;
+    const float dist_to_wall = dist_to_wall_ref - sc.est_p.x + wall_fix_offset;
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
                               (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra;
     const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
@@ -370,16 +368,16 @@ private:
                              : fixed_x_pre;
     const auto fixed_x_abs = std::abs(fixed_x);
     if (fixed_x_abs < 3.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x, 0, 0));
+      sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
       bz.play(Buzzer::SHORT8);
     } else if (fixed_x_abs < 10.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x, 0, 0));
+      sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
       bz.play(Buzzer::SHORT7);
     } else if (fixed_x_abs < 20.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x / 2, 0, 0));
+      sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
       bz.play(Buzzer::SHORT6);
     } else if (std::abs(fixed_x_pre) < 30.0f && std::abs(fixed_x_now) < 30.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x / 2, 0, 0));
+      sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
       bz.play(Buzzer::CANCEL);
     }
   }
@@ -390,15 +388,15 @@ private:
     if (!tof.isValid())
       return false;
     /* 現在の姿勢が区画に対して垂直か調べる */
-    const auto th_abs = offset.th + sc.position.th;
+    const auto th_abs = offset.th + sc.est_p.th;
     const auto th_abs_to_wall = round2(th_abs, M_PI / 2);
     if (std::abs(th_abs - th_abs_to_wall) > 0.001f * M_PI)
       return false;
     /* 補正開始 */
     const auto rotate_th =
-        th_abs_to_wall - offset.th; /*< sc.position 座標系での回転量 */
-    const auto position_abs = offset + sc.position.rotate(offset.th);
-    const auto abs_x_to_wall = position_abs.rotate(th_abs_to_wall).x;
+        th_abs_to_wall - offset.th; /*< sc.est_p 座標系での回転量 */
+    const auto pose_abs = offset + sc.est_p.rotate(offset.th);
+    const auto abs_x_to_wall = pose_abs.rotate(th_abs_to_wall).x;
     const auto pos_x =
         abs_x_to_wall - round2(abs_x_to_wall, field::SegWidthFull);
     const float wall_fix_offset = 4; /*< 調整値．大きく:前壁から遠く */
@@ -413,16 +411,16 @@ private:
                              : fixed_x_pre;
     const auto fixed_x_abs = std::abs(fixed_x);
     if (fixed_x_abs < 3.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
+      sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT8);
     } else if (fixed_x_abs < 5.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
+      sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT7);
     } else if (fixed_x_abs < 10.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x / 2, 0, 0).rotate(rotate_th));
+      sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT6);
     } else if (std::abs(fixed_x_pre) < 20.0f && std::abs(fixed_x_now) < 20.0f) {
-      sc.fix_position(ctrl::Pose(fixed_x / 3, 0, 0));
+      sc.fix_pose(ctrl::Pose(fixed_x / 3, 0, 0));
       bz.play(Buzzer::CANCEL);
       return false;
     }
@@ -436,19 +434,19 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
-      float delta = sc.position.x * std::cos(-sc.position.th) -
-                    sc.position.y * std::sin(-sc.position.th);
+      float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
+                    sc.est_p.y * std::sin(-sc.est_p.th);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     /* 確実に目標角度に持っていく処理 */
     float int_error = 0;
     while (1) {
-      float delta = sc.position.x * std::cos(-sc.position.th) -
-                    sc.position.y * std::sin(-sc.position.th);
+      float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
+                    sc.est_p.y * std::sin(-sc.est_p.th);
       const float Kp = 20.0f;
       const float Ki = 10.0f;
-      const float error = angle - sc.position.th;
+      const float error = angle - sc.est_p.th;
       int_error += error * 0.001f;
       sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -458,25 +456,25 @@ private:
     sc.set_target(0, 0);
     /* 移動した量だけ位置を更新 */
     const auto net = ctrl::Pose(0, 0, angle);
-    sc.position = (sc.position - net).rotate(-net.th);
+    sc.est_p = (sc.est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
   void straight_x(const float distance, const float v_max, const float v_end,
                   const RunParameter &rp) {
-    if (distance - sc.position.x > 0) {
+    if (distance - sc.est_p.x > 0) {
       const float v_start = sc.ref_v.tra;
       ctrl::TrajectoryTracker tt{tt_gain};
       ctrl::State ref_s;
       ctrl::straight::Trajectory trajectory;
       /* start */
       trajectory.reset(rp.jerk, rp.accel, v_start, v_max, v_end,
-                       distance - sc.position.x, sc.position.x);
+                       distance - sc.est_p.x, sc.est_p.x);
       tt.reset(v_start);
       float int_y = 0;
       TickType_t xLastWakeTime = xTaskGetTickCount();
       for (float t = 0; true; t += 0.001f) {
         /* 終了条件 */
-        const float remain = distance - sc.position.x;
+        const float remain = distance - sc.est_p.x;
         if (remain < 0 || t > trajectory.t_end() + 0.1f)
           break;
         /* 衝突被害軽減ブレーキ(AEBS) */
@@ -485,7 +483,7 @@ private:
           wall_stop();
         /* 軌道追従 */
         trajectory.update(ref_s, t);
-        const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, ref_s);
+        const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a, ref_s);
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
         /* 壁制御 */
         wall_avoid(remain, rp, int_y);
@@ -494,7 +492,7 @@ private:
       }
     }
     /* 移動した量だけ位置を更新 */
-    sc.position.x -= distance;
+    sc.est_p.x -= distance;
     offset += ctrl::Pose(distance, 0, 0).rotate(offset.th);
   }
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
@@ -508,13 +506,13 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     bool front_fix_ready =
         rp.front_wall_fix_trace_enabled; /*< ターン中の前壁修正 */
-    s.q.x = sc.position.x;               /*< 既に移動した分を反映 */
-    if (std::abs(sc.position.x) > 1.0f)
+    s.q.x = sc.est_p.x;                  /*< 既に移動した分を反映 */
+    if (std::abs(sc.est_p.x) > 1.0f)
       bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
       trajectory.update(s, t, Ts);
-      const auto ref = tt.update(sc.position, sc.est_v, sc.est_a, s);
+      const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a, s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       float int_y = 0;
       wall_avoid(0, rp, int_y);
@@ -530,7 +528,7 @@ private:
     sc.set_target(velocity, 0);
     /* 移動した量だけ位置を更新 */
     const auto &net = trajectory.getShape().curve;
-    sc.position = (sc.position - net).rotate(-net.th);
+    sc.est_p = (sc.est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
   void SlalomProcess(const ctrl::slalom::Shape &shape, float &straight,
@@ -569,11 +567,11 @@ private:
     const int max_v = 150;
     const float th_gain = 100.0f;
     for (int i = 0; i < max_v; i++) {
-      sc.set_target(-i, -sc.position.th * th_gain);
+      sc.set_target(-i, -sc.est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 100; i++) {
-      sc.set_target(-max_v, -sc.position.th * th_gain);
+      sc.set_target(-max_v, -sc.est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     sc.disable();
@@ -632,7 +630,7 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; q.empty(); t += 0.001f) {
       /* 軌道追従 */
-      const auto ref = tt.update(sc.position, sc.est_v, sc.est_a,
+      const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a,
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
                                  ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
@@ -711,7 +709,7 @@ private:
       }
     }
   }
-  void search_run_switch(const RobotBase::Action action,
+  void search_run_switch(const MazeLib::RobotBase::Action action,
                          const RunParameter &rp) {
     const bool no_front_front_wall =
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 2;
@@ -720,30 +718,30 @@ private:
                                no_front_front_wall;
     const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
     switch (action) {
-    case RobotBase::Action::START_STEP:
+    case MazeLib::RobotBase::Action::START_STEP:
       imu.angle = 0;
-      sc.position.clear();
-      sc.position.x = model::TailLength + field::WallThickness / 2;
+      sc.est_p.clear();
+      sc.est_p.x = model::TailLength + field::WallThickness / 2;
       offset = ctrl::Pose(field::SegWidthFull / 2, 0, M_PI / 2);
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
-    case RobotBase::Action::START_INIT:
+    case MazeLib::RobotBase::Action::START_INIT:
       start_init();
       break;
-    case RobotBase::Action::ST_FULL:
+    case MazeLib::RobotBase::Action::ST_FULL:
       if (tof.getDistance() < field::SegWidthFull)
         wall_stop();
       front_wall_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
-    case RobotBase::Action::ST_HALF:
+    case MazeLib::RobotBase::Action::ST_HALF:
       straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
                  v_search, rp);
       break;
-    case RobotBase::Action::TURN_L:
+    case MazeLib::RobotBase::Action::TURN_L:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
+      if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         ctrl::slalom::Trajectory st(SS_S90L);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[0])
@@ -759,10 +757,10 @@ private:
                    v_search, rp);
       }
       break;
-    case RobotBase::Action::TURN_R:
+    case MazeLib::RobotBase::Action::TURN_R:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.position.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
+      if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
         ctrl::slalom::Trajectory st(SS_S90R);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[1])
@@ -778,10 +776,10 @@ private:
                    v_search, rp);
       }
       break;
-    case RobotBase::Action::ROTATE_180:
+    case MazeLib::RobotBase::Action::ROTATE_180:
       uturn();
       break;
-    case RobotBase::Action::ST_HALF_STOP:
+    case MazeLib::RobotBase::Action::ST_HALF_STOP:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0, rp);
@@ -808,7 +806,7 @@ private:
     /* 初期位置を設定 */
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         model::TailLength + field::WallThickness / 2, M_PI / 2);
-    sc.position.clear();
+    sc.est_p.clear();
     /* 最初の直線を追加 */
     float straight =
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;

@@ -44,7 +44,7 @@ public:
   ctrl::Polar est_v;
   ctrl::Polar est_a;
   WheelParameter enc_v;
-  ctrl::Pose position;
+  ctrl::Pose est_p;
   ctrl::FeedbackController<ctrl::Polar>::Model M;
   ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
@@ -59,10 +59,10 @@ public:
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
   }
-  void enable(const bool reset_position = true) {
+  void enable(const bool reset_est_p = true) {
     reset();
-    if (reset_position)
-      position.clear();
+    if (reset_est_p)
+      est_p.clear();
     enabled = true;
   }
   void disable() {
@@ -81,7 +81,7 @@ public:
     ref_a.tra = tra_a;
     ref_a.rot = rot_a;
   }
-  void fix_position(const ctrl::Pose fix) { this->fix += fix; }
+  void fix_pose(const ctrl::Pose fix) { this->fix += fix; }
 
 private:
   bool enabled = false;
@@ -139,23 +139,23 @@ private:
       const float k = 0.0f;
       const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
       /* calculate odometry value */
-      position.th += imu.gyro.z * Ts;
-      position.x += enc_v.tra * std::cos(position.th + slip_angle) * Ts;
-      position.y += enc_v.tra * std::sin(position.th + slip_angle) * Ts;
-      /* Fix Position */
+      est_p.th += imu.gyro.z * Ts;
+      est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
+      est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
+      /* Fix Pose */
       const float delta = 0.2;
       if (fix.x > delta) {
-        position.x += delta;
+        est_p.x += delta;
         fix.x -= delta;
       } else if (fix.x < -delta) {
-        position.x -= delta;
+        est_p.x -= delta;
         fix.x += delta;
       }
       if (fix.y > delta) {
-        position.y += delta;
+        est_p.y += delta;
         fix.y -= delta;
       } else if (fix.y < -delta) {
-        position.y -= delta;
+        est_p.y -= delta;
         fix.y += delta;
       }
     }
