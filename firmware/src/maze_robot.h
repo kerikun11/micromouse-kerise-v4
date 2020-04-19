@@ -171,7 +171,7 @@ protected:
     while (ma.isRunning())
       delay(1);
   }
-  void queueAction(const RobotBase::Action action) override {
+  void queueAction(const RobotBase::SearchAction action) override {
     return ma.set_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {

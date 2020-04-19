@@ -89,7 +89,7 @@ public:
     isRunningFlag = false;
   }
   bool isRunning() { return isRunningFlag; }
-  void set_action(MazeLib::RobotBase::Action action) {
+  void set_action(MazeLib::RobotBase::SearchAction action) {
     q.push(action);
     isRunningFlag = true;
   }
@@ -174,7 +174,7 @@ public:
   std::array<bool, 3> is_wall;
 
 private:
-  std::queue<MazeLib::RobotBase::Action> q;
+  std::queue<MazeLib::RobotBase::SearchAction> q;
   bool isRunningFlag = false;
   bool isNeutralTurnMode = false;
   ctrl::Pose offset;
@@ -655,10 +655,10 @@ private:
       if (q.empty())
         break;
       const auto action = q.front();
-      if (action == MazeLib::RobotBase::Action::ST_HALF ||
-          action == MazeLib::RobotBase::Action::ST_FULL ||
-          action == MazeLib::RobotBase::Action::TURN_L ||
-          action == MazeLib::RobotBase::Action::TURN_R) {
+      if (action == MazeLib::RobotBase::SearchAction::ST_HALF ||
+          action == MazeLib::RobotBase::SearchAction::ST_FULL ||
+          action == MazeLib::RobotBase::SearchAction::TURN_L ||
+          action == MazeLib::RobotBase::SearchAction::TURN_R) {
         path += action;
         q.pop();
       } else {
@@ -710,7 +710,7 @@ private:
       }
     }
   }
-  void search_run_switch(const MazeLib::RobotBase::Action action,
+  void search_run_switch(const MazeLib::RobotBase::SearchAction action,
                          const RunParameter &rp) {
     const bool no_front_front_wall =
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 2;
@@ -719,27 +719,27 @@ private:
                                no_front_front_wall;
     const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
     switch (action) {
-    case MazeLib::RobotBase::Action::START_STEP:
+    case MazeLib::RobotBase::SearchAction::START_STEP:
       imu.angle = 0;
       sc.est_p.clear();
       sc.est_p.x = model::TailLength + field::WallThickness / 2;
       offset = ctrl::Pose(field::SegWidthFull / 2, 0, M_PI / 2);
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
-    case MazeLib::RobotBase::Action::START_INIT:
+    case MazeLib::RobotBase::SearchAction::START_INIT:
       start_init();
       break;
-    case MazeLib::RobotBase::Action::ST_FULL:
+    case MazeLib::RobotBase::SearchAction::ST_FULL:
       if (tof.getDistance() < field::SegWidthFull)
         wall_stop();
       front_wall_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull, v_end, v_end, rp);
       break;
-    case MazeLib::RobotBase::Action::ST_HALF:
+    case MazeLib::RobotBase::SearchAction::ST_HALF:
       straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
                  v_search, rp);
       break;
-    case MazeLib::RobotBase::Action::TURN_L:
+    case MazeLib::RobotBase::SearchAction::TURN_L:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
@@ -758,7 +758,7 @@ private:
                    v_search, rp);
       }
       break;
-    case MazeLib::RobotBase::Action::TURN_R:
+    case MazeLib::RobotBase::SearchAction::TURN_R:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
@@ -777,10 +777,10 @@ private:
                    v_search, rp);
       }
       break;
-    case MazeLib::RobotBase::Action::ROTATE_180:
+    case MazeLib::RobotBase::SearchAction::ROTATE_180:
       uturn();
       break;
-    case MazeLib::RobotBase::Action::ST_HALF_STOP:
+    case MazeLib::RobotBase::SearchAction::ST_HALF_STOP:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull / 2 + model::CenterShift, v_search, 0, rp);
@@ -834,52 +834,52 @@ private:
   void fast_run_switch(const MazeLib::RobotBase::FastAction action,
                        float &straight, const RunParameter &rp) {
     switch (action) {
-    case MazeLib::RobotBase::FastAction::FL45:
+    case MazeLib::RobotBase::FastAction::F45_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR45:
+    case MazeLib::RobotBase::FastAction::F45_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 1, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FL45P:
+    case MazeLib::RobotBase::FastAction::F45_LP:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 0, 1, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR45P:
+    case MazeLib::RobotBase::FastAction::F45_RP:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 1, 1, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FLV90:
+    case MazeLib::RobotBase::FastAction::FV90_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FV90], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FRV90:
+    case MazeLib::RobotBase::FastAction::FV90_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FV90], 1, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FLS90:
+    case MazeLib::RobotBase::FastAction::FS90_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FS90], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FRS90:
+    case MazeLib::RobotBase::FastAction::FS90_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FS90], 1, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FL90:
+    case MazeLib::RobotBase::FastAction::F90_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F90], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR90:
+    case MazeLib::RobotBase::FastAction::F90_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F90], 1, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FL135:
+    case MazeLib::RobotBase::FastAction::F135_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR135:
+    case MazeLib::RobotBase::FastAction::F135_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 1, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FL135P:
+    case MazeLib::RobotBase::FastAction::F135_LP:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 0, 1, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR135P:
+    case MazeLib::RobotBase::FastAction::F135_RP:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 1, 1, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FL180:
+    case MazeLib::RobotBase::FastAction::F180_L:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F180], 0, 0, straight, rp);
       break;
-    case MazeLib::RobotBase::FastAction::FR180:
+    case MazeLib::RobotBase::FastAction::F180_R:
       SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F180], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::F_ST_FULL:
