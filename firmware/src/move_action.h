@@ -520,7 +520,7 @@ private:
       /* ターン中の前壁補正 */
       const auto &shape = trajectory.getShape();
       if (front_fix_ready && t > trajectory.getTimeCurve() / 4)
-        if (!(&shape == &SS_FS90L) && !(&shape == &SS_FS90R))
+        if (&shape != &ctrl::shapes[ctrl::ShapeIndex::FS90])
           front_fix_ready = !front_wall_fix_trace(rp, field::SegWidthFull);
       /* 同期 */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -531,9 +531,10 @@ private:
     sc.est_p = (sc.est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
   }
-  void SlalomProcess(const ctrl::slalom::Shape &shape, float &straight,
-                     const bool reverse, const RunParameter &rp) {
-    ctrl::slalom::Trajectory st(shape);
+  void SlalomProcess(const ctrl::slalom::Shape &shape, const bool mirror_x,
+                     const bool reverse, float &straight,
+                     const RunParameter &rp) {
+    ctrl::slalom::Trajectory st(shape, mirror_x);
     const auto straight_prev = shape.straight_prev;
     const auto straight_post = shape.straight_post;
     const float velocity =
@@ -554,7 +555,7 @@ private:
         /* 前壁制御で発生した直線を走行 */
         straight_x(0, velocity, velocity, rp);
       }
-      if (&shape == &SS_FS90L || &shape == &SS_FS90R) {
+      if (&shape == &ctrl::shapes[ctrl::ShapeIndex::FS90]) {
         front_wall_fix(rp, field::SegWidthFull - straight_prev);
         front_wall_fix(rp, 2 * field::SegWidthFull - straight_prev);
       }
@@ -742,7 +743,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        ctrl::slalom::Trajectory st(SS_S90L);
+        ctrl::slalom::Trajectory st(ctrl::shapes[ctrl::ShapeIndex::S90], 0);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[0])
           wall_stop();
@@ -761,7 +762,7 @@ private:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
       if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
-        ctrl::slalom::Trajectory st(SS_S90R);
+        ctrl::slalom::Trajectory st(ctrl::shapes[ctrl::ShapeIndex::S90], 1);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[1])
           wall_stop();
@@ -834,52 +835,52 @@ private:
                        float &straight, const RunParameter &rp) {
     switch (action) {
     case MazeLib::RobotBase::FastAction::FL45:
-      SlalomProcess(SS_F45L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45:
-      SlalomProcess(SS_F45R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL45P:
-      SlalomProcess(SS_F45L, straight, true, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 0, 1, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR45P:
-      SlalomProcess(SS_F45R, straight, true, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F45], 1, 1, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLV90:
-      SlalomProcess(SS_FV90L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FV90], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRV90:
-      SlalomProcess(SS_FV90R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FV90], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FLS90:
-      SlalomProcess(SS_FS90L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FS90], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FRS90:
-      SlalomProcess(SS_FS90R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::FS90], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL90:
-      SlalomProcess(SS_F90L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F90], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR90:
-      SlalomProcess(SS_F90R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F90], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135:
-      SlalomProcess(SS_F135L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135:
-      SlalomProcess(SS_F135R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL135P:
-      SlalomProcess(SS_F135L, straight, true, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 0, 1, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR135P:
-      SlalomProcess(SS_F135R, straight, true, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F135], 1, 1, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FL180:
-      SlalomProcess(SS_F180L, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F180], 0, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::FR180:
-      SlalomProcess(SS_F180R, straight, false, rp);
+      SlalomProcess(ctrl::shapes[ctrl::ShapeIndex::F180], 1, 0, straight, rp);
       break;
     case MazeLib::RobotBase::FastAction::F_ST_FULL:
       straight += field::SegWidthFull;

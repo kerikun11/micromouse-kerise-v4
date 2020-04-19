@@ -479,7 +479,7 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    const auto &shape = SS_F90L;
+    const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F90];
     const float velocity = 800.0f;
     const float Ts = 0.001f;
     const float j_max = 240000;
