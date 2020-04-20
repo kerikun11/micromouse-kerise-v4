@@ -1,0 +1,13 @@
+{
+    "name": "MicroMouseControlModule",
+    "description": "MicroMouse Control Module",
+    "keywords": "micromouse,control,robot,vehicle",
+    "build": {
+        "flags": [
+            "-I micromouse-control-module/include"
+        ],
+        "srcFilter": [
+            "+micromouse-control-module/include"
+        ]
+    }
+}
