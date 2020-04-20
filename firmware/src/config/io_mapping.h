@@ -1,3 +1,9 @@
+/**
+ * @file io_mapping.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief ハードウェアの設定
+ * @date 2020-04-20
+ */
 #pragma once
 
 #include "model.h"
