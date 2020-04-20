@@ -1,3 +1,9 @@
+/**
+ * @file model.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief マイクロマウスのモデル
+ * @date 2020-04-20
+ */
 #pragma once
 
 #include "feedback_controller.h"
