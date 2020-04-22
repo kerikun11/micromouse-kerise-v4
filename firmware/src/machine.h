@@ -179,7 +179,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.max_speed *= std::pow(ma.rp_fast.ms_gain, value);
+    ma.rp_fast.v_max *= std::pow(ma.rp_fast.ms_gain, value);
     /* 加速度 */
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT7);
@@ -188,7 +188,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.accel *= std::pow(ma.rp_fast.ms_gain, value);
+    ma.rp_fast.a_max *= std::pow(ma.rp_fast.ms_gain, value);
     /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
   }
@@ -402,17 +402,17 @@ public:
     sc.enable();
     ctrl::AccelDesigner ad;
     if (dir == 0) {
-      const float jerk = 240000;
-      const float accel = 9000;
+      const float j_max = 240000;
+      const float a_max = 9000;
       const float v_max = 1200;
       const float dist = 90 * 6;
-      ad.reset(jerk, accel, 0, v_max, 0, dist);
+      ad.reset(j_max, a_max, v_max, 0, 0, dist);
     } else {
-      const float jerk = 2400 * M_PI;
-      const float accel = 48 * M_PI;
+      const float j_max = 2400 * M_PI;
+      const float a_max = 48 * M_PI;
       const float v_max = 6 * M_PI;
       const float dist = 2 * M_PI;
-      ad.reset(jerk, accel, 0, v_max, 0, dist);
+      ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
@@ -494,7 +494,7 @@ public:
     tt.reset(0);
     /* accel */
     ctrl::straight::Trajectory ref;
-    ref.reset(j_max, a_max, 0, v_max, velocity, dist + shape.straight_prev);
+    ref.reset(j_max, a_max, v_max, 0, velocity, dist + shape.straight_prev);
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
@@ -524,7 +524,7 @@ public:
     offset += net.rotate(offset.th);
 #endif
     /* decel */
-    ref.reset(j_max, a_max, sc.ref_v.tra, v_max, 0, dist + shape.straight_post);
+    ref.reset(j_max, a_max, v_max, sc.ref_v.tra, 0, dist + shape.straight_post);
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
@@ -595,11 +595,11 @@ public:
     imu.calibration();
     /* config */
     const float Ts = 0.001f;
-    const float jerk = 2400 * M_PI;
-    const float accel = 24 * M_PI;
+    const float j_max = 2400 * M_PI;
+    const float a_max = 24 * M_PI;
     const float v_max = 1 * M_PI;
     const float dist = 2 * M_PI;
-    ctrl::AccelDesigner ad(jerk, accel, 0, v_max, 0, dist);
+    ctrl::AccelDesigner ad(j_max, a_max, v_max, 0, 0, dist);
     ctrl::FeedbackController<float>::Model model = {
         .K1 = std::numeric_limits<float>::max(), .T1 = 0};
     ctrl::FeedbackController<float>::Gain gain = {

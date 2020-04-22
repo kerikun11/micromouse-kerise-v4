@@ -37,9 +37,9 @@ public:
     bool wall_theta_fix_enabled = 1;
     bool wall_cut_enabled = 0;
     float curve_gain = 1.0;
-    float max_speed = 720;
-    float accel = 3600;
-    float jerk = 240000;
+    float v_max = 720;
+    float a_max = 3600;
+    float j_max = 240000;
     float fan_duty = 0.2f;
 
   public:
@@ -54,15 +54,15 @@ public:
     void up(const int cnt = 1) {
       for (int i = 0; i < cnt; ++i) {
         curve_gain *= cg_gain;
-        max_speed *= ms_gain;
-        accel *= ac_gain;
+        v_max *= ms_gain;
+        a_max *= ac_gain;
       }
     }
     void down(const int cnt = 1) {
       for (int i = 0; i < cnt; ++i) {
         curve_gain /= cg_gain;
-        max_speed /= ms_gain;
-        accel /= ac_gain;
+        v_max /= ms_gain;
+        a_max /= ac_gain;
       }
     }
   };
@@ -105,7 +105,7 @@ public:
     std::array<uint16_t, table_size> table;
     std::bitset<table_size> is_valid;
     table.fill(255);
-    ctrl::AccelDesigner ad(dddth_max, ddth_max, 0, dth_max, 0, angle);
+    ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -430,7 +430,7 @@ private:
     static constexpr float dddth_max = 4800 * M_PI;
     static constexpr float ddth_max = 48 * M_PI;
     static constexpr float dth_max = 4 * M_PI;
-    ctrl::AccelDesigner ad(dddth_max, ddth_max, 0, dth_max, 0, angle);
+    ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const float back_gain = 10.0f;
     for (float t = 0; t < ad.t_end(); t += 0.001f) {
@@ -467,7 +467,7 @@ private:
       ctrl::State ref_s;
       ctrl::straight::Trajectory trajectory;
       /* start */
-      trajectory.reset(rp.jerk, rp.accel, v_start, v_max, v_end,
+      trajectory.reset(rp.j_max, rp.a_max, v_max, v_start, v_end,
                        distance - sc.est_p.x, sc.est_p.x);
       tt.reset(v_start);
       float int_y = 0;
@@ -542,7 +542,7 @@ private:
     straight += !reverse ? straight_prev : straight_post;
     /* ターン前の直線を消化 */
     if (straight > 0.1f) {
-      straight_x(straight, rp.max_speed, velocity, rp);
+      straight_x(straight, rp.v_max, velocity, rp);
       straight = 0;
     }
     /* 直線前壁補正 */
@@ -624,7 +624,7 @@ private:
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
     const auto v_start = sc.ref_v.tra;
-    ctrl::AccelCurve ac(rp.jerk, rp.accel, v_start, 0);
+    ctrl::AccelCurve ac(rp.j_max, rp.a_max, v_start, 0);
     /* start */
     tt.reset(v_start);
     float int_y = 0;
@@ -679,7 +679,7 @@ private:
       }
       /* 最後の直線を消化 */
       if (straight > 0.1f) {
-        straight_x(straight, rp.max_speed, v_search, rp);
+        straight_x(straight, rp.v_max, v_search, rp);
         straight = 0;
       }
     }
@@ -819,7 +819,7 @@ private:
     }
     /* 最後の直線を消化 */
     if (straight > 0.1f) {
-      straight_x(straight, rp.max_speed, 0, rp);
+      straight_x(straight, rp.v_max, 0, rp);
       straight = 0;
     }
     sc.set_target(0, 0);
