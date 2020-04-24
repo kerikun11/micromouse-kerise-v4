@@ -7,6 +7,3 @@
 [submodule "firmware/lib/ctrl"]
 	path = firmware/lib/ctrl
 	url = git@github.com:kerikun11/micromouse-control-module.git
-[submodule "firmware/lib/micromouse-control-module"]
-	path = firmware/lib/micromouse-control-module
-	url = git@github.com:kerikun11/micromouse-control-module.git
