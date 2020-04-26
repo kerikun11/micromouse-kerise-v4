@@ -12,7 +12,7 @@ figindex = 1;
 save_fig = 0;
 
 %% Select a Log File with GUI
-% %{
+%{
 [filename, pathname] = uigetfile({'*'}, 'Select a Log File');
 fprintf('Log File: %s\n', filename);
 %}

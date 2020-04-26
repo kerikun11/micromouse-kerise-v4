@@ -11,6 +11,36 @@ set(groot, 'DefaultAxesFontSize', 14);
 set(groot, 'DefaultLineLineWidth', 1.5);
 figindex = 1;
 
+%% Serial input
+%{
+sl = seriallist;
+portname = sl{2};
+s = serial(portname, 'Baudrate', 2000000);
+s.Timeout = 10;
+
+date_time_str = datestr(datetime('now'), 'yymmdd-HHMMSS');
+pathname = './data/';
+filename = [date_time_str '.tab'];
+[~, ~] = mkdir(pathname);
+fileID = fopen([pathname filename], 'w');
+
+fopen(s);
+disp('now waiting for serial input...');
+
+while 1
+    idn = fscanf(s);
+    s.Timeout = 0.1;
+    if idn == ""; break; end
+    fwrite(fileID, idn);
+end
+
+fclose(fileID);
+fclose(s);
+delete(s);
+clear s;
+fprintf("Saved Log File: %s\n", filename);
+%}
+
 %% Select a Log File
 [filename, pathname] = uigetfile({'*'}, 'Select a Log File');
 fprintf('Log File: %s\n', filename);
@@ -101,7 +131,7 @@ legstr{length(legstr)+1} = 'Encoder + IMU-Accel, Complementary Filtered';
 title('Translational Velocity');
 xlabel('Time [ms]');
 ylabel('Velocity [mm/s]');
-legend(legstr, 'Location', 'NorthWest');
+legend(legstr, 'Location', 'SouthWest');
 
 subplot(2, 1, 2); hold off; clear legstr; legstr = {};
 plot(time, gyro); hold on;
@@ -112,4 +142,4 @@ grid on;
 title('Angular Velocity');
 xlabel('Time [ms]');
 ylabel('Angular Velocity [rad/s]');
-legend(legstr, 'Location', 'NorthWest');
+legend(legstr, 'Location', 'SouthWest');
