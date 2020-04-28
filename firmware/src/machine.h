@@ -380,32 +380,30 @@ public:
           sc.ref_a.tra,
           sc.est_a.tra,
           bd.ff.tra,
-          bd.fb.tra,
           bd.fbp.tra,
           bd.fbi.tra,
-          bd.u.tra,
+          bd.fbd.tra,
           sc.ref_v.rot,
           sc.est_v.rot,
           sc.ref_a.rot,
           sc.est_a.rot,
           bd.ff.rot,
-          bd.fb.rot,
           bd.fbp.rot,
           bd.fbi.rot,
-          bd.u.rot,
+          bd.fbd.rot,
       });
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    fan.drive(0.4);
+    fan.drive(0.2);
     delay(500);
     sc.enable();
     ctrl::AccelDesigner ad;
     if (dir == 0) {
       const float j_max = 240000;
       const float a_max = 9000;
-      const float v_max = 1200;
-      const float dist = 90 * 6;
+      const float v_max = 600;
+      const float dist = 90 * 4;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     } else {
       const float j_max = 2400 * M_PI;
@@ -471,10 +469,10 @@ public:
       auto &bd = sc.fbc.getBreakdown();
       lgr.push({
           sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
-          bd.fb.tra,    bd.fbp.tra,   bd.fbi.tra,   bd.u.tra,     sc.ref_v.rot,
-          sc.est_v.rot, sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fb.rot,
-          bd.fbp.rot,   bd.fbi.rot,   bd.u.rot,     ref_q.x,      est_q.x,
-          ref_q.y,      est_q.y,      ref_q.th,     est_q.th,
+          bd.fbp.tra,   bd.fbi.tra,   bd.fbd.tra,   sc.ref_v.rot, sc.est_v.rot,
+          sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fbp.rot,   bd.fbi.rot,
+          bd.fbd.rot,   ref_q.x,      est_q.x,      ref_q.y,      est_q.y,
+          ref_q.th,     est_q.th,
       });
     };
     bz.play(Buzzer::CALIBRATION);

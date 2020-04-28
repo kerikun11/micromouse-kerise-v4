@@ -24,7 +24,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 4
+#define KERISE_SELECT 5
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -44,11 +44,11 @@ const float wall_avoid_gain = 0.001f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(3642, 137), .T1 = ctrl::Polar(0.1998, 0.1354),
+  .K1 = ctrl::Polar(5463, 137), .T1 = ctrl::Polar(0.1998 / 1.6, 0.1354),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0002f, 0.03f), .Ki = ctrl::Polar(0.03f, 3.0f),
+  .Kp = ctrl::Polar(0.0008, 0.06), .Ki = ctrl::Polar(0.02, 9.0),
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
