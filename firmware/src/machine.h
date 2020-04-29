@@ -434,10 +434,7 @@ public:
   }
   static void slalom_test() {
     ctrl::TrajectoryTracker::Gain gain;
-    // gain.omega_n = 0;
-    // gain.zeta = 0;
-    // gain.low_b = 0;
-    // gain.low_zeta = 0;
+    gain.omega_n = gain.zeta = gain.low_b = gain.low_zeta = 0;
     // int mode = ui.waitForSelect(3);
     int mode = 0;
     if (mode < 0)
@@ -477,10 +474,10 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F90];
-    const float velocity = 800.0f;
+    const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F180];
+    const float velocity = 720.0f;
     const float Ts = 0.001f;
-    const float j_max = 240000;
+    const float j_max = 120000;
     const float a_max = 6000;
     const float v_max = velocity;
     const float dist = 1 * 90;
@@ -543,6 +540,59 @@ public:
       bz.play(Buzzer::EMERGENCY);
       mt.emergencyRelease();
     }
+  }
+  static void pidTuner() {
+    ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.G;
+    /* load */
+    constexpr auto filepath = "/spiffs/machine/pid.gain";
+    {
+      std::ifstream f(filepath, std::ios::binary);
+      if (f.fail())
+        loge << "Can't open file!" << std::endl;
+      else if (f.eof())
+        loge << "File size is invalid!" << std::endl;
+      else
+        f.read((char *)(&gain), sizeof(gain));
+      std::cout << filepath << std::endl;
+      std::cout << "\t.Kp = ctrl::Polar(" << gain.Kp.tra << ", " << gain.Kp.rot
+                << "), .Ki = ctrl::Polar(" << gain.Ki.tra << ", " << gain.Ki.rot
+                << ")," << std::endl;
+    }
+    /* user input */
+    int mode = ui.waitForSelect(5);
+    int value = ui.waitForSelect(16);
+    value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
+    if (mode < 0)
+      return;
+    switch (mode) {
+    case 0:
+      gain = sc.G;
+    case 1:
+      gain.Kp.tra *= std::pow(1.1f, value);
+      break;
+    case 2:
+      gain.Ki.tra *= std::pow(1.1f, value);
+      break;
+    case 3:
+      gain.Kp.rot *= std::pow(1.1f, value);
+      break;
+    case 4:
+      gain.Ki.rot *= std::pow(1.1f, value);
+      break;
+    }
+    led = 15;
+    if (!ui.waitForCover())
+      return;
+    /* save */
+    {
+      std::ofstream of(filepath, std::ios::binary);
+      if (of.fail())
+        log_e("Can't open file!");
+      else
+        of.write((const char *)(&gain), sizeof(gain));
+    }
+    sc.G = gain;
+    bz.play(Buzzer::SUCCESSFUL);
   }
   static void SearchRun_test() {
     if (!ui.waitForCover())

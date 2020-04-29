@@ -14,6 +14,7 @@ public:
   auto size() const { return buf.size(); }
   auto reserve(std::size_t n) { return buf.reserve(n); }
   void print(std::ostream &os = std::cout) const {
+    int wait_ctr = 0;
     for (const auto &data : buf) {
       bool first = true;
       for (const auto &value : data) {
@@ -24,7 +25,8 @@ public:
         os << value;
       }
       os << std::endl;
-      vTaskDelay(1);
+      if (wait_ctr++ % 10 == 0)
+        vTaskDelay(1);
     }
   }
 

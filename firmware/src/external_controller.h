@@ -30,6 +30,11 @@ private:
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
       char c = getChar();
       switch (c) {
+      case 'c':
+        imu.calibration();
+        bz.play(Buzzer::CALIBRATION);
+        imu.angle = 0;
+        break;
       case 'g':
         // tof.enable();
         break;

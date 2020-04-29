@@ -12,6 +12,7 @@ void printTask(void *arg);
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
+  std::cout << std::endl << "I'm KERISE v" << KERISE_SELECT << "!" << std::endl;
   Machine::init();
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   xTaskCreate(driveTask, "drive", 4096, NULL, 2, NULL);
@@ -26,6 +27,7 @@ void printTask(void *arg) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
     // ref.csv();
     // tof.print();
+    // std::cout << imu.angle / M_PI * 180 << std::endl;
   }
 }
 
@@ -71,12 +73,15 @@ void driveTask(void *arg) {
     case 11: /* ゴール区画の設定 */
       Machine::setGoalPositions();
       break;
-    case 13:
+    case 12:
       Machine::position_recovery();
       break;
+    case 13:
+      Machine::pidTuner();
+      break;
     case 14: /* テスト */
-      // Machine::accel_test();
-      Machine::slalom_test();
+      Machine::accel_test();
+      // Machine::slalom_test();
       // Machine::sysid();
       break;
     case 15: /* ログの表示 */

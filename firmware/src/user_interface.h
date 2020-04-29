@@ -213,9 +213,9 @@ public:
       led = 0x0F;
   }
   static void batteryCheck() {
-    float voltage = getBatteryVoltage();
+    const float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
-    logi << "Battery Voltage: " << voltage << std::endl;
+    logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
     if (voltage < thr_battery) {
       logw << "Battery Low!" << std::endl;
       bz.play(Buzzer::SHUTDOWN);

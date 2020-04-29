@@ -6,7 +6,7 @@
 
 #include "spi.h"
 
-#include "config/model.h"
+#include "config/model.h" //< for KERISE_SELECT
 
 struct MotionParameter {
   float x, y, z;
@@ -21,16 +21,10 @@ struct MotionParameter {
     return MotionParameter(x / div, y / div, z / div);
   }
   const MotionParameter &operator=(const MotionParameter &obj) {
-    x = obj.x;
-    y = obj.y;
-    z = obj.z;
-    return *this;
+    return x = obj.x, y = obj.y, z = obj.z, *this;
   }
   const MotionParameter &operator+=(const MotionParameter &obj) {
-    x += obj.x;
-    y += obj.y;
-    z += obj.z;
-    return *this;
+    return x += obj.x, y += obj.y, z += obj.z, *this;
   }
 };
 
@@ -42,7 +36,6 @@ public:
 #endif
 
 private:
-  // static constexpr float ICM20602_ACCEL_FACTOR = 2048.0f;
   static constexpr float ICM20602_ACCEL_FACTOR = 4 * 2048.0f;
   static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
 
@@ -70,15 +63,49 @@ public:
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &spi_handle));
     return reset();
   }
-  void device_reset() { writeReg(107, 0x81); /**< PowerManagement 1 */ }
+  void device_reset() { writeReg(107, 0x81); /*< PowerManagement 1 */ }
   void device_config() {
-    writeReg(26, 0x00); /**< Config; 2:0 DLPF = 250[Hz] */
-    writeReg(27, 0x18); /**< Gyr Conf; 4:3 FS=2000[dps], 1:0 FCHOICE=8[kHz] */
-    // writeReg(28, 0x18); /**< Acc Conf; 4:3 FS=16[g] */
-    writeReg(28, 0x08); /**< Acc Conf; 4:3 FS=2[g] */
-    writeReg(29, 0x00); /**< Acc Conf 2; 3 F_CHOICE=1[kHz], DLPF=218.1[Hz] */
-    // writeReg(17, 0xc9);  /**< ??? for Accel */
-    writeReg(107, 0x01); /**< PowerManagement 1 */
+    /* 107: Power Management 1
+     *   7  : RESET
+     *   6  : SLEEP
+     *   5  : CYCLE
+     *   4  : GYRO_STANDBY
+     *   3  : TEMP_DIS
+     *   2:0: CLKSEL
+     */
+    /* 26: CONFIG
+     *   7  : -
+     *   6  : FIFO_MODE
+     *   5:3: EXT_SYNC_SET
+     *   2:0: DLPF_CFG; see table1
+     */
+    /* 27: GYRO_CONFIG
+     *  7:5: self-test
+     *  4:3: FS_SEL; 0:250dps, 1:500dps, 2:1000dps, 3:2000dps
+     *  2  : -
+     *  1:0: FCHOISE_B; see table1
+     */
+    /* 28: ACCEL_CONFIG
+     *  7:5: self-test
+     *  4:3: ACCEL_FS_SEL; 0:2g, 1:4g, 2:8g, 3:16g
+     *  2:0: -
+     */
+    /*
+     * 29: ACCEL_CONFIG2
+     * 5:4: DEC2_CFG; 0:4, 1:8, 2:16, 3:32 samples average
+     * 3  : ACCEL_FCHOICE_B; 0:1[kHz], 1:4[kHz]
+     * 2:0: A_DLPF_CFG; see table2
+     */
+    /* Gyro */
+    writeReg(26, 0x00); /*< Config; 2:0==0: DLPF = 250[Hz] */
+    writeReg(27, 0x18); /*< Gyr Conf; 4:3 FS=2000[dps], 1:0 FCHOICE=8[kHz] */
+    /* Acceleration */
+    // writeReg(28, 0x18); /*< Acc Conf; 4:3 FS=16[g] */
+    writeReg(28, 0x08); /*< Acc Conf; 4:3 FS=2[g] */
+    writeReg(29, 0x00); /*< Acc Conf 2; 3 F_CHOICE=1[kHz], DLPF=218.1[Hz] */
+    // writeReg(17, 0xc9); /*< ??? for Accel */
+    /* Power */
+    writeReg(107, 0x01); /*< PowerManagement 1; unset SLEEP */
   }
   bool reset() {
     device_reset();
@@ -87,7 +114,7 @@ public:
     return whoami();
   }
   bool whoami() {
-    uint8_t v = readReg(117); /**< Who am I */
+    uint8_t v = readReg(117); /*< Who am I */
     if (v != 0x12) {
       log_e("whoami failed:( 0x%X", v);
       return false;
@@ -353,8 +380,8 @@ private:
     accel.y = icm.accel.y;
     accel.z = icm.accel.z;
 
-    angular_accel = (gyro.z - prev_gyro_z) / Ts;
     angle += gyro.z * Ts;
+    angular_accel = (gyro.z - prev_gyro_z) / Ts;
   }
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();

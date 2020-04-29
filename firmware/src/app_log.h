@@ -10,34 +10,41 @@
  */
 #pragma once
 
-#include <iomanip>
 #include <iostream>
 
-#define log_com(c)                                                             \
-  (std::cout << "[" c "] " << std::setw(8) << std::setfill(' ')                \
-             << xTaskGetTickCount() * portTICK_PERIOD_MS << " [" << __FILE__   \
-             << ":" << __LINE__ << "] [" << __func__ << "()] ")
+#define APP_STRINGIFY(n) #n
+#define APP_TOSTRING(n) APP_STRINGIFY(n)
+#define APP_LOG_OSTREAM_COMMON(c)                                              \
+  (std::cout << "[" c "][" __FILE__ ":" APP_TOSTRING(__LINE__) "] ")
 
+#ifndef logd
 #if 1
-#define logd log_com("D")
+#define logd APP_LOG_OSTREAM_COMMON("D")
 #else
-#define logd
+#define logd std::ostream(0)
+#endif
 #endif
 
+#ifndef logi
 #if 1
-#define logi log_com("I")
+#define logi APP_LOG_OSTREAM_COMMON("I")
 #else
-#define logi
+#define logi std::ostream(0)
+#endif
 #endif
 
+#ifndef logw
 #if 1
-#define logw log_com("W")
+#define logw APP_LOG_OSTREAM_COMMON("W")
 #else
-#define logw
+#define logw std::ostream(0)
+#endif
 #endif
 
+#ifndef loge
 #if 1
-#define loge log_com("E")
+#define loge APP_LOG_OSTREAM_COMMON("E")
 #else
-#define loge
+#define loge std::ostream(0)
+#endif
 #endif
