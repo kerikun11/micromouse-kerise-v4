@@ -23,9 +23,9 @@ public:
     calibration_start_semaphore = xSemaphoreCreateBinary();
     calibration_end_semaphore = xSemaphoreCreateBinary();
   }
-  bool begin(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
+  bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
     for (int i = 0; i < IMU_NUM; ++i)
-      if (!icm[i].begin(spi_host, pins_cs[i])) {
+      if (!icm[i].init(spi_host, pins_cs[i])) {
         log_e("IMU %d begin failed :(", i);
         return false;
       }

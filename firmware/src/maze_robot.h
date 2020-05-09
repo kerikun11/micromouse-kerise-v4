@@ -10,9 +10,6 @@
 
 using namespace MazeLib;
 
-#define MAZE_ROBOT_TASK_PRIORITY 2
-#define MAZE_ROBOT_STACK_SIZE 8192
-
 #define GOAL_SELECT 1
 #if GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
@@ -40,10 +37,13 @@ using namespace MazeLib;
   { MazeLib::Position(8, 8) }
 #endif
 
-#define MAZE_SAVE_PATH "/spiffs/maze_backup.bin"
-#define STATE_SAVE_PATH "/spiffs/maze_state.bin"
-
 class MazeRobot : public RobotBase, private TaskBase {
+public:
+  static constexpr int MAZE_ROBOT_TASK_PRIORITY = 2;
+  static constexpr int MAZE_ROBOT_STACK_SIZE = 8192;
+  static constexpr auto MAZE_SAVE_PATH = "/spiffs/maze_backup.bin";
+  static constexpr auto STATE_SAVE_PATH = "/spiffs/maze_state.bin";
+
 public:
 #define MAZEROBOT_TIMEOUT_SELECT 0
 #if MAZEROBOT_TIMEOUT_SELECT == 0 /* 32 x 32 */
@@ -146,9 +146,8 @@ public:
     terminate();
   }
   void print() const {
-    for (const auto &wl : maze.getWallLogs()) {
+    for (const auto &wl : maze.getWallLogs())
       std::cout << wl << std::endl;
-    }
     maze.print();
   }
   bool isRunning() const { return isRunningFlag; }

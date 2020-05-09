@@ -17,7 +17,7 @@ public:
       : tx_pins(tx_pins), rx_pins(rx_pins) {
     sampling_semaphore = xSemaphoreCreateBinary();
   }
-  bool begin() {
+  bool init() {
     for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
       value[i] = 0;
       pinMode(tx_pins[i], OUTPUT);

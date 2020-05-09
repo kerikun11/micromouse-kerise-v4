@@ -195,7 +195,6 @@ public:
    */
   static float getBatteryVoltage() {
     return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
-    // return 2 * 1.0f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
   }
   /**
    * @brief バッテリー電圧をLEDで表示
@@ -224,13 +223,5 @@ public:
       btn.flags = 0;
       led = 0;
     }
-  }
-  static void gointToDeepsleep() {
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
-    esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
-    esp_deep_sleep_start();
-    vTaskDelay(portMAX_DELAY);
   }
 };

@@ -9,10 +9,9 @@ public:
   static constexpr int BUZZER_QUEUE_SIZE = 10;
 
 public:
-  Buzzer(int pin, uint8_t channel) : pin(pin), channel(channel) {
-    playList = xQueueCreate(BUZZER_QUEUE_SIZE, sizeof(enum Music));
-  }
-  bool begin() {
+  Buzzer() { playList = xQueueCreate(BUZZER_QUEUE_SIZE, sizeof(enum Music)); }
+  bool init(int pin, uint8_t channel) {
+    this->channel = channel;
     ledcSetup(channel, 880, 4);
     ledcAttachPin(pin, channel);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
@@ -42,7 +41,6 @@ public:
   void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
 
 private:
-  int pin;
   uint8_t channel;
   QueueHandle_t playList;
   void sound(const note_t note, uint8_t octave, uint32_t time_ms) {

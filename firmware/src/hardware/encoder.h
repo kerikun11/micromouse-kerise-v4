@@ -16,12 +16,11 @@ private:
   static constexpr int ENCODER_PRIORITY = 5;
 
 public:
-  Encoder(float gear_ratio, float wheel_diameter)
-      : gear_ratio(gear_ratio), wheel_diameter(wheel_diameter) {
+  Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {
     sampling_end_semaphore = xSemaphoreCreateBinary();
   }
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
-  bool begin(spi_host_device_t spi_host, int8_t pin_cs) {
+  bool init(spi_host_device_t spi_host, int8_t pin_cs) {
     if (!as.init(spi_host, pin_cs)) {
       loge << "AS5048A init failed :(" << std::endl;
       return false;
@@ -31,12 +30,12 @@ public:
     return true;
   }
 #elif KERISE_SELECT == 5
-  bool begin(spi_host_device_t spi_host, std::array<gpio_num_t, 2> pins_cs) {
-    if (!ma[0].begin(spi_host, pins_cs[0])) {
+  bool init(spi_host_device_t spi_host, std::array<gpio_num_t, 2> pins_cs) {
+    if (!ma[0].init(spi_host, pins_cs[0])) {
       loge << "Encoder L init failed :(" << std::endl;
       return false;
     }
-    if (!ma[1].begin(spi_host, pins_cs[1])) {
+    if (!ma[1].init(spi_host, pins_cs[1])) {
       loge << "Encoder R init failed :(" << std::endl;
       return false;
     }
@@ -76,8 +75,7 @@ private:
   MA730 ma[2];
 #endif
   SemaphoreHandle_t sampling_end_semaphore;
-  const float gear_ratio;
-  const float wheel_diameter;
+  const float encoder_factor;
   int pulses[2];
   int pulses_prev[2];
   int pulses_ovf[2];
@@ -105,8 +103,8 @@ private:
       }
       pulses_prev[i] = pulses[i];
       /* calculate position */
-      positions[i] = (pulses_ovf[i] + float(pulses[i]) / pulses_size) *
-                     wheel_diameter * M_PI * gear_ratio;
+      positions[i] =
+          (pulses_ovf[i] + float(pulses[i]) / pulses_size) * encoder_factor;
     }
     /* fix rotation direction */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4

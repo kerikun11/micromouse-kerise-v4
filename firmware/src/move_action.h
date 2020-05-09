@@ -9,17 +9,12 @@
 #include "straight.h"
 #include "trajectory_tracker.h"
 
+#include <RobotBase.h>
 #include <TaskBase.h>
 
 #include <cmath>
+#include <concurrent_queue.hpp>
 #include <queue>
-
-#define SEARCH_WALL_ATTACH_ENABLED 1
-
-#define SEARCH_RUN_TASK_PRIORITY 3
-#define SEARCH_RUN_STACK_SIZE 8192
-
-#include <RobotBase.h>
 
 class MoveAction : TaskBase {
 public:
@@ -52,33 +47,23 @@ public:
 
   public:
     void up(const int cnt = 1) {
-      for (int i = 0; i < cnt; ++i) {
-        curve_gain *= cg_gain;
-        v_max *= ms_gain;
-        a_max *= ac_gain;
-      }
+      for (int i = 0; i < cnt; ++i)
+        curve_gain *= cg_gain, v_max *= ms_gain, a_max *= ac_gain;
     }
     void down(const int cnt = 1) {
-      for (int i = 0; i < cnt; ++i) {
-        curve_gain /= cg_gain;
-        v_max /= ms_gain;
-        a_max /= ac_gain;
-      }
+      for (int i = 0; i < cnt; ++i)
+        curve_gain /= cg_gain, v_max /= ms_gain, a_max /= ac_gain;
     }
   };
-#ifndef M_PI
-  static constexpr float M_PI = 3.14159265358979323846f;
-#endif
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
     // rp_search.diag_enabled = 0;
   }
-  ~MoveAction() {}
   void enable() {
     deleteTask();
     isRunningFlag = true;
-    createTask("MoveAction", SEARCH_RUN_TASK_PRIORITY, SEARCH_RUN_STACK_SIZE);
+    createTask("MoveAction", 3, 4096);
   }
   void disable() {
     deleteTask();
@@ -89,11 +74,11 @@ public:
     isRunningFlag = false;
   }
   bool isRunning() { return isRunningFlag; }
-  void set_action(MazeLib::RobotBase::SearchAction action) {
+  void set_action(const MazeLib::RobotBase::SearchAction action) {
     q.push(action);
     isRunningFlag = true;
   }
-  void set_path(std::string path) { this->path = path; }
+  void set_path(const std::string &path) { this->path = path; }
   bool positionRecovery() {
     /* 1周回って壁を探す */
     sc.enable();
@@ -174,11 +159,11 @@ public:
   std::array<bool, 3> is_wall;
 
 private:
-  std::queue<MazeLib::RobotBase::SearchAction> q;
-  bool isRunningFlag = false;
-  bool isNeutralTurnMode = false;
-  ctrl::Pose offset;
+  volatile bool isRunningFlag = false;
+  // std::queue<MazeLib::RobotBase::SearchAction> q;
+  lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> q;
   std::string path;
+  ctrl::Pose offset;
   bool prev_wall[2];
 
   static auto round2(auto value, auto div) {
@@ -195,7 +180,7 @@ private:
   }
 
   void wall_attach(bool force = false) {
-#if SEARCH_WALL_ATTACH_ENABLED
+#if 1
     if ((force && tof.getDistance() < field::SegWidthFull * 5 / 4) ||
         tof.getDistance() < 90 ||
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
@@ -580,7 +565,7 @@ private:
     vTaskDelay(pdMS_TO_TICKS(200));
     mt.drive(-0.2f, -0.2f);
     vTaskDelay(pdMS_TO_TICKS(200));
-    sc.enable(true);
+    sc.enable();
   }
   void uturn() {
     if (wd.distance.side[0] < wd.distance.side[1]) {

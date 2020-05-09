@@ -1,7 +1,7 @@
 /**
-   @file  global.h
-   @brief グローバル変数の extern 宣言をするファイル．
-*/
+ * @file  global.h
+ * @brief グローバル変数の extern 宣言をするファイル．
+ */
 #pragma once
 
 /* Driver */

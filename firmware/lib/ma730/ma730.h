@@ -13,7 +13,7 @@ public:
 
 public:
   MA730() {}
-  bool begin(spi_host_device_t spi_host, gpio_num_t pin_cs) {
+  bool init(spi_host_device_t spi_host, gpio_num_t pin_cs) {
     this->pin_cs = pin_cs;
     gpio_set_direction(pin_cs, GPIO_MODE_OUTPUT);
     gpio_set_level(pin_cs, 1);

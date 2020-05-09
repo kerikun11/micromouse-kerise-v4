@@ -16,7 +16,7 @@ public:
   static constexpr uint32_t BUTTON_STACK_SIZE = 1024;
 
 public:
-  Button(gpio_num_t pin) : pin(pin) {
+  Button(const gpio_num_t pin) : pin(pin) {
     gpio_set_direction(pin, GPIO_MODE_INPUT);
     gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
     flags = 0x00;
@@ -39,7 +39,7 @@ public:
 
 private:
   gpio_num_t pin;
-  int counter;
+  int counter = 0;
 
   void update() {
     if (gpio_get_level(pin) == LOW) {

@@ -6,9 +6,6 @@
 
 #include "config/io_mapping.h"
 
-#include "polar.h"
-#include "trajectory_tracker.h"
-
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -21,11 +18,11 @@ public:
       pinMode(p, INPUT_PULLUP);
     pinMode(RX, INPUT_PULLUP);
     /* Buzzer */
-    bz.begin();
+    bz.init(BUZZER_PIN, LEDC_CH_BUZZER);
     /* I2C */
     if (!I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
       bz.play(Buzzer::ERROR);
-    if (!led.begin())
+    if (!led.init())
       bz.play(Buzzer::ERROR);
     ui.batteryCheck();
     bz.play(Buzzer::BOOT);
@@ -35,25 +32,23 @@ public:
     if (!SPI::busInit(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
                       CONFIG_SPI_MOSI_PIN, CONFIG_SPI_DMA_CHAIN))
       bz.play(Buzzer::ERROR);
-#if KERISE_SELECT == 4 || KERISE_SELECT == 3
-    if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS))
+    if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);
-    if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN))
+#if KERISE_SELECT == 4 || KERISE_SELECT == 3
+    if (!enc.init(AS5048A_SPI_HOST, AS5048A_CS_PIN))
       bz.play(Buzzer::ERROR);
 #elif KERISE_SELECT == 5
-    if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS))
-      bz.play(Buzzer::ERROR);
-    if (!enc.begin(MA730_SPI_HOST, MA730_CS_PINS))
+    if (!enc.init(MA730_SPI_HOST, MA730_CS_PINS))
       bz.play(Buzzer::ERROR);
 #endif
-    if (!ref.begin())
+    if (!ref.init())
       bz.play(Buzzer::ERROR);
-    if (!tof.begin())
+    if (!tof.init())
       bz.play(Buzzer::ERROR);
-    if (!wd.begin())
+    if (!wd.init())
       bz.play(Buzzer::ERROR);
 
-    // if (!ec.begin())
+    // if (!ec.init())
     //   bz.play(Buzzer::ERROR);
     return true;
   }
@@ -301,9 +296,6 @@ public:
     if (!ui.waitForCover())
       return;
     delay(500);
-    // ma.set_path("sssssssrlrlrlrlrlrlssssslrlrlrlrlrlrsssssrlrlrlrlrlrssssssssrl"
-    //             "rlrlrlrlrssssssssssssssssssslrlrlrlrlrlsssssssslrlrlrlrlrlssss"
-    //             "slrlrlrlrlrlrsssssrlrlrlrlrlrlssssss");
     std::string path;
     path += "s";
     for (int j = 0; j < 4; ++j) {

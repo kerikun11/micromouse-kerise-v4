@@ -12,7 +12,7 @@
 class ToF {
 public:
   ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
-  bool begin() {
+  bool init() {
     sensor.setTimeout(100);
     sensor.init();
     sensor.configureDefault();

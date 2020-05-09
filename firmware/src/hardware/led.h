@@ -1,6 +1,5 @@
 #pragma once
 
-#include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -17,7 +16,7 @@ public:
   LED(i2c_port_t i2c_port) : i2c_port(i2c_port) {
     playList = xQueueCreate(5, sizeof(uint8_t));
   }
-  bool begin() {
+  bool init() {
     writeReg(0x00, 0b10000001);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "LED", LED_STACK_SIZE, this, LED_TASK_PRIORITY, NULL);

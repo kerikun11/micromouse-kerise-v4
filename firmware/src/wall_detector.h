@@ -59,12 +59,12 @@ public:
 
 public:
   WallDetector() {}
-  bool begin() {
+  bool init() {
     calibrationStartSemaphore = xSemaphoreCreateBinary();
     calibrationEndSemaphore = xSemaphoreCreateBinary();
     calibrationFrontStartSemaphore = xSemaphoreCreateBinary();
     calibrationFrontEndSemaphore = xSemaphoreCreateBinary();
-    xTaskCreate([](void *obj) { static_cast<WallDetector *>(obj)->task(); },
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "WallDetector", WALL_DETECTOR_STACK_SIZE, this,
                 WALL_DETECTOR_TASK_PRIORITY, NULL);
     if (!restore())

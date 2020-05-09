@@ -1,14 +1,14 @@
 /**
-   @file  global.cpp
-   @brief グローバル変数の実体を定義するC++ファイル．
-*/
+ * @file  global.cpp
+ * @brief グローバル変数の実体を定義するC++ファイル．
+ */
 #include "global.h"
 
 #include "config/io_mapping.h"
 #include "config/model.h"
 
 /* Driver */
-Buzzer bz(BUZZER_PIN, LEDC_CH_BUZZER);
+Buzzer bz;
 LED led(I2C_PORT_NUM_LED);
 Motor mt(MOTOR_L_CTRL1_PIN, MOTOR_L_CTRL2_PIN, MOTOR_R_CTRL1_PIN,
          MOTOR_R_CTRL2_PIN);
@@ -17,7 +17,7 @@ Fan fan(FAN_PIN);
 /* Sensor */
 Button btn(BUTTON_PIN);
 IMU imu;
-Encoder enc(model::GearRatio, model::WheelDiameter);
+Encoder enc(model::GearRatio *model::WheelDiameter *M_PI);
 Reflector ref(PR_TX_PINS, PR_RX_PINS);
 ToF tof(I2C_PORT_NUM_TOF);
 

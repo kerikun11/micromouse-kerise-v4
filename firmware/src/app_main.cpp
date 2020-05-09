@@ -1,7 +1,7 @@
 /**
  * @file app_main.cpp
  * @author Ryotaro Onuki (kerikun11+github@gmail.com)
- * @brief KERISE
+ * @brief MicroMouse KERISE
  * @date 2019-04-02
  */
 #include "machine.h"
@@ -25,10 +25,6 @@ void printTask(void *arg) {
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
-    // ref.csv();
-    // tof.print();
-    // std::cout << imu.angle / M_PI * 180 << std::endl;
-    // logd << enc << std::endl;
   }
 }
 

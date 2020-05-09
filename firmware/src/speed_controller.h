@@ -36,7 +36,7 @@ public:
 
 class SpeedController {
 public:
-  constexpr static float Ts = 0.001f;
+  static constexpr float Ts = 0.001f;
 
 public:
   ctrl::Polar ref_v;
@@ -55,24 +55,18 @@ public:
       : M(M), G(G), fbc(M, G) {
     enabled = false;
     reset();
-    xTaskCreate([](void *obj) { static_cast<SpeedController *>(obj)->task(); },
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
                 SPEED_CONTROLLER_TASK_PRIORITY, NULL);
   }
-  void enable(const bool reset_est_p = true) {
+  void enable() {
     reset();
-    if (reset_est_p)
-      est_p.clear();
     enabled = true;
   }
   void disable() {
     enabled = false;
     vTaskDelay(pdMS_TO_TICKS(2));
     mt.free();
-  }
-  void set_target(const ctrl::Polar dq, const ctrl::Polar ddq) {
-    ref_v = dq;
-    ref_a = ddq;
   }
   void set_target(const float tra, const float rot, const float tra_a = 0,
                   const float rot_a = 0) {
@@ -85,7 +79,7 @@ public:
 
 private:
   volatile bool enabled = false;
-  static const int acc_num = 8;
+  static constexpr int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<ctrl::Polar, acc_num> accel;
   ctrl::Pose fix;
