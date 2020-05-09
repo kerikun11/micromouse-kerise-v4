@@ -41,7 +41,7 @@ public:
     if (!enc.begin(AS5048A_SPI_HOST, AS5048A_CS_PIN))
       bz.play(Buzzer::ERROR);
 #elif KERISE_SELECT == 5
-    if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PIN))
+    if (!imu.begin(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);
     if (!enc.begin(MA730_SPI_HOST, MA730_CS_PINS))
       bz.play(Buzzer::ERROR);
@@ -340,8 +340,8 @@ public:
     lgr.clear();
     auto printLog = []() {
       lgr.push({
-          enc.position(0),
-          enc.position(1),
+          enc.get_position(0),
+          enc.get_position(1),
           imu.gyro.z,
           imu.accel.y,
           imu.angular_accel,
@@ -626,70 +626,5 @@ public:
       delay(500);
       ma.positionRecovery();
     }
-  }
-  static void selectTrajectoryGain() { bz.play(Buzzer::SUCCESSFUL); }
-  static void enc_id() {
-    if (!ui.waitForCover())
-      return;
-    delay(500);
-    // sc.enable();
-    // mt.drive(0.1, 0.1);
-    // if (!ui.waitForCover())
-    //   return;
-    // mt.free();
-    // return;
-    lgr.clear();
-    bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
-    /* config */
-    const float Ts = 0.001f;
-    const float j_max = 2400 * M_PI;
-    const float a_max = 24 * M_PI;
-    const float v_max = 1 * M_PI;
-    const float dist = 2 * M_PI;
-    ctrl::AccelDesigner ad(j_max, a_max, v_max, 0, 0, dist);
-    ctrl::FeedbackController<float>::Model model = {
-        .K1 = std::numeric_limits<float>::max(), .T1 = 0};
-    ctrl::FeedbackController<float>::Gain gain = {
-        .Kp = 1.2, .Ki = 5.6, .Kd = 0.0};
-    ctrl::FeedbackController<float> fc(model, gain);
-    /* start */
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    fc.reset();
-    imu.angle = 0;
-    for (float t = 0; t < ad.t_end() + 0.1f; t += Ts) {
-      const auto pwm_value =
-          fc.update(ad.x(t), imu.angle, ad.v(t), imu.gyro.z, Ts);
-      mt.drive(0, pwm_value);
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      imu.samplingSemaphoreTake();
-      enc.samplingSemaphoreTake();
-      if ((int)(t * 1000) % 2 == 0) {
-        const auto &bd = fc.getBreakdown();
-        lgr.push({
-            (float)enc.getPulses(0),
-            (float)enc.getPulses(1),
-            ad.x(t),
-            imu.angle,
-            ad.v(t),
-            imu.gyro.z,
-            bd.ff,
-            bd.fb,
-            bd.fbp,
-            bd.fbi,
-            bd.fbd,
-            bd.u,
-        });
-      }
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
-        break;
-      }
-    }
-    /* end */
-    mt.drive(0, 0);
-    delay(200);
-    mt.free();
-    bz.play(Buzzer::CANCEL);
   }
 };

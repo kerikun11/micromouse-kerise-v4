@@ -2,12 +2,12 @@
 
 #include <Arduino.h>
 
-#define BUZZER_TASK_PRIORITY 1
-#define BUZZER_TASK_STACK_SIZE 4096
-
-#define BUZZER_QUEUE_SIZE 10
-
 class Buzzer {
+public:
+  static constexpr int BUZZER_TASK_PRIORITY = 1;
+  static constexpr int BUZZER_TASK_STACK_SIZE = 4096;
+  static constexpr int BUZZER_QUEUE_SIZE = 10;
+
 public:
   Buzzer(int pin, uint8_t channel) : pin(pin), channel(channel) {
     playList = xQueueCreate(BUZZER_QUEUE_SIZE, sizeof(enum Music));
@@ -15,8 +15,9 @@ public:
   bool begin() {
     ledcSetup(channel, 880, 4);
     ledcAttachPin(pin, channel);
-    xTaskCreate([](void *obj) { static_cast<Buzzer *>(obj)->task(); }, "Buzzer",
-                BUZZER_TASK_STACK_SIZE, this, BUZZER_TASK_PRIORITY, NULL);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "Buzzer", BUZZER_TASK_STACK_SIZE, this, BUZZER_TASK_PRIORITY,
+                NULL);
     return true;
   }
   enum Music {

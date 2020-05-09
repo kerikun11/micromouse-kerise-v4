@@ -9,7 +9,9 @@
 - LED
   - Event-driven Task
 - Motor
+  - Immediately Task
 - Fan
+  - Immediately Task
 
 ### Sensor
 
@@ -63,11 +65,10 @@
     2. Control
 3. Conduction
 
-## Main Task
+## Top Task
 
 - DriveTask
 - PrintTask
-- TimeKeepTask
 
 ## Settings
 

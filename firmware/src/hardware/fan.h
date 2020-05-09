@@ -22,7 +22,7 @@ public:
     gpio_reset_pin(gpio_num);
   }
   void drive(float duty) {
-    float duty_cycle = duty * 100; //< [0,1] to [0,100]
+    float duty_cycle = duty * 100; //< from [0,1] to [0,100]
     duty_cycle = std::min(duty_cycle, 100.0f);
     duty_cycle = std::max(duty_cycle, 0.0f);
     mcpwm_set_duty(unit, timer, MCPWM_OPR_A, duty_cycle);

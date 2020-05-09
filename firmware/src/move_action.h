@@ -1,11 +1,11 @@
 #pragma once
 
 #include "config/model.h"
+#include "config/slalom_shapes.h"
 #include "global.h"
 
 #include "accel_designer.h"
 #include "slalom.h"
-#include "slalom_shapes.h"
 #include "straight.h"
 #include "trajectory_tracker.h"
 

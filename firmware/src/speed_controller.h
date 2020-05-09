@@ -84,7 +84,7 @@ public:
   void fix_pose(const ctrl::Pose fix) { this->fix += fix; }
 
 private:
-  bool enabled = false;
+  volatile bool enabled = false;
   static const int acc_num = 8;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<ctrl::Polar, acc_num> accel;
@@ -97,10 +97,57 @@ private:
     est_a.clear();
     enc_v.clear();
     for (int i = 0; i < 2; i++)
-      wheel_position[i].clear(enc.position(i));
+      wheel_position[i].clear(enc.get_position(i));
     accel.clear(ctrl::Polar(imu.accel.y, imu.angular_accel));
     fix.clear();
     fbc.reset();
+  }
+  void update() {
+    /* 最新のデータの追加 */
+    for (int i = 0; i < 2; i++)
+      wheel_position[i].push(enc.get_position(i));
+    accel.push(ctrl::Polar(imu.accel.y, imu.angular_accel));
+    /* approximated differential of encoder value */
+    for (int i = 0; i < 2; i++)
+      enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
+    enc_v.wheel2pole();
+    /* calculate estimated velocity value with complementary filter */
+    const ctrl::Polar noisy_v = ctrl::Polar(enc_v.tra, imu.gyro.z);
+    const ctrl::Polar alpha = model::alpha;
+    est_v =
+        alpha * (est_v + accel[0] * Ts) + (ctrl::Polar(1, 1) - alpha) * noisy_v;
+    /* estimated acceleration */
+    est_a = accel[0];
+    /* calculate pwm value */
+    const auto pwm_value = fbc.update(ref_v, est_v, ref_a, est_a, Ts);
+    const float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
+    const float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
+    /* drive the motors */
+    mt.drive(pwm_value_L, pwm_value_R);
+    /* estimates slip angle */
+    // const float k = 0.01f;
+    const float k = 0.0f;
+    const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
+    /* calculate odometry value */
+    est_p.th += imu.gyro.z * Ts;
+    est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
+    est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
+    /* Fix Pose */
+    const float delta = 0.2;
+    if (fix.x > delta) {
+      est_p.x += delta;
+      fix.x -= delta;
+    } else if (fix.x < -delta) {
+      est_p.x -= delta;
+      fix.x += delta;
+    }
+    if (fix.y > delta) {
+      est_p.y += delta;
+      fix.y -= delta;
+    } else if (fix.y < -delta) {
+      est_p.y -= delta;
+      fix.y += delta;
+    }
   }
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -113,51 +160,8 @@ private:
       /* サンプリング終了まで待つ */
       enc.samplingSemaphoreTake();
       imu.samplingSemaphoreTake();
-      /* 最新のデータの追加 */
-      for (int i = 0; i < 2; i++)
-        wheel_position[i].push(enc.position(i));
-      accel.push(ctrl::Polar(imu.accel.y, imu.angular_accel));
-      /* approximated differential of encoder value */
-      for (int i = 0; i < 2; i++)
-        enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
-      enc_v.wheel2pole();
-      /* calculate estimated velocity value with complementary filter */
-      const ctrl::Polar noisy_v = ctrl::Polar(enc_v.tra, imu.gyro.z);
-      const ctrl::Polar alpha = model::alpha;
-      est_v = alpha * (est_v + accel[0] * Ts) +
-              (ctrl::Polar(1, 1) - alpha) * noisy_v;
-      /* estimated acceleration */
-      est_a = accel[0];
-      /* calculate pwm value */
-      const auto pwm_value = fbc.update(ref_v, est_v, ref_a, est_a, Ts);
-      const float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
-      const float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
-      /* drive the motors */
-      mt.drive(pwm_value_L, pwm_value_R);
-      /* estimates slip angle */
-      // const float k = 0.01f;
-      const float k = 0.0f;
-      const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
-      /* calculate odometry value */
-      est_p.th += imu.gyro.z * Ts;
-      est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
-      est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
-      /* Fix Pose */
-      const float delta = 0.2;
-      if (fix.x > delta) {
-        est_p.x += delta;
-        fix.x -= delta;
-      } else if (fix.x < -delta) {
-        est_p.x -= delta;
-        fix.x += delta;
-      }
-      if (fix.y > delta) {
-        est_p.y += delta;
-        fix.y -= delta;
-      } else if (fix.y < -delta) {
-        est_p.y -= delta;
-        fix.y += delta;
-      }
+      /* 更新処理 */
+      update();
     }
   }
 };

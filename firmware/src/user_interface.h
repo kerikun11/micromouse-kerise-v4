@@ -44,11 +44,11 @@ public:
    * @return int -1: キャンセルされた
    */
   static int waitForSelect(const int range = 16, const uint8_t init_value = 0) {
-    float prev_enc = enc.position(0) + enc.position(1);
+    float prev_enc = enc.get_position(0) + enc.get_position(1);
     uint8_t value = init_value;
     led = value;
     while (1) {
-      float now_enc = enc.position(0) + enc.position(1);
+      float now_enc = enc.get_position(0) + enc.get_position(1);
       vTaskDelay(pdMS_TO_TICKS(10));
       /* SELECT */
       if (imu.gyro.y > thr_gyro) {

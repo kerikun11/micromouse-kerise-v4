@@ -50,6 +50,8 @@
 
 #define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_CS_PIN GPIO_NUM_26
+#define ICM20602_CS_PINS                                                       \
+  { ICM20602_CS_PIN }
 
 /* for pull-up */
 #define CONFIG_SPI_CS_PINS                                                     \
