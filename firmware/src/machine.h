@@ -394,14 +394,14 @@ public:
     if (dir == 0) {
       const float j_max = 240000;
       const float a_max = 9000;
-      const float v_max = 600;
+      const float v_max = 900;
       const float dist = 90 * 4;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     } else {
-      const float j_max = 2400 * M_PI;
+      const float j_max = 1200 * M_PI;
       const float a_max = 48 * M_PI;
-      const float v_max = 6 * M_PI;
-      const float dist = 2 * M_PI;
+      const float v_max = 8 * M_PI;
+      const float dist = 4 * M_PI;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     TickType_t xLastWakeTime = xTaskGetTickCount();

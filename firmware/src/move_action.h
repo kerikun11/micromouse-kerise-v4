@@ -81,6 +81,7 @@ public:
   void set_path(const std::string &path) { this->path = path; }
   bool positionRecovery() {
     /* 1周回って壁を探す */
+    sc.est_p.clear();
     sc.enable();
     static constexpr float dddth_max = 4800 * M_PI;
     static constexpr float ddth_max = 48 * M_PI;

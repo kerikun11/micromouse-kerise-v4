@@ -24,14 +24,14 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 4
+#define KERISE_SELECT 5
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.60f;
+static constexpr float WheelDiameter = 12.75f;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
@@ -48,7 +48,8 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0008, 0.06), .Ki = ctrl::Polar(0.02, 12.0),
+  // .Kp = ctrl::Polar(0.0008, 0.06), .Ki = ctrl::Polar(0.02, 12.0),
+  .Kp = ctrl::Polar(0.0009, 0.04), .Ki = ctrl::Polar(0.03, 3.0),
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
