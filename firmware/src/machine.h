@@ -75,7 +75,7 @@ public:
   }
   static void driveNormally() {
     /* 探索状態のお知らせ */
-    if (mr.getMaze().getWallLogs().empty()) //< 完全に未探索状態
+    if (mr.getMaze().getWallRecords().empty()) //< 完全に未探索状態
       bz.play(Buzzer::CONFIRM);
     else if (mr.isComplete()) //< 完全に探索終了
       bz.play(Buzzer::SUCCESSFUL);

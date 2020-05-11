@@ -108,17 +108,17 @@ public:
   }
   void reset() {
     Agent::reset();
-    maze.backupWallLogsToFile(MAZE_SAVE_PATH, true);
+    maze.backupWallRecordsToFile(MAZE_SAVE_PATH, true);
     state = State();
     state.save();
   }
   bool backup() {
     state.save();
-    return maze.backupWallLogsToFile(MAZE_SAVE_PATH);
+    return maze.backupWallRecordsToFile(MAZE_SAVE_PATH);
   }
   bool restore() {
     state.restore();
-    return maze.restoreWallLogsFromFile(MAZE_SAVE_PATH);
+    return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(const bool isForceSearch, const bool isPositionIdentifying) {
     auto emergency_loop_avoidance_ms = millis() - 12000;
@@ -146,7 +146,7 @@ public:
     terminate();
   }
   void print() const {
-    for (const auto &wl : maze.getWallLogs())
+    for (const auto &wl : maze.getWallRecords())
       std::cout << wl << std::endl;
     maze.print();
   }
@@ -334,7 +334,7 @@ private:
       bz.play(Buzzer::ERROR);
     while (!isSolvable()) {
       maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
-      if (getMaze().getWallLogs().empty()) {
+      if (getMaze().getWallRecords().empty()) {
         bz.play(Buzzer::ERROR);
         waitForever();
       }
