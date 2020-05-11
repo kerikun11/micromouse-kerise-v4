@@ -25,6 +25,7 @@ void printTask(void *arg) {
   while (1) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
+    // tof.print();
   }
 }
 
@@ -77,8 +78,8 @@ void driveTask(void *arg) {
       Machine::pidTuner();
       break;
     case 14: /* テスト */
-      Machine::accel_test();
-      // Machine::slalom_test();
+      // Machine::accel_test();
+      Machine::slalom_test();
       // Machine::sysid();
       break;
     case 15: /* ログの表示 */

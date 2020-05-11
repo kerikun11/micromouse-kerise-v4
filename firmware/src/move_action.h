@@ -145,6 +145,7 @@ public:
       turn(-M_PI / 2);
     }
     sc.disable();
+    sc.est_p.clear();
     return true;
   }
 

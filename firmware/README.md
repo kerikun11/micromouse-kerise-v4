@@ -47,17 +47,21 @@
 
 ### Conductor
 
-- SearchRun
-  - Task
-- FastRun
-  - Task
+- MoveAction
 - MazeRobot
-  - Task
+
+### Debug
+
 - Logger
 - ExternalController
+
+### Main
+
 - Machine
 
-## Controller
+--------------------------------------------------------------------------------
+
+## Control Flow
 
 1. Sampling
 2. Calculation
@@ -69,6 +73,8 @@
 
 - DriveTask
 - PrintTask
+
+--------------------------------------------------------------------------------
 
 ## Settings
 
