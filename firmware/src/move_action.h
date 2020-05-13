@@ -35,15 +35,15 @@ public:
     float v_max = 720;
     float a_max = 3600;
     float j_max = 240000;
-    float fan_duty = 0.2f;
+    float fan_duty = 0.2;
 
   public:
     // [1*1.05**i for i in range(0, 4)]: [1.0, 1.05, 1.1025, 1.1576]
-    static constexpr float cg_gain = 1.05f;
+    static constexpr float cg_gain = 1.05;
     // [int(720*1.2**i) for i in range(0, 4)]: [720, 864, 1036, 1244]
-    static constexpr float ms_gain = 1.1f;
+    static constexpr float ms_gain = 1.1;
     // [int(3600*1.05**i) for i in range(0, 4)]: [3600, 3780, 3969, 4167]
-    static constexpr float ac_gain = 1.05f;
+    static constexpr float ac_gain = 1.05;
 
   public:
     void up(const int cnt = 1) {
@@ -94,13 +94,13 @@ public:
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
-    for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    for (float t = 0; t < ad.t_end(); t += float(1e-3)) {
       float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                     sc.est_p.y * std::sin(-sc.est_p.th);
-      constexpr float back_gain = 10.0f;
+      constexpr float back_gain = float(10);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      if (ad.x(t) > 2 * PI * index / table_size) {
+      if (ad.x(t) > 2 * M_PI * index / table_size) {
         index++;
         table[index % table_size] = tof.getDistance();
         is_valid[index % table_size] = tof.isValid();
@@ -169,16 +169,14 @@ private:
   bool prev_wall[2];
 
   static auto round2(auto value, auto div) {
-    return floor((value + div / 2) / div) * div;
+    return std::floor((value + div / 2) / div) * div;
   }
   static auto saturate(auto src, auto sat) {
     return std::max(std::min(src, sat), -sat);
   }
-  bool isAlong() {
-    return (int)(std::abs(offset.th) * 180.0f / PI + 1) % 90 < 2;
-  }
+  bool isAlong() { return int(std::abs(offset.th) * 180 / M_PI + 1) % 90 < 2; }
   bool isDiag() {
-    return (int)(std::abs(offset.th) * 180.0f / PI + 45 + 1) % 90 < 2;
+    return int(std::abs(offset.th) * 180 / M_PI + 45 + 1) % 90 < 2;
   }
 
   void wall_attach(bool force = false) {
@@ -194,22 +192,23 @@ private:
       for (int i = 0; i < 2000; i++) {
         const float Kp = model::wall_attach_gain_Kp;
         const float Ki = model::wall_attach_gain_Ki;
-        const float sat_integral = 30.0f;
+        const float sat_integral = float(30);
         const float end = model::wall_attach_end;
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
           wp.wheel[j] = -wd.distance.front[j];
-          wi.wheel[j] += wp.wheel[j] * 0.001f * Ki;
+          wi.wheel[j] += wp.wheel[j] * float(1e-3) * Ki;
           wi.wheel[j] = saturate(wi.wheel[j], sat_integral);
           wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j];
         }
-        if (std::pow(wp.wheel[0], 2) + std::pow(wp.wheel[1], 2) +
-                std::pow(wi.wheel[0], 2) + std::pow(wi.wheel[1], 2) <
+        if (std::pow(wp.wheel[0], float(2)) + std::pow(wp.wheel[1], float(2)) +
+                std::pow(wi.wheel[0], float(2)) +
+                std::pow(wi.wheel[1], float(2)) <
             end)
           break;
         wp.wheel2pole();
-        const float sat_tra = 120.0f;   //< [mm/s]
-        const float sat_rot = M_PI / 4; //< [rad/s]
+        const float sat_tra = float(120); //< [mm/s]
+        const float sat_rot = M_PI / 4;   //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
@@ -225,8 +224,8 @@ private:
   }
   void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
-    if (!rp.wall_avoid_enabled || sc.est_v.tra < 180.0f ||
-        std::abs(sc.est_p.th) > M_PI * 0.1f)
+    if (!rp.wall_avoid_enabled || sc.est_v.tra < float(180) ||
+        std::abs(sc.est_p.th) > M_PI * float(0.1))
       return;
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
@@ -247,12 +246,12 @@ private:
       }
       /* 機体姿勢の補正 */
       if (rp.wall_theta_fix_enabled) {
-        sc.est_p.th += int_y * 1e-8f;
+        sc.est_p.th += int_y * float(1e-8);
       }
       /* 櫛の壁制御 */
       if (tof.getDistance() > field::SegWidthFull * 3 / 2) {
-        const float comb_threashold = -50.0f;
-        const float comb_shift = 0.1f;
+        const float comb_threashold = float(-50);
+        const float comb_shift = float(0.1);
         if (wd.distance.front[0] > comb_threashold) {
           sc.est_p.y += comb_shift;
           led_flags |= 4;
@@ -267,7 +266,7 @@ private:
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
-      const float shift = 0.06f;
+      const float shift = float(0.06);
       const float threashold = -50;
       if (wd.distance.front[0] > threashold) {
         sc.est_p.y += shift;
@@ -284,7 +283,7 @@ private:
     if (!rp.wall_cut_enabled)
       return;
     /* 曲線なら前半しか使わない */
-    if (std::abs(sc.est_p.th) > M_PI * 0.01f)
+    if (std::abs(sc.est_p.th) > M_PI * float(0.01))
       return;
     /* 左右 */
     for (int i = 0; i < 2; i++) {
@@ -297,13 +296,13 @@ private:
           const float x_abs_cut = round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
-          if (fixed_x_abs < 3.0f) {
+          if (fixed_x_abs < float(3)) {
             sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
             bz.play(Buzzer::SHORT8);
-          } else if (fixed_x_abs < 10.0f) {
+          } else if (fixed_x_abs < float(10)) {
             sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
             bz.play(Buzzer::SHORT7);
-          } else if (fixed_x_abs < 20.0f) {
+          } else if (fixed_x_abs < float(20)) {
             sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
             bz.play(Buzzer::SHORT6);
           } else {
@@ -321,13 +320,13 @@ private:
           const float x_abs_cut = round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
-          if (fixed_x_abs < 5.0f) {
+          if (fixed_x_abs < float(5)) {
             sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT8);
-          } else if (fixed_x_abs < 10.0f) {
+          } else if (fixed_x_abs < float(10)) {
             sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT7);
-          } else if (fixed_x_abs < 20.0f) {
+          } else if (fixed_x_abs < float(20)) {
             sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0).rotate(-th_ref));
             bz.play(Buzzer::SHORT6);
           } else {
@@ -341,29 +340,32 @@ private:
   void front_wall_fix(const RunParameter &rp, const float dist_to_wall_ref) {
     if (!rp.front_wall_fix_enabled)
       return;
-    if (!tof.isValid() || std::abs(sc.est_p.th) > M_PI * 0.05f)
+    if (!tof.isValid() || std::abs(sc.est_p.th) > M_PI * float(0.05))
       return;
     const float wall_fix_offset = 8; /*< 調整値．大きく:前壁から遠く */
     const float dist_to_wall = dist_to_wall_ref - sc.est_p.x + wall_fix_offset;
-    const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
-                              (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra;
-    const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
-                              (tof.passedTimeMs() + 10) * 1e-3f * sc.ref_v.tra;
+    const float fixed_x_now =
+        dist_to_wall - tof.getLog()[0] +
+        (tof.passedTimeMs() + 0) * float(1e-3) * sc.ref_v.tra;
+    const float fixed_x_pre =
+        dist_to_wall - tof.getLog()[1] +
+        (tof.passedTimeMs() + 10) * float(1e-3) * sc.ref_v.tra;
     /* 誤差の小さい方を選ぶ */
     const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
                              ? fixed_x_now
                              : fixed_x_pre;
     const auto fixed_x_abs = std::abs(fixed_x);
-    if (fixed_x_abs < 3.0f) {
+    if (fixed_x_abs < float(3)) {
       sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
       bz.play(Buzzer::SHORT8);
-    } else if (fixed_x_abs < 10.0f) {
+    } else if (fixed_x_abs < float(10)) {
       sc.fix_pose(ctrl::Pose(fixed_x, 0, 0));
       bz.play(Buzzer::SHORT7);
-    } else if (fixed_x_abs < 20.0f) {
+    } else if (fixed_x_abs < float(20)) {
       sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
       bz.play(Buzzer::SHORT6);
-    } else if (std::abs(fixed_x_pre) < 30.0f && std::abs(fixed_x_now) < 30.0f) {
+    } else if (std::abs(fixed_x_pre) < float(30) &&
+               std::abs(fixed_x_now) < float(30)) {
       sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
       bz.play(Buzzer::CANCEL);
     }
@@ -377,7 +379,7 @@ private:
     /* 現在の姿勢が区画に対して垂直か調べる */
     const auto th_abs = offset.th + sc.est_p.th;
     const auto th_abs_to_wall = round2(th_abs, M_PI / 2);
-    if (std::abs(th_abs - th_abs_to_wall) > 0.001f * M_PI)
+    if (std::abs(th_abs - th_abs_to_wall) > float(1e-3) * M_PI)
       return false;
     /* 補正開始 */
     const auto rotate_th =
@@ -388,25 +390,28 @@ private:
         abs_x_to_wall - round2(abs_x_to_wall, field::SegWidthFull);
     const float wall_fix_offset = 4; /*< 調整値．大きく:前壁から遠く */
     const float dist_to_wall = dist_to_wall_ref - pos_x + wall_fix_offset;
-    const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
-                              (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra;
-    const float fixed_x_pre = dist_to_wall - tof.getLog()[1] +
-                              (tof.passedTimeMs() + 10) * 1e-3f * sc.ref_v.tra;
+    const float fixed_x_now =
+        dist_to_wall - tof.getLog()[0] +
+        (tof.passedTimeMs() + 0) * float(1e-3) * sc.ref_v.tra;
+    const float fixed_x_pre =
+        dist_to_wall - tof.getLog()[1] +
+        (tof.passedTimeMs() + 10) * float(1e-3) * sc.ref_v.tra;
     /* 誤差の小さい方を選ぶ */
     const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
                              ? fixed_x_now
                              : fixed_x_pre;
     const auto fixed_x_abs = std::abs(fixed_x);
-    if (fixed_x_abs < 3.0f) {
+    if (fixed_x_abs < float(3)) {
       sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT8);
-    } else if (fixed_x_abs < 5.0f) {
+    } else if (fixed_x_abs < float(5)) {
       sc.fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT7);
-    } else if (fixed_x_abs < 10.0f) {
+    } else if (fixed_x_abs < float(10)) {
       sc.fix_pose(ctrl::Pose(fixed_x / 2, 0, 0).rotate(rotate_th));
       bz.play(Buzzer::SHORT6);
-    } else if (std::abs(fixed_x_pre) < 20.0f && std::abs(fixed_x_now) < 20.0f) {
+    } else if (std::abs(fixed_x_pre) < float(20) &&
+               std::abs(fixed_x_now) < float(20)) {
       sc.fix_pose(ctrl::Pose(fixed_x / 3, 0, 0));
       bz.play(Buzzer::CANCEL);
       return false;
@@ -419,8 +424,8 @@ private:
     static constexpr float dth_max = 4 * M_PI;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const float back_gain = 10.0f;
-    for (float t = 0; t < ad.t_end(); t += 0.001f) {
+    const float back_gain = float(10);
+    for (float t = 0; t < ad.t_end(); t += float(1e-3)) {
       float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                     sc.est_p.y * std::sin(-sc.est_p.th);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
@@ -431,13 +436,13 @@ private:
     while (1) {
       float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                     sc.est_p.y * std::sin(-sc.est_p.th);
-      const float Kp = 20.0f;
-      const float Ki = 10.0f;
+      const float Kp = float(20);
+      const float Ki = float(10);
       const float error = angle - sc.est_p.th;
-      int_error += error * 0.001f;
+      int_error += error * float(1e-3);
       sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.05f * PI)
+      if (std::abs(Kp * error) + std::abs(Ki * int_error) < float(0.05) * M_PI)
         break;
     }
     sc.set_target(0, 0);
@@ -459,10 +464,10 @@ private:
       tt.reset(v_start);
       float int_y = 0;
       TickType_t xLastWakeTime = xTaskGetTickCount();
-      for (float t = 0; true; t += 0.001f) {
+      for (float t = 0; true; t += float(1e-3)) {
         /* 終了条件 */
         const float remain = distance - sc.est_p.x;
-        if (remain < 0 || t > trajectory.t_end() + 0.1f)
+        if (remain < 0 || t > trajectory.t_end() + float(0.1))
           break;
         /* 衝突被害軽減ブレーキ(AEBS) */
         if (isAlong() && remain > field::SegWidthFull && tof.isValid() &&
@@ -483,8 +488,8 @@ private:
     offset += ctrl::Pose(distance, 0, 0).rotate(offset.th);
   }
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
-    const float Ts = 0.001f;
-    const float velocity = sc.est_v.tra;
+    const float Ts = float(1e-3);
+    const float velocity = sc.ref_v.tra;
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State s;
     /* start */
@@ -494,7 +499,7 @@ private:
     bool front_fix_ready =
         rp.front_wall_fix_trace_enabled; /*< ターン中の前壁修正 */
     s.q.x = sc.est_p.x;                  /*< 既に移動した分を反映 */
-    if (std::abs(sc.est_p.x) > 1.0f)
+    if (std::abs(sc.est_p.x) > 1)
       bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
       /* 打ち切り条件を追加！！！ */
@@ -528,7 +533,7 @@ private:
         path.empty() ? v_search : shape.v_ref * rp.curve_gain;
     straight += !reverse ? straight_prev : straight_post;
     /* ターン前の直線を消化 */
-    if (straight > 0.1f) {
+    if (straight > float(0.1)) {
       straight_x(straight, rp.v_max, velocity, rp);
       straight = 0;
     }
@@ -553,7 +558,7 @@ private:
   }
   void put_back() {
     const int max_v = 150;
-    const float th_gain = 100.0f;
+    const float th_gain = float(100);
     for (int i = 0; i < max_v; i++) {
       sc.set_target(-i, -sc.est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
@@ -563,9 +568,9 @@ private:
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     sc.disable();
-    mt.drive(-0.1f, -0.1f);
+    mt.drive(float(-0.1), float(-0.1));
     vTaskDelay(pdMS_TO_TICKS(200));
-    mt.drive(-0.2f, -0.2f);
+    mt.drive(float(-0.2), float(-0.2));
     vTaskDelay(pdMS_TO_TICKS(200));
     sc.enable();
   }
@@ -616,7 +621,7 @@ private:
     tt.reset(v_start);
     float int_y = 0;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    for (float t = 0; q.empty(); t += 0.001f) {
+    for (float t = 0; q.empty(); t += float(1e-3)) {
       /* 軌道追従 */
       const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a,
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
@@ -665,7 +670,7 @@ private:
         fast_run_switch(action, straight, rp);
       }
       /* 最後の直線を消化 */
-      if (straight > 0.1f) {
+      if (straight > float(0.1)) {
         straight_x(straight, rp.v_max, v_search, rp);
         straight = 0;
       }
@@ -729,7 +734,7 @@ private:
     case MazeLib::RobotBase::SearchAction::TURN_L:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
+      if (sc.est_p.x < float(5) && sc.ref_v.tra < v_search * float(1.2)) {
         ctrl::slalom::Trajectory st(ctrl::shapes[ctrl::ShapeIndex::S90], 0);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[0])
@@ -748,7 +753,7 @@ private:
     case MazeLib::RobotBase::SearchAction::TURN_R:
       front_wall_fix(rp, field::SegWidthFull);
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      if (sc.est_p.x < 5.0f && sc.ref_v.tra < v_search * 1.2f) {
+      if (sc.est_p.x < float(5) && sc.ref_v.tra < v_search * float(1.2)) {
         ctrl::slalom::Trajectory st(ctrl::shapes[ctrl::ShapeIndex::S90], 1);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[1])
@@ -784,7 +789,7 @@ private:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     /* 壁に背中を確実につける */
-    mt.drive(-0.25f, -0.25f);
+    mt.drive(float(-0.25), float(-0.25));
     delay(200);
     mt.free();
     /* 走行開始 */
@@ -805,7 +810,7 @@ private:
       fast_run_switch(action, straight, rp);
     }
     /* 最後の直線を消化 */
-    if (straight > 0.1f) {
+    if (straight > float(0.1)) {
       straight_x(straight, rp.v_max, 0, rp);
       straight = 0;
     }

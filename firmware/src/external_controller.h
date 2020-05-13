@@ -59,7 +59,7 @@ private:
       case '8':
       case '9': {
         float duty = (c - '0');
-        duty /= 10.0f;
+        duty /= 10;
         mt.drive(duty, duty);
         // fan.drive(duty);
       } break;

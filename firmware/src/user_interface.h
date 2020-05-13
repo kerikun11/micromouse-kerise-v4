@@ -21,7 +21,7 @@
 class UserInterface {
 private:
   /* 定数 */
-  static constexpr float thr_battery = 3.8f;
+  static constexpr float thr_battery = float(3.8);
   /* UI パラメータ */
   static constexpr float thr_accel = 3 * 9807; /**< 加速度の閾値 */
   static constexpr float thr_gyro = 4 * PI;    /**< 角速度の閾値 */
@@ -29,10 +29,10 @@ private:
   static constexpr int thr_ref_front = 2400; /**< 前壁センサの閾値 */
   static constexpr int thr_ref_side = 2400;  /**< 横壁センサの閾値 */
   static constexpr float enc_interval_mm =
-      10.0f; /**< エンコーダのカウント間隔 */
+      float(10); /**< エンコーダのカウント間隔 */
   static constexpr int wait_fix_ms = 1000; /**< 静止待機の最小静止時間 */
   static constexpr float thr_fix_gyro =
-      0.01f * M_PI; /**< 静止待機の角速度の閾値 */
+      float(0.01) * M_PI; /**< 静止待機の角速度の閾値 */
 
 public:
   UserInterface() {}
@@ -194,7 +194,7 @@ public:
    * @return float voltage [V]
    */
   static float getBatteryVoltage() {
-    return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    return 2 * float(1.1) * float(3.54813389) * analogRead(BAT_VOL_PIN) / 4095;
   }
   /**
    * @brief バッテリー電圧をLEDで表示
@@ -202,11 +202,11 @@ public:
    */
   static void batteryLedIndicate(const float voltage) {
     led = 0;
-    if (voltage < 4.0f)
+    if (voltage < float(4))
       led = 0x01;
-    else if (voltage < 4.1f)
+    else if (voltage < float(4.1))
       led = 0x03;
-    else if (voltage < 4.2f)
+    else if (voltage < float(4.2))
       led = 0x07;
     else
       led = 0x0F;

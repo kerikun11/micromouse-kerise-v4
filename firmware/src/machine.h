@@ -57,7 +57,7 @@ public:
       bz.play(Buzzer::ERROR);
     else
       bz.play(Buzzer::MAZE_RESTORE);
-    /* ゴールが封印されていないか確認 */
+    /* ゴールが封印されていないか一応確認 */
     if (!mr.isSolvable())
       bz.play(Buzzer::ERROR);
   }
@@ -165,7 +165,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, value);
+    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, float(value));
     /* 最大速度 */
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
@@ -174,7 +174,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.v_max *= std::pow(ma.rp_fast.ms_gain, value);
+    ma.rp_fast.v_max *= std::pow(ma.rp_fast.ms_gain, float(value));
     /* 加速度 */
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT7);
@@ -183,18 +183,18 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.a_max *= std::pow(ma.rp_fast.ms_gain, value);
+    ma.rp_fast.a_max *= std::pow(ma.rp_fast.ms_gain, float(value));
     /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectFanGain() {
-    fan.drive(0.5f);
+    fan.drive(float(0.5));
     delay(100);
     fan.drive(0);
     int value = ui.waitForSelect(11);
     if (value < 0)
       return;
-    ma.rp_fast.fan_duty = 0.1f * value;
+    ma.rp_fast.fan_duty = float(0.1) * value;
     fan.drive(ma.rp_fast.fan_duty);
     // mt.drive(ma.fan_duty, ma.fan_duty);
     ui.waitForSelect(1);
@@ -342,13 +342,13 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    fan.drive(0.5f);
+    fan.drive(0.5);
     delay(500);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     if (dir == 1)
-      mt.drive(-gain * 0.05, gain * 0.05); //< 回転
+      mt.drive(-gain * float(0.05), gain *float(0.05)); //< 回転
     else
-      mt.drive(gain * 0.1, gain * 0.1); //< 並進
+      mt.drive(gain * float(0.1), gain *float(0.1)); //< 並進
     for (int i = 0; i < 2000; i++) {
       printLog();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -405,7 +405,7 @@ public:
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    for (float t = 0; t < ad.t_end() + 0.1f; t += 0.001f) {
+    for (float t = 0; t < ad.t_end() + float(0.1); t += float(1e-3)) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
       else
@@ -439,14 +439,14 @@ public:
       if (value < 0)
         return;
       value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.zeta *= std::pow(2, value);
+      gain.zeta *= std::pow(float(2), float(value));
     } break;
     case 2: {
       int value = ui.waitForSelect(16);
       if (value < 0)
         return;
       value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.omega_n *= std::pow(2, value);
+      gain.omega_n *= std::pow(float(2), float(value));
     } break;
     }
     led = 15;
@@ -467,8 +467,8 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F180];
-    const float velocity = 720.0f;
-    const float Ts = 0.001f;
+    const float velocity = 720;
+    const float Ts = float(1e-3);
     const float j_max = 120000;
     const float a_max = 6000;
     const float v_max = velocity;
@@ -560,16 +560,16 @@ public:
     case 0:
       gain = sc.G;
     case 1:
-      gain.Kp.tra *= std::pow(1.1f, value);
+      gain.Kp.tra *= std::pow(float(1.1), float(value));
       break;
     case 2:
-      gain.Ki.tra *= std::pow(1.1f, value);
+      gain.Ki.tra *= std::pow(float(1.1), float(value));
       break;
     case 3:
-      gain.Kp.rot *= std::pow(1.1f, value);
+      gain.Kp.rot *= std::pow(float(1.1), float(value));
       break;
     case 4:
-      gain.Ki.rot *= std::pow(1.1f, value);
+      gain.Ki.rot *= std::pow(float(1.1), float(value));
       break;
     }
     led = 15;

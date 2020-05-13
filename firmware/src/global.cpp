@@ -19,7 +19,7 @@ Button btn(BUTTON_PIN);
 IMU imu;
 Encoder enc(model::GearRatio *model::WheelDiameter *M_PI);
 Reflector ref(PR_TX_PINS, PR_RX_PINS);
-ToF tof(I2C_PORT_NUM_TOF);
+ToF tof(I2C_PORT_NUM_TOF, model::tof_dist_offset);
 
 /* Supporter */
 UserInterface ui;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/mcpwm.h"
+#include <algorithm>
 
 class OneMotor {
 public:
@@ -12,7 +13,7 @@ public:
     gpio_pulldown_en(gpio_num_1);
     mcpwm_gpio_init(unit, io_signals_2, gpio_num_2);
     gpio_pulldown_en(gpio_num_2);
-    mcpwm_config_t pwm_config = {0};
+    static mcpwm_config_t pwm_config;
     pwm_config.frequency = 250000; //< frequency
     pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
     pwm_config.cmpr_b = 0;         //< duty cycle of PWMxb = 0
@@ -25,16 +26,17 @@ public:
     mcpwm_set_signal_low(unit, timer, MCPWM_OPR_B);
   }
   void drive(float duty) {
+    // const float duty_cycle = std::clamp(duty * 100, -100, 100);
     float duty_cycle = duty * 100; //< [-1,1] to [-100,100]
-    duty_cycle = std::min(duty_cycle, 100.0f);
-    duty_cycle = std::max(duty_cycle, -100.0f);
+    duty_cycle = std::min(duty_cycle, float(100));
+    duty_cycle = std::max(duty_cycle, float(-100));
     if (duty > 0) {
       mcpwm_set_signal_high(unit, timer, MCPWM_OPR_B);
-      mcpwm_set_duty(unit, timer, MCPWM_OPR_A, 100.0f - duty_cycle);
+      mcpwm_set_duty(unit, timer, MCPWM_OPR_A, float(100) - duty_cycle);
       mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
     } else {
       mcpwm_set_signal_high(unit, timer, MCPWM_OPR_A);
-      mcpwm_set_duty(unit, timer, MCPWM_OPR_B, 100.0f + duty_cycle);
+      mcpwm_set_duty(unit, timer, MCPWM_OPR_B, float(100) + duty_cycle);
       mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
     }
   }
@@ -46,7 +48,7 @@ private:
 
 class Motor {
 private:
-  static constexpr float emergency_threshold = 1.5f;
+  static constexpr float emergency_threshold = float(1.5);
 
 public:
   Motor(gpio_num_t gpio_L1, gpio_num_t gpio_L2, gpio_num_t gpio_R1,

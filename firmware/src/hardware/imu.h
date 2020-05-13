@@ -2,16 +2,17 @@
 
 #include <icm20602.h>
 
+#include "app_log.h"
 #include "config/model.h" //< for KERISE_SELECT
 
 class IMU {
 public:
   static constexpr int IMU_STACK_SIZE = 2048;
   static constexpr int IMU_TASK_PRIORITY = 5;
-  static constexpr float Ts = 0.001f;
+  static constexpr float Ts = float(1e-3);
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
-  static constexpr float IMU_ROTATION_RADIOUS = 10.0f;
+  static constexpr float IMU_ROTATION_RADIOUS = float(10);
   static constexpr int IMU_NUM = 2;
 #elif KERISE_SELECT == 5
   static constexpr int IMU_NUM = 1;
@@ -34,11 +35,18 @@ public:
     return true;
   }
   void print() {
-    log_d("Rotation angle:\t%f\taccel:\t%f", angle, angular_accel);
-    log_d("Gyro\tx:\t%f\ty:\t%f\tz:\t%f", gyro.x, gyro.y, gyro.z);
-    log_d("Accel\tx:\t%f\ty:\t%f\tz:\t%f", accel.x, accel.y, accel.z);
+    logd << "Gyro:"
+         << "\t" << gyro.x //
+         << "\t" << gyro.y //
+         << "\t" << gyro.z //
+         << std::endl;
+    logd << "Accel:"
+         << "\t" << accel.x //
+         << "\t" << accel.y //
+         << "\t" << accel.z //
+         << std::endl;
+    logd << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
-  void csv() { printf("%.1f,%.1f,%.1f\n", accel.x, accel.y, accel.z); }
   void calibration(bool waitForEnd = true) {
     // 前のフラグが残っていたら回収
     xSemaphoreTake(calibration_end_semaphore, 0);

@@ -8,7 +8,7 @@ public:
   static constexpr int MA730_PULSES = 16384;
   static constexpr int PULSES_SIZE = 16384;
 #ifndef M_PI
-  static constexpr float M_PI = 3.1415926535897932384626433832795f;
+  static constexpr float M_PI = float(3.1415926535897932384626433832795);
 #endif
 
 public:
@@ -18,7 +18,7 @@ public:
     gpio_set_direction(pin_cs, GPIO_MODE_OUTPUT);
     gpio_set_level(pin_cs, 1);
     // ESP-IDF SPI device initialization
-    static spi_device_interface_config_t dev_cfg = {0};
+    static spi_device_interface_config_t dev_cfg;
     dev_cfg.command_bits = 0;
     dev_cfg.address_bits = 0;
     dev_cfg.dummy_bits = 0;

@@ -6,7 +6,7 @@ class Battery {
 public:
   Battery(int8_t pin) : pin(pin) {}
   float get_voltage() {
-    return 2 * 1.1f * 3.54813389f * analogRead(pin) / 4095;
+    return 2 * float(1.1) * float(3.54813389) * analogRead(pin) / 4095;
   }
 
 private:

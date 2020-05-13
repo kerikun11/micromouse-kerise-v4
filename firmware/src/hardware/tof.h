@@ -11,7 +11,8 @@
 
 class ToF {
 public:
-  ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
+  ToF(i2c_port_t i2c_port, float tof_dist_offset)
+      : sensor(i2c_port), tof_dist_offset(tof_dist_offset) {}
   bool init() {
     sensor.setTimeout(100);
     sensor.init();
@@ -39,6 +40,7 @@ public:
 
 private:
   VL6180X sensor;
+  float tof_dist_offset;
   bool enabled = true;
   uint16_t distance;
   int passed_ms;
@@ -66,7 +68,7 @@ private:
       }
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
       sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-      distance = range + model::tof_dist_offset;
+      distance = range + tof_dist_offset;
       log.push(distance);
       if (range != 255) {
         passed_ms = 0;

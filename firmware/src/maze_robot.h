@@ -236,7 +236,7 @@ protected:
 
 private:
   bool searchRun() {
-    mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
+    mt.drive(float(-0.2), float(-0.2)); /*< 背中を確実に壁につける */
     delay(500);
     mt.free();
     return RobotBase::searchRun();

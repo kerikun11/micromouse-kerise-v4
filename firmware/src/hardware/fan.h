@@ -10,7 +10,7 @@ public:
       : gpio_num(gpio_num), unit(unit), timer(timer) {
     mcpwm_gpio_init(unit, io_signals, gpio_num);
     gpio_pulldown_en(gpio_num);
-    mcpwm_config_t pwm_config = {0};
+    static mcpwm_config_t pwm_config;
     pwm_config.frequency = 250000; //< frequency
     pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
@@ -23,8 +23,8 @@ public:
   }
   void drive(float duty) {
     float duty_cycle = duty * 100; //< from [0,1] to [0,100]
-    duty_cycle = std::min(duty_cycle, 100.0f);
-    duty_cycle = std::max(duty_cycle, 0.0f);
+    duty_cycle = std::min(duty_cycle, float(100));
+    duty_cycle = std::max(duty_cycle, float(0));
     mcpwm_set_duty(unit, timer, MCPWM_OPR_A, duty_cycle);
     mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
   }

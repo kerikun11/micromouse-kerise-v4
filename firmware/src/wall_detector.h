@@ -17,7 +17,7 @@
 
 class WallDetector {
 public:
-  static constexpr float Ts = 0.001f;
+  static constexpr float Ts = float(1e-3);
   union WallValue {
     // 意味をもったメンバ
     struct {
@@ -26,7 +26,7 @@ public:
     };
     // シリアライズされたメンバ
     struct {
-      float value[4];
+      float value[4] = {0};
     };
     const WallValue &operator=(const WallValue &wv) {
       for (int i = 0; i < 4; ++i)
@@ -91,8 +91,10 @@ public:
       return false;
     }
     f.read((char *)(&wall_ref), sizeof(WallDetector::WallValue));
-    log_i("WallDetector Restore:\t%.1f\t%.1f\t%.1f\t%.1f", wall_ref.side[0],
-          wall_ref.front[0], wall_ref.front[1], wall_ref.side[1]);
+    logi << "Wall Reference Restore:"
+         << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0] //
+         << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1] //
+         << std::endl;
     return true;
   }
   void calibrationSide() {
@@ -108,13 +110,10 @@ public:
     xSemaphoreTake(calibrationFrontEndSemaphore, portMAX_DELAY);
   }
   void print() {
-    log_i("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]", distance.side[0],
-          distance.front[0], distance.front[1], distance.side[1],
-          is_wall[0] ? 'X' : '.', is_wall[2] ? 'X' : '.',
-          is_wall[1] ? 'X' : '.');
-  }
-  void printDiff() {
-    std::cout << diff.side[0] << "," << diff.side[1] << std::endl;
+    // log_i("Wall: %5.1f %5.1f %5.1f %5.1f [ %c %c %c ]", distance.side[0],
+    //       distance.front[0], distance.front[1], distance.side[1],
+    //       is_wall[0] ? 'X' : '.', is_wall[2] ? 'X' : '.',
+    //       is_wall[1] ? 'X' : '.');
   }
   void csv() {
     std::cout << "0";
@@ -138,11 +137,11 @@ private:
   Accumulator<WallValue, ave_num> buffer;
 
   float ref2dist(const int16_t value) {
-    return 12.9035f * std::log(value) - 86.7561f;
+    return float(12.9035) * std::log(float(value)) - float(86.7561);
   }
   void calibration_side() {
     tof.disable();
-    float sum[2] = {0.0f, 0.0f};
+    float sum[2] = {float(0), float(0)};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
@@ -151,13 +150,13 @@ private:
     }
     for (int i = 0; i < 2; i++)
       wall_ref.side[i] = sum[i] / ave_count;
-    printf("Wall Calibration Side: %6.1f%6.1f\n", wall_ref.side[0],
-           wall_ref.side[1]);
+    logi << "Wall Calibration Side: " << wall_ref.side[0] << "\t"
+         << wall_ref.side[1] << std::endl;
     tof.enable();
   }
   void calibration_front() {
     tof.disable();
-    float sum[2] = {0.0f, 0.0f};
+    float sum[2] = {float(0), float(0)};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
@@ -166,8 +165,8 @@ private:
     }
     for (int i = 0; i < 2; i++)
       wall_ref.front[i] = sum[i] / ave_count;
-    printf("Wall Calibration Front: %6.1f%6.1f\n", wall_ref.front[0],
-           wall_ref.front[1]);
+    logi << "Wall Calibration Front: " << wall_ref.front[0] << "\t"
+         << wall_ref.front[1] << std::endl;
     tof.enable();
   }
   void update() {
@@ -179,9 +178,9 @@ private:
     buffer.push(distance);
 
     // 前壁の更新
-    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
+    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * float(0.95))
       is_wall[2] = true;
-    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
+    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * float(1.05))
       is_wall[2] = false;
     if (tof.passedTimeMs() > 50)
       is_wall[2] = false;
@@ -189,15 +188,15 @@ private:
     // 横壁の更新
     for (int i = 0; i < 2; i++) {
       const float value = distance.side[i];
-      if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
+      if (value > WALL_DETECTOR_THRESHOLD_SIDE * float(0.95))
         is_wall[i] = true;
-      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
+      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * float(1.05))
         is_wall[i] = false;
     }
 
     // 変化量の更新
     // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
-    WallValue tmp = {0};
+    WallValue tmp;
     for (int i = 0; i < ave_num / 2; ++i)
       tmp += buffer[i];
     for (int i = 0; i < ave_num / 2; ++i)

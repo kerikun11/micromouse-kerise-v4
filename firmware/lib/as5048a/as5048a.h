@@ -37,7 +37,7 @@ public:
   }
   bool update() {
     uint8_t rxbuf[4];
-    static spi_transaction_t tx = {0};
+    static spi_transaction_t tx;
     tx.flags = SPI_TRANS_USE_TXDATA;
     tx.tx_data[0] = 0xFF;
     tx.tx_data[1] = 0xFF;

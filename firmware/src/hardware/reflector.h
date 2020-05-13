@@ -46,7 +46,6 @@ public:
       log_e("you refered an invalid channel!");
       return 0;
     }
-    //      return 12.9035f * log((float)value[ch]) - 86.7561f;
     return value[ch];
   }
   void csv() const {
