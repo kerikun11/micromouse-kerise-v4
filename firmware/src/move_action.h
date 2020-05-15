@@ -125,6 +125,7 @@ public:
         min_i = i;
       }
     }
+    sc.est_p.clear();
     /* 最小分散の方向を向く */
     sc.enable(); //< reset
     turn(2 * M_PI * min_i / table_size);

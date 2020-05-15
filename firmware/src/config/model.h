@@ -44,12 +44,13 @@ static constexpr float wall_avoid_gain = float(1e-3);
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5463, 137), .T1 = ctrl::Polar(0.1998 / 1.6, 0.1354),
+  .K1 = ctrl::Polar(float(5463), float(137)),
+  .T1 = ctrl::Polar(float(0.1998 / 1.6), float(0.1354)),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0003, 0.04), .Ki = ctrl::Polar(0.06, 1),
-  .Kd = ctrl::Polar(0, 0),
+  .Kp = ctrl::Polar(float(0.0003), float(0.04)),
+  .Ki = ctrl::Polar(float(0.06), float(1)), .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
 static constexpr struct ctrl::Polar alpha = ctrl::Polar(float(0.8), float(0));
@@ -79,11 +80,13 @@ static constexpr float wall_avoid_gain = float(0.003);
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5789, float(1000)), .T1 = ctrl::Polar(float(0.12), 0.48), /*< 4 */
+  .K1 = ctrl::Polar(float(5789), float(1000)),
+  .T1 = ctrl::Polar(float(0.12), float(0.48)), /*< 4 */
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(float(0.0008), float(0.15)), .Ki = ctrl::Polar(float(0.1), float(6)), /*< 4 */
+  .Kp = ctrl::Polar(float(0.0008), float(0.15)),
+  .Ki = ctrl::Polar(float(0.1), float(6)), /*< 4 */
       .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
@@ -114,12 +117,15 @@ static constexpr float wall_avoid_gain = float(0.003);
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5789, float(1000)), .T1 = ctrl::Polar(float(0.12), 0.48), /*< 4 */
+  .K1 = ctrl::Polar(5789, float(1000)),
+  .T1 = ctrl::Polar(float(0.12), 0.48), /*< 4 */
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  // .Kp = ctrl::Polar(float(0.0006), float(0.1)), .Ki = ctrl::Polar(float(0.1), float(3)), /*< 3 */
-  .Kp = ctrl::Polar(float(0.0008), float(0.15)), .Ki = ctrl::Polar(float(0.1), float(6)), /*< 4 */
+  // .Kp = ctrl::Polar(float(0.0006), float(0.1)),
+  // .Ki = ctrl::Polar(float(0.1), float(3)), /*< 3 */
+  .Kp = ctrl::Polar(float(0.0008), float(0.15)),
+  .Ki = ctrl::Polar(float(0.1), float(6)), /*< 4 */
       .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
