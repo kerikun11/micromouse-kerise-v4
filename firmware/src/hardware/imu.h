@@ -9,10 +9,10 @@ class IMU {
 public:
   static constexpr int IMU_STACK_SIZE = 2048;
   static constexpr int IMU_TASK_PRIORITY = 5;
-  static constexpr float Ts = float(1e-3);
+  static constexpr float Ts = 1e-3f;
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
-  static constexpr float IMU_ROTATION_RADIOUS = float(10);
+  static constexpr float IMU_ROTATION_RADIOUS = 10.0f;
   static constexpr int IMU_NUM = 2;
 #elif KERISE_SELECT == 5
   static constexpr int IMU_NUM = 1;

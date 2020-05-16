@@ -28,14 +28,14 @@ struct MotionParameter {
 
 class ICM20602 {
 public:
-  static constexpr float ACCEL_G = float(9806.65); //< [mm/s/s]
+  static constexpr float ACCEL_G = 9806.65f; //< [mm/s/s]
 #ifndef M_PI
-  static constexpr float M_PI = float(3.1415926535897932384626433832795);
+  static constexpr float M_PI = 3.1415926535897932384626433832795f;
 #endif
 
 private:
-  static constexpr float ICM20602_ACCEL_FACTOR = 4 * float(2048);
-  static constexpr float ICM20602_GYRO_FACTOR = float(16.4);
+  static constexpr float ICM20602_ACCEL_FACTOR = 4 * 2048.0f;
+  static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
 
 public:
   ICM20602() {}

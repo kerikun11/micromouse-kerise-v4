@@ -8,7 +8,7 @@ public:
   static constexpr int MA730_PULSES = 16384;
   static constexpr int PULSES_SIZE = 16384;
 #ifndef M_PI
-  static constexpr float M_PI = float(3.1415926535897932384626433832795);
+  static constexpr float M_PI = 3.1415926535897932384626433832795f;
 #endif
 
 public:

@@ -17,7 +17,7 @@
 
 class WallDetector {
 public:
-  static constexpr float Ts = float(1e-3);
+  static constexpr float Ts = 1e-3f;
   union WallValue {
     // 意味をもったメンバ
     struct {
@@ -137,11 +137,11 @@ private:
   Accumulator<WallValue, ave_num> buffer;
 
   float ref2dist(const int16_t value) {
-    return float(12.9035) * std::log(float(value)) - float(86.7561);
+    return 12.9035f * std::log(float(value)) - 86.7561f;
   }
   void calibration_side() {
     tof.disable();
-    float sum[2] = {float(0), float(0)};
+    float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
@@ -156,7 +156,7 @@ private:
   }
   void calibration_front() {
     tof.disable();
-    float sum[2] = {float(0), float(0)};
+    float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
@@ -178,9 +178,9 @@ private:
     buffer.push(distance);
 
     // 前壁の更新
-    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * float(0.95))
+    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
       is_wall[2] = true;
-    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * float(1.05))
+    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
       is_wall[2] = false;
     if (tof.passedTimeMs() > 50)
       is_wall[2] = false;
@@ -188,9 +188,9 @@ private:
     // 横壁の更新
     for (int i = 0; i < 2; i++) {
       const float value = distance.side[i];
-      if (value > WALL_DETECTOR_THRESHOLD_SIDE * float(0.95))
+      if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
         is_wall[i] = true;
-      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * float(1.05))
+      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
         is_wall[i] = false;
     }
 

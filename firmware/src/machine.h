@@ -188,13 +188,13 @@ public:
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void selectFanGain() {
-    fan.drive(float(0.5));
+    fan.drive(0.5f);
     delay(100);
     fan.drive(0);
     int value = ui.waitForSelect(11);
     if (value < 0)
       return;
-    ma.rp_fast.fan_duty = float(0.1) * value;
+    ma.rp_fast.fan_duty = 0.1f * value;
     fan.drive(ma.rp_fast.fan_duty);
     // mt.drive(ma.fan_duty, ma.fan_duty);
     ui.waitForSelect(1);
@@ -346,9 +346,9 @@ public:
     delay(500);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     if (dir == 1)
-      mt.drive(-gain * float(0.05), gain *float(0.05)); //< 回転
+      mt.drive(-gain * 0.05f, gain * 0.05f); //< 回転
     else
-      mt.drive(gain * float(0.1), gain *float(0.1)); //< 並進
+      mt.drive(gain * 0.1f, gain * 0.1f); //< 並進
     for (int i = 0; i < 2000; i++) {
       printLog();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
@@ -405,7 +405,7 @@ public:
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    for (float t = 0; t < ad.t_end() + float(0.1); t += float(1e-3)) {
+    for (float t = 0; t < ad.t_end() + 0.1f; t += 1e-3f) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
       else
@@ -439,14 +439,14 @@ public:
       if (value < 0)
         return;
       value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.zeta *= std::pow(float(2), float(value));
+      gain.zeta *= std::pow(2.0f, float(value));
     } break;
     case 2: {
       int value = ui.waitForSelect(16);
       if (value < 0)
         return;
       value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.omega_n *= std::pow(float(2), float(value));
+      gain.omega_n *= std::pow(2.0f, float(value));
     } break;
     }
     led = 15;
@@ -454,21 +454,30 @@ public:
       return;
     delay(500);
     lgr.clear();
-    auto printLog = [](const auto ref_q, const auto est_q) {
-      auto &bd = sc.fbc.getBreakdown();
+    const auto printLog = [](const auto ref_q, const auto est_q) {
+      const auto &bd = sc.fbc.getBreakdown();
       lgr.push({
-          sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
-          bd.fbp.tra,   bd.fbi.tra,   bd.fbd.tra,   sc.ref_v.rot, sc.est_v.rot,
-          sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fbp.rot,   bd.fbi.rot,
-          bd.fbd.rot,   ref_q.x,      est_q.x,      ref_q.y,      est_q.y,
-          ref_q.th,     est_q.th,
+          // sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
+          // bd.fbp.tra,   bd.fbi.tra,   bd.fbd.tra,   sc.ref_v.rot,
+          // sc.est_v.rot,
+          // sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fbp.rot,   bd.fbi.rot,
+          // bd.fbd.rot,   ref_q.x,      est_q.x,      ref_q.y,      est_q.y,
+          // ref_q.th,     est_q.th,
+          enc.get_position(0),
+          enc.get_position(1),
+          imu.gyro.z,
+          imu.accel.y,
+          imu.angular_accel,
+          ui.getBatteryVoltage(),
+          bd.u.tra,
+          bd.u.rot,
       });
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F180];
-    const float velocity = 720;
-    const float Ts = float(1e-3);
+    const float velocity = 420;
+    const float Ts = 1e-3f;
     const float j_max = 120000;
     const float a_max = 6000;
     const float v_max = velocity;
@@ -560,16 +569,16 @@ public:
     case 0:
       gain = sc.G;
     case 1:
-      gain.Kp.tra *= std::pow(float(1.1), float(value));
+      gain.Kp.tra *= std::pow(1.1f, float(value));
       break;
     case 2:
-      gain.Ki.tra *= std::pow(float(1.1), float(value));
+      gain.Ki.tra *= std::pow(1.1f, float(value));
       break;
     case 3:
-      gain.Kp.rot *= std::pow(float(1.1), float(value));
+      gain.Kp.rot *= std::pow(1.1f, float(value));
       break;
     case 4:
-      gain.Ki.rot *= std::pow(float(1.1), float(value));
+      gain.Ki.rot *= std::pow(1.1f, float(value));
       break;
     }
     led = 15;

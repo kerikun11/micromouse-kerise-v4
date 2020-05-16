@@ -36,7 +36,7 @@ public:
 
 class SpeedController {
 public:
-  static constexpr float Ts = float(1e-3);
+  static constexpr float Ts = 1e-3f;
 
 public:
   ctrl::Polar ref_v;
@@ -119,8 +119,8 @@ private:
     /* drive the motors */
     mt.drive(pwm_value_L, pwm_value_R);
     /* estimates slip angle */
-    // const float k = float(0.01);
-    const float k = float(0);
+    // const float k = 0.01f;
+    const float k = 0.0f;
     const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
     /* calculate odometry value */
     est_p.th += imu.gyro.z * Ts;
