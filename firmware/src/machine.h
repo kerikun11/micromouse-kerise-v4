@@ -330,7 +330,7 @@ public:
       return;
     delay(1000);
     lgr.clear();
-    auto printLog = []() {
+    const auto printLog = [&]() {
       lgr.push({
           enc.get_position(0),
           enc.get_position(1),
@@ -338,6 +338,8 @@ public:
           imu.accel.y,
           imu.angular_accel,
           ui.getBatteryVoltage(),
+          dir == 0 ? gain * 0.1f : 0.0f,
+          dir == 1 ? gain * 0.1f : 0.0f,
       });
     };
     bz.play(Buzzer::CALIBRATION);

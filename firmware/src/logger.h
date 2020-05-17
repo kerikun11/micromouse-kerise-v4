@@ -14,6 +14,7 @@ public:
   auto size() const { return buf.size(); }
   auto reserve(std::size_t n) { return buf.reserve(n); }
   void print(std::ostream &os = std::cout) const {
+    os << "# KERISE v" << KERISE_SELECT << std::endl;
     int wait_ctr = 0;
     for (const auto &data : buf) {
       bool first = true;

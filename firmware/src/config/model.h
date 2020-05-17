@@ -115,16 +115,16 @@ static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-  .K1 = ctrl::Polar(5833.0f, 1000.0f),
-  .T1 = ctrl::Polar(0.3694f, 0.48f), /*< 4 */
+  .K1 = ctrl::Polar(5833.0f, 66.72f), .T1 = ctrl::Polar(0.3694f, 0.1499f),
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0008f, 0.15f), .Ki = ctrl::Polar(0.1f, 6.0f), /*< 4 */
+  .Kp = ctrl::Polar(0.0008f, 0.15f), .Ki = ctrl::Polar(0.1f, 6.0f),
+  // .Kp = ctrl::Polar(0.000f, 0.0f), .Ki = ctrl::Polar(0.0f, 0.0f),
       .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.9f, 0.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
