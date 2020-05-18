@@ -119,9 +119,8 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.0008f, 0.15f), .Ki = ctrl::Polar(0.1f, 6.0f),
-  // .Kp = ctrl::Polar(0.000f, 0.0f), .Ki = ctrl::Polar(0.0f, 0.0f),
-      .Kd = ctrl::Polar(0, 0),
+  .Kp = ctrl::Polar(0.00070432f, 0.15055f),
+  .Ki = ctrl::Polar(0.021472f, 17.4936f), .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.9f, 0.0f);

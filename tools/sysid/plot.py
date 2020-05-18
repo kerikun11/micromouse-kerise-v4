@@ -41,6 +41,51 @@ def plt_label(title, xlabel, ylabel):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.tight_layout()
+
+
+def iir_tra(enc, acc, u, T1, K1, dt, p_enc, p_acc, p_mod):
+    if p_mod == None:
+        p_mod = 1 - p_enc - p_acc
+    if p_acc == None:
+        p_acc = 1 - p_enc - p_mod
+    n = len(enc)
+    out = np.zeros(n)
+    out[0] = enc[0]
+    for i in range(1, n):
+        v_acc = out[i-1] + acc[i-1] * dt
+        A = math.exp(-dt/T1)
+        v_mod = A * out[i-1] + K1 * (1-A) * u[i-1]
+        out[i] = p_enc * enc[i] + p_acc * v_acc + p_mod * v_mod
+    return out
+
+
+def iir_rot(enc, gyr, acc, u, T1, K1, dt, p_enc, p_gyr, p_acc, p_mod):
+    if p_mod == None:
+        p_mod = 1 - p_enc - p_acc - p_gyr
+    if p_acc == None:
+        p_acc = 1 - p_enc - p_mod - p_gyr
+    n = len(enc)
+    out = np.zeros(n)
+    out[0] = (enc[0] * p_enc + gyr[0] * p_gyr) / (p_enc + p_gyr)
+    for i in range(1, n):
+        v_acc = out[i-1] + acc[i-1] * dt
+        A = math.exp(-dt/T1)
+        v_mod = A * out[i-1] + K1 * (1-A) * u[i-1]
+        out[i] = p_enc * enc[i] + p_gyr * \
+            gyr[i-1] + p_acc * v_acc + p_mod * v_mod
+    return out
+
+
+def calc_x_y_th(v, w, dt):
+    n = len(v)
+    x, y = np.zeros(n), np.zeros(n)
+    th = np.zeros(n)
+    for i in range(1, n):
+        th[i] = th[i-1] + w[i-1] * dt
+        x[i] = x[i-1] + v[i-1] * math.cos(th[i]) * dt
+        y[i] = y[i-1] + v[i-1] * math.sin(th[i]) * dt
+    return x, y, th
 
 
 def process(filename):
@@ -51,13 +96,13 @@ def process(filename):
     gyro = raw[2]
     accel = raw[3:5]
     voltage = raw[5]
-    u = raw[6:8]
-    # u = np.vstack((
+    u_pwm = raw[6:8]
+    # u_pwm = np.vstack((
     #     0.0 * np.ones(len(raw[0])),
     #     0.4 * np.ones(len(raw[0]))
     # ))
 
-    # plot
+    # plot battery voltage
     plt.figure()
     plt.plot(voltage.T)
     plt_label('Battery Voltage', 'sample', 'Voltage [V]')
@@ -70,7 +115,11 @@ def process(filename):
     enc_diff = np.diff(enc_raw, axis=1)
     enc_diff = np.vstack((enc_diff, (enc_diff[0] + enc_diff[1])/2))
     enc_diff = np.vstack((enc_diff, (enc_diff[1] - enc_diff[0])/2))
-    # plot
+    v_enc = enc_diff[2] / dt
+    w_enc = enc_diff[3] / dt / machine_rotation_radius
+    n = len(enc_diff[0])
+
+    # plot encoder difference
     plt.figure()
     plt.plot(enc_diff.T)
     plt_label('Diff of Encoder Value', 'sample', 'Angular Velocity [deg/s]')
@@ -78,76 +127,81 @@ def process(filename):
     # export_fig('enc_diff')
 
     # rotational velocity
-    w_enc = enc_diff[3]/dt/machine_rotation_radius
-    w_gyr = gyro[0:-1]
-    # IIR
-    n = len(enc_diff[0])
-    v_enc = enc_diff[2]/dt
-    p_gyr = 0.0
-    p_enc = 0.0
-    p_acc = 0.0
-    p_mod = 1 - p_enc - p_acc - p_gyr
     T1 = 0.1499
     K1 = 66.72
-    w_eam = np.zeros(n)
-    w_eam[0] = w_gyr[0]
-    for i in range(1, n):
-        w_acc = w_eam[i-1] + accel[1, i] * dt
-        w_mod = math.exp(-dt/T1) * w_eam[i-1] + K1*(1-math.exp(-dt/T1))*u[1, i]
-        w_eam[i] = p_gyr * w_gyr[i] + p_enc * \
-            w_enc[i] + p_acc * w_acc + p_mod * w_mod
+    w_gyr = gyro
+    acc = accel[1]
+    u = u_pwm[1]
+    w_cmp_a = iir_rot(w_enc, w_gyr, acc, u, T1, K1, dt,
+                      p_enc=0.0, p_gyr=0.5, p_acc=None, p_mod=0)
+    w_cmp_m = iir_rot(w_enc, w_gyr, acc, u, T1, K1, dt,
+                      p_enc=0.0, p_gyr=0.5, p_acc=0, p_mod=None)
+    w_cmp_eam = iir_rot(w_enc, w_gyr, acc, u, T1, K1, dt,
+                        p_enc=0.0, p_gyr=0.2, p_acc=0.4, p_mod=0.4)
     # plot
     plt.figure()
-    plt.plot(np.vstack((w_enc, w_gyr, w_eam)).T)
+    plt.plot(w_enc)
+    plt.plot(w_gyr)
+    plt.plot(w_cmp_a)
+    plt.plot(w_cmp_m)
+    plt.plot(w_cmp_eam)
     plt_label('Rotational Velocity', 'Time [ms]', 'Angular Velocity [deg/s]')
-    plt.legend(['Differential of Encoders', 'IMU Gyro', 'IIR Filtered'])
+    plt.legend([
+        'Encoder',
+        'IMU Gyro',
+        'Gyro + Accel',
+        'Gyro + Model',
+        'Gyro + Accel + Model',
+    ])
 
     # translational velocity
-    # IIR
-    n = len(enc_diff[0])
-    v_enc = enc_diff[2]/dt
-    p_enc = 0.0
-    p_acc = 0.0
-    p_mod = 1 - p_enc - p_acc
     T1 = 0.3694
     K1 = 5833
-    v_eam = np.zeros(n)
-    v_eam[0] = v_enc[0]
-    for i in range(1, n):
-        v_acc = v_eam[i-1] + accel[0, i] * dt
-        v_mod = math.exp(-dt/T1) * v_eam[i-1] + K1*(1-math.exp(-dt/T1))*u[0, i]
-        v_eam[i] = p_enc * v_enc[i] + p_acc * v_acc + p_mod * v_mod
+    acc = accel[0]
+    u = u_pwm[0]
+    v_cmp_a = iir_tra(v_enc, acc, u, T1, K1, dt,
+                      p_enc=0.1, p_acc=None, p_mod=0)
+    v_cmp_m = iir_tra(v_enc, acc, u, T1, K1, dt,
+                      p_enc=0.1, p_acc=0, p_mod=None)
+    v_cmp_eam = iir_tra(v_enc, acc, u, T1, K1, dt,
+                        p_enc=0.1, p_acc=0.45, p_mod=None)
     # plot
-    v_tra = np.vstack((v_enc, v_eam))
     plt.figure()
-    plt.plot(v_tra.T)
+    plt.plot(v_enc)
+    plt.plot(v_cmp_a)
+    plt.plot(v_cmp_m)
+    plt.plot(v_cmp_eam)
     plt_label('Translational Velocity', 'Time [ms]', 'Velocity [mm/s]')
-    plt.legend(['Differential of Encoders', 'IIR Filtered'])
+    plt.legend([
+        'with Encoder',
+        'with Encoder and Accel (IMU)',
+        'with Encoder and Model (System Identification)',
+        'with Encoder, Accel and Model',
+    ], loc='best')
 
     # plot velocity
     plt.figure()
     plt.grid()
     plt.title('Translational and Rotational Velocity')
     plt.xlabel('Time [ms]')
-    p1 = plt.plot(v_eam, 'C0')
+    p1 = plt.plot(v_cmp_eam, 'C0')
     plt.ylabel('Translational Velocity [mm/s]')
     plt.gca().yaxis.label.set_color('C0')
     p2 = plt.twinx().plot(gyro, 'C1')
     plt.ylabel('Rotational Velocity [rad/s]')
     plt.gca().yaxis.label.set_color('C1')
+    plt.tight_layout()
 
     # x-y plot
-    x, y = np.zeros(n), np.zeros(n)
-    th = np.zeros(n)
-    for i in range(1, n):
-        v, w = v_eam[i], gyro[i]
-        th[i] = th[i-1] + w * dt
-        x[i] = x[i-1] + v * math.cos(th[i]) * dt
-        y[i] = y[i-1] + v * math.sin(th[i]) * dt
-    # print(f'({x[-1]}, {y[-1]}, {th[-1]}')
-    # plot
     plt.figure()
+    x, y, th = calc_x_y_th(v_enc, w_gyr, dt)
     plt.plot(x, y)
+    x, y, th = calc_x_y_th(v_cmp_a, w_gyr, dt)
+    plt.plot(x, y)
+    x, y, th = calc_x_y_th(v_cmp_m, w_gyr, dt)
+    plt.plot(x, y)
+    # x, y, th = calc_x_y_th(v_cmp_eam, w_gyr, dt)
+    # plt.plot(x, y)
     plt_label('Planar Shape', 'x [mm]', 'y [mm]')
     ax = plt.gca()
     ax.grid(which='major', linestyle='-')
@@ -157,6 +211,12 @@ def process(filename):
     ax.set_yticks(ax.get_xticks())
     ax.set_yticks(ax.get_xticks(minor=True), minor=True)
     plt.axis('equal')
+    plt.legend([
+        'with Encoder',
+        'with Encoder and Accel (IMU)',
+        'with Encoder and Model (System Identification)',
+        # 'with Encoder, Accel and Model',
+    ], loc='best')
     plt.tight_layout()
 
     # show
