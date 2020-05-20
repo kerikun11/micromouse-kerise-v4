@@ -160,9 +160,9 @@ def process(filename):
     acc = accel[0]
     u = u_pwm[0]
     v_cmp_a = iir_tra(v_enc, acc, u, T1, K1, dt,
-                      p_enc=0.1, p_acc=None, p_mod=0)
+                      p_enc=0.05, p_acc=None, p_mod=0)
     v_cmp_m = iir_tra(v_enc, acc, u, T1, K1, dt,
-                      p_enc=0.1, p_acc=0, p_mod=None)
+                      p_enc=0.05, p_acc=0, p_mod=None)
     v_cmp_eam = iir_tra(v_enc, acc, u, T1, K1, dt,
                         p_enc=0.1, p_acc=0.45, p_mod=None)
     # plot
