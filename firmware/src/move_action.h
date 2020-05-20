@@ -27,8 +27,8 @@ public:
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 0;
     bool front_wall_fix_enabled = 1;
-    bool front_wall_fix_trace_enabled = 1;
-    bool wall_avoid_enabled = 1;
+    bool front_wall_fix_trace_enabled = 0;
+    bool wall_avoid_enabled = 0;
     bool wall_theta_fix_enabled = 1;
     bool wall_cut_enabled = 0;
     float curve_gain = 1.0;
@@ -81,7 +81,6 @@ public:
   void set_path(const std::string &path) { this->path = path; }
   bool positionRecovery() {
     /* 1周回って壁を探す */
-    sc.est_p.clear();
     sc.enable();
     static constexpr float dddth_max = 4800 * M_PI;
     static constexpr float ddth_max = 48 * M_PI;
@@ -125,9 +124,8 @@ public:
         min_i = i;
       }
     }
-    sc.est_p.clear();
     /* 最小分散の方向を向く */
-    sc.enable(); //< reset
+    sc.enable();
     turn(2 * M_PI * min_i / table_size);
     /* 壁が遠い場合は直進する */
     if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
@@ -413,8 +411,8 @@ private:
     return true;
   }
   void turn(const float angle) {
-    static constexpr float dddth_max = 4800 * M_PI;
-    static constexpr float ddth_max = 48 * M_PI;
+    static constexpr float dddth_max = 2400 * M_PI;
+    static constexpr float ddth_max = 54 * M_PI;
     static constexpr float dth_max = 4 * M_PI;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -426,19 +424,19 @@ private:
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     /* 確実に目標角度に持っていく処理 */
-    float int_error = 0;
-    while (1) {
-      float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
-                    sc.est_p.y * std::sin(-sc.est_p.th);
-      const float Kp = 20.0f;
-      const float Ki = 10.0f;
-      const float error = angle - sc.est_p.th;
-      int_error += error * 1e-3f;
-      sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.05f * M_PI)
-        break;
-    }
+    // float int_error = 0;
+    // while (1) {
+    //   float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
+    //                 sc.est_p.y * std::sin(-sc.est_p.th);
+    //   const float Kp = 20.0f;
+    //   const float Ki = 5.0f;
+    //   const float error = angle - sc.est_p.th;
+    //   int_error += error * 1e-3f;
+    //   sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
+    //   vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+    //   if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.05f * M_PI)
+    //     break;
+    // }
     sc.set_target(0, 0);
     /* 移動した量だけ位置を更新 */
     const auto net = ctrl::Pose(0, 0, angle);
@@ -676,6 +674,17 @@ private:
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         field::SegWidthFull / 2 + model::CenterShift, M_PI / 2);
     sc.enable();
+    // logi << "e" << sc.fbc.getErrorIntegral() << std::endl;
+    // logi << "p" << sc.fbc.getBreakdown().fbp << std::endl;
+    // logi << "i" << sc.fbc.getBreakdown().fbi << std::endl;
+    // logi << "d" << sc.fbc.getBreakdown().fbd << std::endl;
+    // logi << "u" << sc.fbc.getBreakdown().u << std::endl;
+    // logi << "enc" << sc.enc_v.tra << std::endl;
+    // logi << "ref_v" << sc.ref_v << std::endl;
+    // logi << "est_v" << sc.est_v << std::endl;
+    // logi << "est_a" << sc.est_a << std::endl;
+    // for (int i = 0; i < sc.wheel_position[0].size(); ++i)
+    //   logi << "wp " << sc.wheel_position[0][i] << std::endl;
     while (1) {
       /* 壁を確認 */
       is_wall = wd.is_wall;
@@ -706,6 +715,15 @@ private:
     const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
     switch (action) {
     case MazeLib::RobotBase::SearchAction::START_STEP:
+      sc.disable();
+      mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
+      delay(500);
+      mt.free();
+      sc.enable();
+      delay(100);
+      logi << sc.est_v << std::endl;
+      delay(100);
+      logi << sc.est_v << std::endl;
       imu.angle = 0;
       sc.est_p.clear();
       sc.est_p.x = model::TailLength + field::WallThickness / 2;
@@ -793,7 +811,6 @@ private:
     /* 初期位置を設定 */
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         model::TailLength + field::WallThickness / 2, M_PI / 2);
-    sc.est_p.clear();
     /* 最初の直線を追加 */
     float straight =
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;

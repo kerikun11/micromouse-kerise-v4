@@ -109,7 +109,7 @@ static constexpr float TailLength = 16.4f;
 static constexpr float tof_dist_offset = 8; //< 大きいほど壁に近く
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 240.0f;
-static constexpr float wall_attach_gain_Ki = 1.0f;
+static constexpr float wall_attach_gain_Ki = 0.5f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
@@ -119,17 +119,18 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Model
 };
 static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-  .Kp = ctrl::Polar(0.00070432f, 0.15055f),
-  .Ki = ctrl::Polar(0.021472f, 17.4936f), .Kd = ctrl::Polar(0, 0),
+  .Kp = ctrl::Polar(5.3985e-03, 9.6774e-02),
+  .Ki = ctrl::Polar(1.3552e-01, 1.6892e+00),
+  .Kd = ctrl::Polar(7.7803e-06, 4.7964e-05),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.9f, 0.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.95f, 0.8f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
-    .zeta = 0.8f,
-    .omega_n = 18.0f,
+    .zeta = 0.6f,
+    .omega_n = 10.0f,
     .low_zeta = 1.0f,
-    .low_b = 1e-3f,
+    .low_b = 1e-2f,
 };
 
 #endif

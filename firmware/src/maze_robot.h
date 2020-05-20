@@ -235,12 +235,7 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
 private:
-  bool searchRun() {
-    mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
-    delay(500);
-    mt.free();
-    return RobotBase::searchRun();
-  }
+  bool searchRun() { return RobotBase::searchRun(); }
   bool fastRun() {
 #if 0
     /* 走行パラメータ選択 */

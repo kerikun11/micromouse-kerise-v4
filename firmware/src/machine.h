@@ -394,15 +394,15 @@ public:
     sc.enable();
     ctrl::AccelDesigner ad;
     if (dir == 0) {
-      const float j_max = 240000;
-      const float a_max = 9000;
+      const float j_max = 120000;
+      const float a_max = 6000;
       const float v_max = 900;
       const float dist = 90 * 4;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     } else {
       const float j_max = 1200 * M_PI;
       const float a_max = 48 * M_PI;
-      const float v_max = 8 * M_PI;
+      const float v_max = 6 * M_PI;
       const float dist = 4 * M_PI;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
@@ -425,12 +425,13 @@ public:
     bz.play(Buzzer::CANCEL);
     sc.disable();
     fan.drive(0);
+    mt.emergencyRelease();
   }
   static void slalom_test() {
     ctrl::TrajectoryTracker::Gain gain;
-    gain.omega_n = gain.zeta = gain.low_b = gain.low_zeta = 0;
-    // int mode = ui.waitForSelect(3);
-    int mode = 0;
+    // gain.omega_n = gain.zeta = gain.low_b = gain.low_zeta = 0;
+    int mode = ui.waitForSelect(3);
+    // int mode = 0;
     if (mode < 0)
       return;
     switch (mode) {
@@ -459,20 +460,15 @@ public:
     const auto printLog = [](const auto ref_q, const auto est_q) {
       const auto &bd = sc.fbc.getBreakdown();
       lgr.push({
-          // sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
-          // bd.fbp.tra,   bd.fbi.tra,   bd.fbd.tra,   sc.ref_v.rot,
-          // sc.est_v.rot,
-          // sc.ref_a.rot, sc.est_a.rot, bd.ff.rot,    bd.fbp.rot,   bd.fbi.rot,
-          // bd.fbd.rot,   ref_q.x,      est_q.x,      ref_q.y,      est_q.y,
-          // ref_q.th,     est_q.th,
-          enc.get_position(0),
-          enc.get_position(1),
-          imu.gyro.z,
-          imu.accel.y,
-          imu.angular_accel,
-          ui.getBatteryVoltage(),
-          bd.u.tra,
-          bd.u.rot,
+#if 1
+        sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
+            bd.fbp.tra, bd.fbi.tra, bd.fbd.tra, sc.ref_v.rot, sc.est_v.rot,
+            sc.ref_a.rot, sc.est_a.rot, bd.ff.rot, bd.fbp.rot, bd.fbi.rot,
+            bd.fbd.rot, ref_q.x, est_q.x, ref_q.y, est_q.y, ref_q.th, est_q.th,
+#else
+        enc.get_position(0), enc.get_position(1), imu.gyro.z, imu.accel.y,
+            imu.angular_accel, ui.getBatteryVoltage(), bd.u.tra, bd.u.rot,
+#endif
       });
     };
     bz.play(Buzzer::CALIBRATION);
@@ -496,8 +492,8 @@ public:
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
-      auto est_q = sc.est_p;
-      auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
+      const auto est_q = sc.est_p;
+      const auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
