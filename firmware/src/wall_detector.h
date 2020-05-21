@@ -137,8 +137,7 @@ private:
   Accumulator<WallValue, ave_num> buffer;
 
   float ref2dist(const int16_t value) const {
-    // return 12.9035f * std::log(float(value)) - 86.7561f;
-    return 12.9035f * std::log(value) - 86.7561f;
+    return 12.9035f * std::log(float(value)) - 86.7561f;
   }
   void calibration_side() {
     tof.disable();

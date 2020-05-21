@@ -67,7 +67,11 @@ public:
     reset_requested = true;
     enabled = true;
   }
-  void disable() { enabled = false; }
+  void disable() {
+    enabled = false;
+    vTaskDelay(pdMS_TO_TICKS(10));
+    mt.free();
+  }
   void set_target(const float v_tra, const float v_rot, const float a_tra = 0,
                   const float a_rot = 0) {
     ref_v.tra = v_tra;
@@ -78,8 +82,8 @@ public:
   void fix_pose(const ctrl::Pose fix) { this->fix += fix; }
 
 private:
-  std::atomic_bool enabled{false};
-  std::atomic_bool reset_requested{false};
+  volatile std::atomic_bool enabled{false};
+  volatile std::atomic_bool reset_requested{false};
   ctrl::Pose fix;
 
   void reset() {

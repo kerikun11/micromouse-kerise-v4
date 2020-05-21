@@ -720,10 +720,6 @@ private:
       delay(500);
       mt.free();
       sc.enable();
-      delay(100);
-      logi << sc.est_v << std::endl;
-      delay(100);
-      logi << sc.est_v << std::endl;
       imu.angle = 0;
       sc.est_p.clear();
       sc.est_p.x = model::TailLength + field::WallThickness / 2;

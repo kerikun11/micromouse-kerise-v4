@@ -53,7 +53,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
+static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 1.0f,
@@ -88,7 +88,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
       .Kd = ctrl::Polar(0, 0),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.8f, 0.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
@@ -124,7 +124,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kd = ctrl::Polar(7.7803e-06, 4.7964e-05),
 };
 /* Estimated Velocity IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.95f, 0.8f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.05f, 0.2f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.6f,
