@@ -202,18 +202,6 @@ public:
     mt.drive(0, 0);
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void partyStunt() {
-    if (!ui.waitForCover())
-      return;
-    led = 6;
-    bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
-    led = 9;
-    sc.enable();
-    sc.set_target(0, 0);
-    ui.waitForCover();
-    sc.disable();
-  }
   static void wallCalibration() {
     int mode = ui.waitForSelect(3);
     switch (mode) {
@@ -292,34 +280,25 @@ public:
     }
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void petitcon() {
+  static void partyStunt() {
     if (!ui.waitForCover())
       return;
-    delay(500);
-    std::string path;
-    path += "s";
-    for (int j = 0; j < 4; ++j) {
-      for (int i = 0; i < 28; ++i)
-        path += "s";
-      path += "r";
-      for (int i = 0; i < 12; ++i)
-        path += "s";
-      path += "r";
+    led = 6;
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    led = 9;
+    sc.reset();
+    sc.set_target(0, 0);
+    while (!mt.isEmergency()) {
+      sc.update();
+      sc.drive();
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
-    path += "s";
-    ma.set_path(path);
-    ma.enable();
-    while (ma.isRunning()) {
-      delay(100);
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
-        ma.disable();
-        fan.free();
-        delay(100);
-        mt.emergencyRelease();
-        break;
-      }
-    }
+    mt.drive(0, 0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    mt.free();
+    mt.emergencyRelease();
+    bz.play(Buzzer::CANCEL);
   }
   static void sysid() {
     int dir = ui.waitForSelect(2);
@@ -346,6 +325,8 @@ public:
     imu.calibration();
     fan.drive(0.5);
     delay(500);
+    /* start */
+    sc.reset();
     TickType_t xLastWakeTime = xTaskGetTickCount();
     if (dir == 1)
       mt.drive(-gain * 0.05f, gain * 0.05f); //< 回転
@@ -353,6 +334,7 @@ public:
       mt.drive(gain * 0.1f, gain * 0.1f); //< 並進
     for (int i = 0; i < 2000; i++) {
       printLog();
+      sc.update();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     fan.drive(0);
@@ -391,7 +373,6 @@ public:
     imu.calibration();
     fan.drive(0.2);
     delay(500);
-    sc.enable();
     ctrl::AccelDesigner ad;
     if (dir == 0) {
       const float j_max = 120000;
@@ -406,12 +387,16 @@ public:
       const float dist = 4 * M_PI;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
+    /* start */
+    sc.reset();
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 1e-3f) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
       else
         sc.set_target(0, ad.v(t), 0, ad.a(t));
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if ((int)(t * 1000) % 2 == 0)
         printLog();
@@ -420,12 +405,10 @@ public:
         break;
       }
     }
-    sc.set_target(0, 0);
-    delay(200);
-    bz.play(Buzzer::CANCEL);
-    sc.disable();
     fan.drive(0);
+    mt.free();
     mt.emergencyRelease();
+    bz.play(Buzzer::CANCEL);
   }
   static void slalom_test() {
     ctrl::TrajectoryTracker::Gain gain;
@@ -483,7 +466,7 @@ public:
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
     /* start */
-    sc.enable();
+    sc.reset();
     TickType_t xLastWakeTime = xTaskGetTickCount();
     tt.reset(0);
     /* accel */
@@ -495,6 +478,8 @@ public:
       const auto est_q = sc.est_p;
       const auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
@@ -510,6 +495,8 @@ public:
       auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
@@ -525,20 +512,20 @@ public:
       auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* end */
-    sc.set_target(0, 0);
-    delay(200);
     bz.play(Buzzer::CANCEL);
-    sc.disable();
     if (mt.isEmergency()) {
       bz.play(Buzzer::EMERGENCY);
       mt.emergencyRelease();
     }
+    mt.free();
   }
   static void pidTuner() {
     ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.G;

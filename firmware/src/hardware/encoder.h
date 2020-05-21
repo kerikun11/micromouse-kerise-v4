@@ -11,22 +11,14 @@
 #include "config/model.h" //< for KERISE_SELECT
 
 class Encoder {
-private:
-  static constexpr int ENCODER_STACK_SIZE = 4096;
-  static constexpr int ENCODER_PRIORITY = 5;
-
 public:
-  Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {
-    sampling_end_semaphore = xSemaphoreCreateBinary();
-  }
+  Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
   bool init(spi_host_device_t spi_host, int8_t pin_cs) {
     if (!as.init(spi_host, pin_cs)) {
       loge << "AS5048A init failed :(" << std::endl;
       return false;
     }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", ENCODER_STACK_SIZE, this, ENCODER_PRIORITY, NULL);
     return true;
   }
 #elif KERISE_SELECT == 5
@@ -39,8 +31,6 @@ public:
       loge << "Encoder R init failed :(" << std::endl;
       return false;
     }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", ENCODER_STACK_SIZE, this, ENCODER_PRIORITY, NULL);
     return true;
   }
 #endif
@@ -52,9 +42,6 @@ public:
     return positions[ch];
   }
   void clearOffset() { pulses_ovf[0] = pulses_ovf[1] = 0; }
-  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
-    xSemaphoreTake(sampling_end_semaphore, xBlockTime);
-  }
   void csv() {
     std::cout << "0," << get_position(0) << "," << get_position(1) << std::endl;
     // std::cout << "0," << get_raw(0) << "," << get_raw(1) << std::endl;
@@ -67,19 +54,6 @@ public:
               << std::setw(6) << std::setfill(' ') << e.get_raw(0) << ", "
               << std::setw(6) << std::setfill(' ') << e.get_raw(1) << ")";
   }
-
-private:
-#if KERISE_SELECT == 3 || KERISE_SELECT == 4
-  AS5048A_DUAL as;
-#elif KERISE_SELECT == 5
-  MA730 ma[2];
-#endif
-  SemaphoreHandle_t sampling_end_semaphore;
-  const float encoder_factor;
-  int pulses[2];
-  int pulses_prev[2];
-  int pulses_ovf[2];
-  float positions[2];
 
   void update() {
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
@@ -113,12 +87,16 @@ private:
     positions[0] *= -1;
 #endif
   }
-  void task() {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    while (1) {
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      update();
-      xSemaphoreGive(sampling_end_semaphore);
-    }
-  }
+
+private:
+#if KERISE_SELECT == 3 || KERISE_SELECT == 4
+  AS5048A_DUAL as;
+#elif KERISE_SELECT == 5
+  MA730 ma[2];
+#endif
+  const float encoder_factor;
+  int pulses[2];
+  int pulses_prev[2];
+  int pulses_ovf[2];
+  float positions[2];
 };

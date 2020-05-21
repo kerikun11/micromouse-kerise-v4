@@ -22,8 +22,8 @@ Reflector ref(PR_TX_PINS, PR_RX_PINS);
 ToF tof(I2C_PORT_NUM_TOF, model::tof_dist_offset);
 
 /* Supporter */
-UserInterface ui;
 SpeedController sc(model::SpeedControllerModel, model::SpeedControllerGain);
+UserInterface ui;
 WallDetector wd;
 
 /* Conductor */

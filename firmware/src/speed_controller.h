@@ -59,18 +59,6 @@ public:
                   const ctrl::FeedbackController<ctrl::Polar>::Gain &G)
       : M(M), G(G), fbc(M, G) {
     reset();
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "SpeedController", SPEED_CONTROLLER_STACK_SIZE, this,
-                SPEED_CONTROLLER_TASK_PRIORITY, NULL);
-  }
-  void enable() {
-    reset_requested = true;
-    enabled = true;
-  }
-  void disable() {
-    enabled = false;
-    vTaskDelay(pdMS_TO_TICKS(10));
-    mt.free();
   }
   void set_target(const float v_tra, const float v_rot, const float a_tra = 0,
                   const float a_rot = 0) {
@@ -80,11 +68,6 @@ public:
     ref_a.rot = a_rot;
   }
   void fix_pose(const ctrl::Pose fix) { this->fix += fix; }
-
-private:
-  volatile std::atomic_bool enabled{false};
-  volatile std::atomic_bool reset_requested{false};
-  ctrl::Pose fix;
 
   void reset() {
     ref_v.clear();
@@ -99,10 +82,20 @@ private:
     fix.clear();
     fbc.reset();
   }
+  void update() {
+    /* sampling */
+    update_samples();
+    /* estimate */
+    update_estimator();
+    /* calculate odometry value */
+    update_odometry();
+    /* Fix Pose */
+    update_fix();
+  }
   void update_samples() {
     /* wait for end sampling */
-    imu.samplingSemaphoreTake();
-    enc.samplingSemaphoreTake();
+    imu.update();
+    enc.update();
     /* add new samples */
     for (int i = 0; i < 2; i++)
       wheel_position[i].push(enc.get_position(i));
@@ -157,27 +150,9 @@ private:
     /* drive the motors */
     mt.drive(pwm_value_L, pwm_value_R);
   }
-  void task() {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    while (1) {
-      /* 同期 */
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      /* check if enabled */
-      if (!enabled)
-        continue;
-      /* reset */
-      if (reset_requested)
-        reset_requested = false, reset();
-      /* sampling */
-      update_samples();
-      /* estimate */
-      update_estimator();
-      /* drive the motors */
-      drive();
-      /* calculate odometry value */
-      update_odometry();
-      /* Fix Pose */
-      update_fix();
-    }
-  }
+
+private:
+  std::atomic_bool enabled{false};
+  std::atomic_bool reset_requested{false};
+  ctrl::Pose fix;
 };

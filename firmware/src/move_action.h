@@ -57,9 +57,7 @@ public:
   };
 
 public:
-  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
-    // rp_search.diag_enabled = 0;
-  }
+  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {}
   void enable() {
     deleteTask();
     isRunningFlag = true;
@@ -67,7 +65,7 @@ public:
   }
   void disable() {
     deleteTask();
-    sc.disable();
+    mt.free();
     while (q.size())
       q.pop();
     path = "";
@@ -81,7 +79,6 @@ public:
   void set_path(const std::string &path) { this->path = path; }
   bool positionRecovery() {
     /* 1周回って壁を探す */
-    sc.enable();
     static constexpr float dddth_max = 4800 * M_PI;
     static constexpr float ddth_max = 48 * M_PI;
     static constexpr float dth_max = 2 * M_PI;
@@ -91,6 +88,7 @@ public:
     std::bitset<table_size> is_valid;
     table.fill(255);
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
+    sc.reset();
     TickType_t xLastWakeTime = xTaskGetTickCount();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 1e-3f) {
@@ -98,6 +96,8 @@ public:
                     sc.est_p.y * std::sin(-sc.est_p.th);
       constexpr float back_gain = 10.0f;
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       if (ad.x(t) > 2 * M_PI * index / table_size) {
         index++;
@@ -125,7 +125,7 @@ public:
       }
     }
     /* 最小分散の方向を向く */
-    sc.enable();
+    sc.reset();
     turn(2 * M_PI * min_i / table_size);
     /* 壁が遠い場合は直進する */
     if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
@@ -143,7 +143,6 @@ public:
       wall_attach(true);
       turn(-M_PI / 2);
     }
-    sc.disable();
     sc.est_p.clear();
     return true;
   }
@@ -208,6 +207,8 @@ private:
         const float sat_tra = 120.0f;   //< [mm/s]
         const float sat_rot = M_PI / 4; //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
+        sc.update();
+        sc.drive();
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
       sc.set_target(0, 0);
@@ -421,6 +422,8 @@ private:
       float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                     sc.est_p.y * std::sin(-sc.est_p.th);
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     /* 確実に目標角度に持っていく処理 */
@@ -433,6 +436,8 @@ private:
     //   const float error = angle - sc.est_p.th;
     //   int_error += error * 1e-3f;
     //   sc.set_target(-delta * back_gain, Kp * error + Ki * int_error);
+    // sc.update();
+    // sc.drive();
     //   vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     //   if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.05f * M_PI)
     //     break;
@@ -472,6 +477,8 @@ private:
         /* 壁制御 */
         wall_avoid(remain, rp, int_y);
         wall_cut(rp);
+        sc.update();
+        sc.drive();
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       }
     }
@@ -507,6 +514,8 @@ private:
         if (&shape != &ctrl::shapes[ctrl::ShapeIndex::FS90])
           front_fix_ready = !front_wall_fix_trace(rp, field::SegWidthFull);
       /* 同期 */
+      sc.update();
+      sc.drive();
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     sc.set_target(velocity, 0);
@@ -559,12 +568,11 @@ private:
       sc.set_target(-max_v, -sc.est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
     }
-    sc.disable();
     mt.drive(-0.1f, -0.1f);
     vTaskDelay(pdMS_TO_TICKS(200));
     mt.drive(-0.2f, -0.2f);
     vTaskDelay(pdMS_TO_TICKS(200));
-    sc.enable();
+    mt.drive(0, 0);
   }
   void uturn() {
     if (wd.distance.side[0] < wd.distance.side[1]) {
@@ -582,13 +590,16 @@ private:
   void wall_stop() {
     bz.play(Buzzer::AEBS);
     float v = sc.est_v.tra;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (v > 0) {
-      sc.set_target(v, 0);
       v -= 12;
-      vTaskDelay(pdMS_TO_TICKS(1));
+      sc.set_target(v, 0);
+      sc.update();
+      sc.drive();
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
     vTaskDelay(pdMS_TO_TICKS(100));
-    sc.disable();
+    mt.free();
     wall_stop_flag = true;
     mt.emergencyStop();
     vTaskDelay(portMAX_DELAY);
@@ -619,10 +630,12 @@ private:
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
                                  ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      sc.update();
+      sc.drive();
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       /* 壁制御 */
       wall_avoid(0, rp, int_y);
       wall_cut(rp);
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     }
   }
   void task() override {
@@ -671,20 +684,9 @@ private:
   void search_run_task() {
     const auto &rp = rp_search;
     /* スタート */
+    sc.reset();
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         field::SegWidthFull / 2 + model::CenterShift, M_PI / 2);
-    sc.enable();
-    // logi << "e" << sc.fbc.getErrorIntegral() << std::endl;
-    // logi << "p" << sc.fbc.getBreakdown().fbp << std::endl;
-    // logi << "i" << sc.fbc.getBreakdown().fbi << std::endl;
-    // logi << "d" << sc.fbc.getBreakdown().fbd << std::endl;
-    // logi << "u" << sc.fbc.getBreakdown().u << std::endl;
-    // logi << "enc" << sc.enc_v.tra << std::endl;
-    // logi << "ref_v" << sc.ref_v << std::endl;
-    // logi << "est_v" << sc.est_v << std::endl;
-    // logi << "est_a" << sc.est_a << std::endl;
-    // for (int i = 0; i < sc.wheel_position[0].size(); ++i)
-    //   logi << "wp " << sc.wheel_position[0][i] << std::endl;
     while (1) {
       /* 壁を確認 */
       is_wall = wd.is_wall;
@@ -715,12 +717,11 @@ private:
     const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
     switch (action) {
     case MazeLib::RobotBase::SearchAction::START_STEP:
-      sc.disable();
       mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
-      delay(500);
+      vTaskDelay(pdMS_TO_TICKS(500));
       mt.free();
-      sc.enable();
       imu.angle = 0;
+      sc.reset();
       sc.est_p.clear();
       sc.est_p.x = model::TailLength + field::WallThickness / 2;
       offset = ctrl::Pose(field::SegWidthFull / 2, 0, M_PI / 2);
@@ -802,8 +803,7 @@ private:
     mt.free();
     /* 走行開始 */
     fan.drive(rp.fan_duty);
-    delay(500);  //< ファンの回転数が一定なるのを待つ
-    sc.enable(); //< 速度コントローラ始動
+    delay(400); //< ファンの回転数が一定なるのを待つ
     /* 初期位置を設定 */
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         model::TailLength + field::WallThickness / 2, M_PI / 2);
@@ -823,8 +823,11 @@ private:
     }
     sc.set_target(0, 0);
     fan.drive(0);
-    delay(200);
-    sc.disable();
+    for (int i = 0; i < 400; i++) {
+      sc.update();
+      sc.drive();
+      vTaskDelay(pdMS_TO_TICKS(1));
+    }
     bz.play(Buzzer::COMPLETE);
     path = "";
     isRunningFlag = false;

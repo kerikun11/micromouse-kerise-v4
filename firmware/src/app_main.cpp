@@ -32,8 +32,9 @@ void printTask(void *arg) {
 void driveTask(void *arg) {
   // Machine::driveAutomatically();
   while (1) {
-    vTaskDelay(pdMS_TO_TICKS(1));
     int mode = ui.waitForSelect(16);
+    if (mode < 0)
+      continue;
     switch (mode) {
     case 0: /* 迷路走行 */
       Machine::driveNormally();
@@ -63,7 +64,7 @@ void driveTask(void *arg) {
       Machine::wallCalibration();
       break;
     case 9: /* プチコン */
-      Machine::petitcon();
+      // Machine::petitcon();
       break;
     case 10: /* 迷路の表示 */
       mr.print();
@@ -87,4 +88,5 @@ void driveTask(void *arg) {
       break;
     }
   }
+  vTaskDelay(portMAX_DELAY);
 }

@@ -48,8 +48,9 @@ public:
     uint8_t value = init_value;
     led = value;
     while (1) {
+      sc.update();
+      vTaskDelay(pdMS_TO_TICKS(1));
       float now_enc = enc.get_position(0) + enc.get_position(1);
-      vTaskDelay(pdMS_TO_TICKS(10));
       /* SELECT */
       if (imu.gyro.y > thr_gyro) {
         value += range - 1;
@@ -114,7 +115,8 @@ public:
    */
   static bool waitForCover(bool side = false) {
     while (1) {
-      vTaskDelay(pdMS_TO_TICKS(wait_ms));
+      sc.update();
+      vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */
       if (!side && ref.front(0) > thr_ref_front &&
           ref.front(1) > thr_ref_front) {
@@ -144,6 +146,7 @@ public:
   static bool waitForPickup(const int wait_ms = 2000) {
     led = 0xf;
     for (int ms = 0; ms < wait_ms; ms++) {
+      sc.update();
       vTaskDelay(pdMS_TO_TICKS(1));
       if (std::abs(imu.gyro.x) > thr_gyro || std::abs(imu.gyro.y) > thr_gyro ||
           std::abs(imu.gyro.z) > thr_gyro) {
@@ -164,6 +167,7 @@ public:
   static bool waitForFix() {
     int fix_count = 0;
     while (1) {
+      sc.update();
       vTaskDelay(pdMS_TO_TICKS(1));
       /* FIX */
       if (std::abs(imu.gyro.x) < thr_fix_gyro &&

@@ -121,21 +121,16 @@ public:
     return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
   void autoRun(const bool isForceSearch, const bool isPositionIdentifying) {
-    auto emergency_loop_avoidance_ms = millis() - 12000;
     start(isForceSearch, isPositionIdentifying);
     while (isRunning()) {
       if (mt.isEmergency()) {
         bz.play(Buzzer::EMERGENCY);
         terminate();
         fan.free();
-        /* フェイルセーフループ回避のリセット */
-        if (millis() - emergency_loop_avoidance_ms < 3000)
-          esp_restart();
-        delay(1000);
+        delay(500);
         mt.emergencyRelease();
         /* EmergencyStopのタイミング次第でdisabledの場合がある */
         tof.enable();
-        emergency_loop_avoidance_ms = millis();
         /* 回収されるか待つ */
         if (!ui.waitForPickup())
           return;
@@ -156,12 +151,10 @@ public:
 
 private:
   Maze maze;
+  State state;
+  bool prevIsForceGoingToGoal = false;
   bool isForceSearch = false;
   bool isRunningFlag = false;
-  bool isPositionIdentifying = false;
-  bool prevIsForceGoingToGoal = false;
-  State state;
-  // int time_stamp_us = 0;
 
   /* override virtual functions */
 protected:
@@ -189,8 +182,6 @@ protected:
   void calcNextDirectionsPreCallback() override {
     /* ゴール判定用フラグ */
     prevIsForceGoingToGoal = isForceGoingToGoal;
-    /* 計算時間計測 */
-    // time_stamp_us = esp_timer_get_time();
     /* ウルトラマンタイマー */
     const int time_limit_s = competition_limit_time_s -
                              (5 - state.try_count) * expected_fast_run_time_s;
@@ -217,11 +208,7 @@ protected:
       state.has_reached_goal = true;
       bz.play(Buzzer::CONFIRM);
     }
-    /* 計算時間計測 */
-    // const auto now_us = esp_timer_get_time();
-    // const float dur_us = now_us - time_stamp_us;
-    // lgr.push({dur_us});
-    /* State Change has occurred */
+    /* 探索情報のお知らせ */
     if (newState == prevState)
       return;
     if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
@@ -306,7 +293,8 @@ private:
     led = 0xf;
     delay(200);
     for (int ms = 0; ms < wait_ms; ms++) {
-      delay(1);
+      sc.update();
+      vTaskDelay(pdMS_TO_TICKS(1));
       if (fabs(imu.gyro.y) > PI) {
         bz.play(Buzzer::CANCEL);
         waitForever();
@@ -319,20 +307,16 @@ private:
     isRunningFlag = false;
     vTaskDelay(portMAX_DELAY);
   }
-  void task() override {
+  bool run() {
     /* 迷路のチェック */
-    if (!isComplete()) {
+    if (!isComplete())
       bz.play(Buzzer::CANCEL);
-      // maze.resetLastWalls(12); //< 未完了ならクラッシュ後を想定して少し消す
-    }
     if (!isSolvable())
       bz.play(Buzzer::ERROR);
     while (!isSolvable()) {
       maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
-      if (getMaze().getWallRecords().empty()) {
-        bz.play(Buzzer::ERROR);
-        waitForever();
-      }
+      if (getMaze().getWallRecords().empty())
+        reset(), bz.play(Buzzer::ERROR);
     }
     /* 自動復帰: 任意 -> ゴール -> スタート */
     if (isPositionIdentifying) {
@@ -347,7 +331,7 @@ private:
       if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop(); //< 復帰用
-        waitForever();
+        return false;
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
@@ -357,7 +341,7 @@ private:
       state.newRun(); //< 0 -> 1
       if (!searchRun()) {
         bz.play(Buzzer::ERROR);
-        waitForever();
+        return false;
       }
       bz.play(Buzzer::COMPLETE);
       readyToStartWait();
@@ -371,13 +355,17 @@ private:
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
         mt.emergencyStop(); //< 復帰用
-        waitForever();
+        return false;
       }
       bz.play(Buzzer::SUCCESSFUL);
       readyToStartWait();
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);
+    return true;
+  }
+  void task() override {
+    run();
     waitForever();
   }
 };

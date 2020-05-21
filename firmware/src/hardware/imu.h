@@ -7,8 +7,6 @@
 
 class IMU {
 public:
-  static constexpr int IMU_STACK_SIZE = 2048;
-  static constexpr int IMU_TASK_PRIORITY = 5;
   static constexpr float Ts = 1e-3f;
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -19,19 +17,11 @@ public:
 #endif
 
 public:
-  IMU() {
-    sampling_end_semaphore = xSemaphoreCreateBinary();
-    calibration_start_semaphore = xSemaphoreCreateBinary();
-    calibration_end_semaphore = xSemaphoreCreateBinary();
-  }
+  IMU() {}
   bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
     for (int i = 0; i < IMU_NUM; ++i)
-      if (!icm[i].init(spi_host, pins_cs[i])) {
-        log_e("IMU %d begin failed :(", i);
-        return false;
-      }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "IMU", IMU_STACK_SIZE, this, IMU_TASK_PRIORITY, NULL);
+      if (!icm[i].init(spi_host, pins_cs[i]))
+        return log_e("IMU %d begin failed :(", i), false;
     return true;
   }
   void print() {
@@ -47,33 +37,10 @@ public:
          << std::endl;
     logd << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
-  void calibration(bool waitForEnd = true) {
-    // 前のフラグが残っていたら回収
-    xSemaphoreTake(calibration_end_semaphore, 0);
-    xSemaphoreGive(calibration_start_semaphore);
-    if (waitForEnd)
-      calibrationWait();
+  void calibration() {
+    for (size_t i = 0; i < IMU_NUM; i++)
+      icm[i].calibration();
   }
-  void calibrationWait() {
-    xSemaphoreTake(calibration_end_semaphore, portMAX_DELAY);
-  }
-  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
-    xSemaphoreTake(sampling_end_semaphore, xBlockTime);
-  }
-
-public:
-  MotionParameter gyro, accel;
-  float angle, angular_accel;
-
-private:
-  SemaphoreHandle_t
-      sampling_end_semaphore; //< サンプリング終了を知らせるセマフォ
-  SemaphoreHandle_t
-      calibration_start_semaphore; //< キャリブレーション要求を知らせるセマフォ
-  SemaphoreHandle_t
-      calibration_end_semaphore; //< キャリブレーション終了を知らせるセマフォ
-  ICM20602 icm[IMU_NUM];
-
   void update() {
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
     for (size_t i = 0; i < IMU_NUM; i++)
@@ -126,20 +93,11 @@ private:
     angular_accel = (gyro.z - prev_gyro_z) / Ts;
 #endif
   }
-  void task() {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    while (1) {
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      update();                               //< データの更新
-      xSemaphoreGive(sampling_end_semaphore); //< サンプリング終了を知らせる
 
-      // キャリブレーションが要求されていたら行う
-      if (xSemaphoreTake(calibration_start_semaphore, 0) == pdTRUE) {
-        for (size_t i = 0; i < IMU_NUM; i++)
-          icm[i].calibration();
-        // キャリブレーション終了を知らせるセマフォ
-        xSemaphoreGive(calibration_end_semaphore);
-      }
-    }
-  }
+public:
+  MotionParameter gyro, accel;
+  float angle, angular_accel;
+
+private:
+  ICM20602 icm[IMU_NUM];
 };
