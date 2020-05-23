@@ -1,10 +1,10 @@
 #pragma once
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
-#include "i2c.h"
+#include <peripheral/i2c.h>
 
 class LED {
 private:

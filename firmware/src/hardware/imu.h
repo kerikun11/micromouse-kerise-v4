@@ -10,7 +10,7 @@ public:
   static constexpr float Ts = 1e-3f;
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
-  static constexpr float IMU_ROTATION_RADIOUS = 10.0f;
+  static constexpr float IMU_ROTATION_RADIUS = 10.0f;
   static constexpr int IMU_NUM = 2;
 #elif KERISE_SELECT == 5
   static constexpr int IMU_NUM = 1;
@@ -25,17 +25,17 @@ public:
     return true;
   }
   void print() {
-    logd << "Gyro:"
+    logi << "Gyro:"
          << "\t" << gyro.x //
          << "\t" << gyro.y //
          << "\t" << gyro.z //
          << std::endl;
-    logd << "Accel:"
+    logi << "Accel:"
          << "\t" << accel.x //
          << "\t" << accel.y //
          << "\t" << accel.z //
          << std::endl;
-    logd << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
+    logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
   void calibration() {
     for (size_t i = 0; i < IMU_NUM; i++)
@@ -74,8 +74,7 @@ public:
 #endif
 
     angle += gyro.z * Ts;
-    angular_accel =
-        (icm[0].accel.y + icm[1].accel.y) / 2 / IMU_ROTATION_RADIOUS;
+    angular_accel = (icm[0].accel.y + icm[1].accel.y) / 2 / IMU_ROTATION_RADIUS;
 
 #elif KERISE_SELECT == 5
     for (size_t i = 0; i < IMU_NUM; i++)

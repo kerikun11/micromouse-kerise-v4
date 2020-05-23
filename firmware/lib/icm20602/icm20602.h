@@ -1,10 +1,16 @@
+/**
+ * @file icm20602.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief ICM-20602 Driver
+ * @date 2020-05-23
+ * @copyright Copyright (c) 2020 Ryotaro Onuki
+ */
 #pragma once
 
 #include <array>
 #include <driver/spi_master.h>
 #include <esp_err.h>
-
-#include "spi.h"
+#include <peripheral/spi.h>
 
 struct MotionParameter {
   float x, y, z;
@@ -27,19 +33,17 @@ struct MotionParameter {
 };
 
 class ICM20602 {
-public:
+private:
   static constexpr float ACCEL_G = 9806.65f; //< [mm/s/s]
 #ifndef M_PI
   static constexpr float M_PI = 3.1415926535897932384626433832795f;
 #endif
-
-private:
   static constexpr float ICM20602_ACCEL_FACTOR = 4 * 2048.0f;
   static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
 
 public:
   ICM20602() {}
-  MotionParameter accel, gyro;
+  MotionParameter accel, gyro; //< ToDo: make private
 
 public:
   bool init(spi_host_device_t spi_host, int8_t pin_cs) {
@@ -52,7 +56,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 20000000;
+    dev_cfg.clock_speed_hz = 20 * 1000 * 1000;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
     dev_cfg.queue_size = 2;

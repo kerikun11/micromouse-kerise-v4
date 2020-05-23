@@ -2,11 +2,7 @@
  * @file app_log.h
  * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief this provides logging formats
- * @version 0.1
  * @date 2018-12-18
- *
- * @copyright Copyright (c) 2018
- *
  */
 #pragma once
 

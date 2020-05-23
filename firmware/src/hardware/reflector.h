@@ -1,29 +1,28 @@
 #pragma once
 
-#include "TimerSemaphore.h"
-#include "accumulator.h"
 #include <Arduino.h>
+#include <TimerSemaphore.h>
+#include <accumulator.h>
 #include <array>
-
-#define REFLECTOR_CH_SIZE 4
 
 #define REFLECTOR_TASK_PRIORITY 20
 #define REFLECTOR_STACK_SIZE 4096
 
 class Reflector {
 public:
-  Reflector(std::array<int8_t, REFLECTOR_CH_SIZE> tx_pins,
-            std::array<int8_t, REFLECTOR_CH_SIZE> rx_pins)
-      : tx_pins(tx_pins), rx_pins(rx_pins) {
-    sampling_semaphore = xSemaphoreCreateBinary();
-  }
+  static constexpr int CH_SIZE = 4;
+
+public:
+  Reflector(std::array<int8_t, CH_SIZE> tx_pins,
+            std::array<int8_t, CH_SIZE> rx_pins)
+      : tx_pins(tx_pins), rx_pins(rx_pins) {}
   bool init() {
-    for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++) {
+    for (int8_t i = 0; i < CH_SIZE; i++) {
       value[i] = 0;
       pinMode(tx_pins[i], OUTPUT);
       adcAttachPin(rx_pins[i]);
     }
-    ts.periodic(200);
+    ts.periodic(100);
     xTaskCreate([](void *obj) { static_cast<Reflector *>(obj)->task(); },
                 "Reflector", REFLECTOR_STACK_SIZE, this,
                 REFLECTOR_TASK_PRIORITY, NULL);
@@ -42,7 +41,7 @@ public:
       return read(3);
   }
   int16_t read(const int8_t ch) const {
-    if (ch < 0 || ch >= REFLECTOR_CH_SIZE) {
+    if (ch < 0 || ch >= CH_SIZE) {
       log_e("you refered an invalid channel!");
       return 0;
     }
@@ -50,41 +49,36 @@ public:
   }
   void csv() const {
     printf("0,1500");
-    for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++)
+    for (int8_t i = 0; i < CH_SIZE; i++)
       printf(",%d", read(i));
     printf("\n");
   }
   void print() const {
     printf("Reflector: ");
-    for (int8_t i = 0; i < REFLECTOR_CH_SIZE; i++)
+    for (int8_t i = 0; i < CH_SIZE; i++)
       printf("\t%04d", read(i));
     printf("\n");
   }
-  void samplingSemaphoreTake(TickType_t xBlockTime = portMAX_DELAY) {
-    xSemaphoreTake(sampling_semaphore, xBlockTime);
-  }
 
 private:
-  const std::array<int8_t, REFLECTOR_CH_SIZE> tx_pins; //< 赤外線LEDのピン
-  const std::array<int8_t, REFLECTOR_CH_SIZE>
-      rx_pins;                      //< フォトトランジスタのピン
-  int16_t value[REFLECTOR_CH_SIZE]; //< リフレクタの測定値
-  SemaphoreHandle_t sampling_semaphore; //< サンプリング終了を知らせるセマフォ
-  TimerSemaphore ts;                    //< インターバル用タイマー
+  const std::array<int8_t, CH_SIZE> tx_pins; //< 赤外線LEDのピン
+  const std::array<int8_t, CH_SIZE> rx_pins; //< フォトトランジスタのピン
+  std::array<int16_t, CH_SIZE> value;        //< リフレクタの測定値
+  TimerSemaphore ts; //< インターバル用タイマー
   static const int ave_num = 16;
-  Accumulator<uint16_t, ave_num> buffer[REFLECTOR_CH_SIZE];
+  Accumulator<uint16_t, ave_num> buffer[CH_SIZE];
 
-  void sampling() {
+  void update() {
     ts.take(); //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      ts.take();                            //< スタートを同期
+      // ts.take();                            //< スタートを同期
       adcStart(rx_pins[i]);                 //< オフセットADCスタート
       ts.take();                            //< ADC待ち
       uint16_t offset = adcEnd(rx_pins[i]); //< オフセットを取得
       digitalWrite(tx_pins[i], HIGH);       //< 放電開始
       // delayMicroseconds(20);                //< 調整
-      adcStart(rx_pins[i]); //< ADCスタート
-      // ts.take();                            //< ADC待ち
+      adcStart(rx_pins[i]);              //< ADCスタート
+      ts.take();                         //< ADC待ち
       uint16_t raw = adcEnd(rx_pins[i]); //< ADC取得
       digitalWrite(tx_pins[i], LOW);     //< 充電開始
 
@@ -99,8 +93,7 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      sampling();
-      xSemaphoreGive(sampling_semaphore); //< サンプリング終了を知らせる
+      update();
     }
   }
 };

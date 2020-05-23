@@ -1,10 +1,8 @@
 #pragma once
 
-#include "VL6180X.h"
-#include "accumulator.h"
-#include "i2c.h"
-
-#include "config/model.h"
+#include <VL6180X.h>
+#include <accumulator.h>
+#include <peripheral/i2c.h>
 
 #define TOF_TASK_PRIORITY 1
 #define TOF_TASK_STACK_SIZE 4096

@@ -52,7 +52,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kp = ctrl::Polar(0.0003f, 0.04f), .Ki = ctrl::Polar(0.06f, 1.0f),
   .Kd = ctrl::Polar(0, 0),
 };
-/* Estimated Velocity IIR Filter gain */
+/* Velocity Estimation IIR Filter gain */
 static constexpr struct ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
@@ -87,7 +87,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Kp = ctrl::Polar(0.0008f, 0.15f), .Ki = ctrl::Polar(0.1f, 6.0f), /*< 4 */
       .Kd = ctrl::Polar(0, 0),
 };
-/* Estimated Velocity IIR Filter gain */
+/* Velocity Estimation IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
@@ -98,7 +98,7 @@ static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 };
 
 #elif KERISE_SELECT == 3
-/* Copy KERISE v4 */
+/* KERISE v4 Copy */
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
@@ -123,7 +123,7 @@ static constexpr struct ctrl::FeedbackController<ctrl::Polar>::Gain
   .Ki = ctrl::Polar(1.3552e-01, 1.6892e+00),
   .Kd = ctrl::Polar(7.7803e-06, 4.7964e-05),
 };
-/* Estimated Velocity IIR Filter gain */
+/* Velocity Estimation IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.05f, 0.2f);
 /* Trajectory Tracking Gain */
 static constexpr struct ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {

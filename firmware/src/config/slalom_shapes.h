@@ -2,7 +2,7 @@
 
 #include "slalom.h"
 
-namespace ctrl {
+namespace field {
 
 enum ShapeIndex {
   S90,
@@ -35,4 +35,4 @@ ctrl::slalom::Shape(ctrl::Pose( 127.279,  127.279,    1.5708), ctrl::Pose(     1
 ctrl::slalom::Shape(ctrl::Pose(      45,       45,    1.5708), ctrl::Pose(      44,       44,    1.5708),  1.00004,        1,  265.749, 3769.91, 113.097, 9.42478),
 }};
 
-} // namespace ctrl
+} // namespace field

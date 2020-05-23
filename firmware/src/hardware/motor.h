@@ -1,49 +1,53 @@
 #pragma once
 
-#include "driver/mcpwm.h"
-#include <algorithm>
+#include <algorithm> //< for std::max(), std::min()
+#include <iostream>
+#include <peripheral/mcpwm_kerise.h>
 
 class OneMotor {
 public:
-  OneMotor(mcpwm_unit_t unit, mcpwm_timer_t timer,
-           mcpwm_io_signals_t io_signals_1, mcpwm_io_signals_t io_signals_2,
-           gpio_num_t gpio_num_1, gpio_num_t gpio_num_2)
+  OneMotor(mcpwm_kerise_unit_t unit, mcpwm_kerise_timer_t timer,
+           mcpwm_kerise_io_signals_t io_signals_1,
+           mcpwm_kerise_io_signals_t io_signals_2, gpio_num_t gpio_num_1,
+           gpio_num_t gpio_num_2)
       : unit(unit), timer(timer) {
-    mcpwm_gpio_init(unit, io_signals_1, gpio_num_1);
+    mcpwm_kerise_gpio_init(unit, io_signals_1, gpio_num_1);
     gpio_pulldown_en(gpio_num_1);
-    mcpwm_gpio_init(unit, io_signals_2, gpio_num_2);
+    mcpwm_kerise_gpio_init(unit, io_signals_2, gpio_num_2);
     gpio_pulldown_en(gpio_num_2);
-    static mcpwm_config_t pwm_config;
+    static mcpwm_kerise_config_t pwm_config;
     pwm_config.frequency = 250000; //< frequency
     pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
     pwm_config.cmpr_b = 0;         //< duty cycle of PWMxb = 0
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    ESP_ERROR_CHECK(mcpwm_init(unit, timer, &pwm_config));
+    ESP_ERROR_CHECK(mcpwm_kerise_init(unit, timer, &pwm_config));
   }
   void free() {
-    mcpwm_set_signal_low(unit, timer, MCPWM_OPR_A);
-    mcpwm_set_signal_low(unit, timer, MCPWM_OPR_B);
+    mcpwm_kerise_set_signal_low(unit, timer, MCPWM_OPR_A);
+    mcpwm_kerise_set_signal_low(unit, timer, MCPWM_OPR_B);
   }
   void drive(float duty) {
+    if (!std::isfinite(duty))
+      std::cout << __FILE__ ":" << __LINE__ << "\t" << duty << std::endl;
     // const float duty_cycle = std::clamp(duty * 100, -100, 100);
     float duty_cycle = duty * 100; //< [-1,1] to [-100,100]
     duty_cycle = std::min(duty_cycle, 100.0f);
     duty_cycle = std::max(duty_cycle, -100.0f);
     if (duty > 0) {
-      mcpwm_set_signal_high(unit, timer, MCPWM_OPR_B);
-      mcpwm_set_duty(unit, timer, MCPWM_OPR_A, 100.0f - duty_cycle);
-      mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
+      mcpwm_kerise_set_signal_high(unit, timer, MCPWM_OPR_B);
+      mcpwm_kerise_set_duty(unit, timer, MCPWM_OPR_A, 100.0f - duty_cycle);
+      mcpwm_kerise_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
     } else {
-      mcpwm_set_signal_high(unit, timer, MCPWM_OPR_A);
-      mcpwm_set_duty(unit, timer, MCPWM_OPR_B, 100.0f + duty_cycle);
-      mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+      mcpwm_kerise_set_signal_high(unit, timer, MCPWM_OPR_A);
+      mcpwm_kerise_set_duty(unit, timer, MCPWM_OPR_B, 100.0f + duty_cycle);
+      mcpwm_kerise_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
     }
   }
 
 private:
-  mcpwm_unit_t unit;
-  mcpwm_timer_t timer;
+  mcpwm_kerise_unit_t unit;
+  mcpwm_kerise_timer_t timer;
 };
 
 class Motor {

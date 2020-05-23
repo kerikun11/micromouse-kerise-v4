@@ -148,15 +148,14 @@ public:
     for (int ms = 0; ms < wait_ms; ms++) {
       sc.update();
       vTaskDelay(pdMS_TO_TICKS(1));
-      if (std::abs(imu.gyro.x) > thr_gyro || std::abs(imu.gyro.y) > thr_gyro ||
-          std::abs(imu.gyro.z) > thr_gyro) {
+      if (std::abs(imu.gyro.y) > M_PI) {
         bz.play(Buzzer::CANCEL);
         led = 0x0;
-        return false;
+        return true;
       }
     }
     led = 0x0;
-    return true;
+    return false;
   }
   /**
    * @brief 静止状態になるまで待機する関数

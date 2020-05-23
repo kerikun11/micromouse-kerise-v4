@@ -29,7 +29,7 @@ public:
 
     if (!SPIFFS.begin(true))
       bz.play(Buzzer::ERROR);
-    if (!SPI::busInit(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
+    if (!SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
                       CONFIG_SPI_MOSI_PIN, CONFIG_SPI_DMA_CHAIN))
       bz.play(Buzzer::ERROR);
     if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
@@ -69,9 +69,9 @@ public:
   }
   static void driveAutomatically() {
     restore();
-    if (!ui.waitForPickup())
+    if (ui.waitForPickup())
       return;
-    mr.autoRun(false, true);
+    mr.autoRun();
   }
   static void driveNormally() {
     /* 探索状態のお知らせ */
@@ -105,7 +105,7 @@ public:
       return;
     led = 9;
     // delay(5000); //< 動画用 delay
-    mr.autoRun(forceSearch, false);
+    mr.autoRun(forceSearch);
   }
   static void selectParamPreset() {
     for (int i = 0; i < 1; i++)
@@ -165,7 +165,8 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.curve_gain *= std::pow(ma.rp_fast.cg_gain, float(value));
+    for (auto &cg : ma.rp_fast.curve_gain)
+      cg *= std::pow(ma.rp_fast.cg_factor, float(value));
     /* 最大速度 */
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
@@ -174,7 +175,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.v_max *= std::pow(ma.rp_fast.ms_gain, float(value));
+    ma.rp_fast.v_max *= std::pow(ma.rp_fast.vm_factor, float(value));
     /* 加速度 */
     for (int i = 0; i < 3; i++)
       bz.play(Buzzer::SHORT7);
@@ -183,7 +184,7 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    ma.rp_fast.a_max *= std::pow(ma.rp_fast.ms_gain, float(value));
+    ma.rp_fast.a_max *= std::pow(ma.rp_fast.vm_factor, float(value));
     /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
   }
@@ -223,7 +224,7 @@ public:
         return;
       delay(1000);
       bz.play(Buzzer::CONFIRM);
-      wd.calibrationSide();
+      wd.calibration_side();
       bz.play(Buzzer::CANCEL);
       break;
     /* 前壁キャリブレーション */
@@ -233,7 +234,7 @@ public:
         return;
       delay(1000);
       bz.play(Buzzer::CONFIRM);
-      wd.calibrationFront();
+      wd.calibration_front();
       bz.play(Buzzer::CANCEL);
       break;
     }
@@ -327,7 +328,6 @@ public:
     delay(500);
     /* start */
     sc.reset();
-    TickType_t xLastWakeTime = xTaskGetTickCount();
     if (dir == 1)
       mt.drive(-gain * 0.05f, gain * 0.05f); //< 回転
     else
@@ -335,7 +335,7 @@ public:
     for (int i = 0; i < 2000; i++) {
       printLog();
       sc.update();
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      sc.hold();
     }
     fan.drive(0);
     mt.drive(0, 0);
@@ -389,7 +389,6 @@ public:
     }
     /* start */
     sc.reset();
-    TickType_t xLastWakeTime = xTaskGetTickCount();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 1e-3f) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
@@ -397,7 +396,7 @@ public:
         sc.set_target(0, ad.v(t), 0, ad.a(t));
       sc.update();
       sc.drive();
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      sc.hold();
       if ((int)(t * 1000) % 2 == 0)
         printLog();
       if (mt.isEmergency()) {
@@ -456,7 +455,7 @@ public:
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    const auto &shape = ctrl::shapes[ctrl::ShapeIndex::F180];
+    const auto &shape = field::shapes[field::ShapeIndex::F180];
     const float velocity = 420;
     const float Ts = 1e-3f;
     const float j_max = 120000;
@@ -467,7 +466,6 @@ public:
     ctrl::Pose offset;
     /* start */
     sc.reset();
-    TickType_t xLastWakeTime = xTaskGetTickCount();
     tt.reset(0);
     /* accel */
     ctrl::straight::Trajectory ref;
@@ -480,7 +478,7 @@ public:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       sc.update();
       sc.drive();
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      sc.hold();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();
@@ -497,7 +495,7 @@ public:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       sc.update();
       sc.drive();
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      sc.hold();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     const auto &net = st.getShape().curve;
@@ -514,7 +512,7 @@ public:
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       sc.update();
       sc.drive();
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      sc.hold();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();
@@ -586,22 +584,14 @@ public:
     delay(500);
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
-    ma.set_action(RobotBase::START_STEP);
-    ma.set_action(RobotBase::TURN_R);
-    ma.set_action(RobotBase::ST_FULL);
-    ma.set_action(RobotBase::TURN_L);
-    ma.set_action(RobotBase::ST_HALF_STOP);
+    ma.enqueue_action(RobotBase::START_STEP);
+    ma.enqueue_action(RobotBase::TURN_R);
+    ma.enqueue_action(RobotBase::ST_FULL);
+    ma.enqueue_action(RobotBase::TURN_L);
+    ma.enqueue_action(RobotBase::ST_HALF_STOP);
     ma.enable();
-    while (ma.isRunning()) {
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
-        ma.disable();
-        delay(1000);
-        mt.emergencyRelease();
-        break;
-      }
-      delay(100);
-    }
+    ma.waitForEndAction();
+    mt.emergencyRelease();
   }
   static void position_recovery(const bool pi_enabled = false) {
     while (1) {

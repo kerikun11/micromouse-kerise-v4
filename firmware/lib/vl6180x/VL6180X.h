@@ -2,7 +2,7 @@
 #define VL6180X_h
 
 #include <Arduino.h>
-#include "driver/i2c.h"
+#include <driver/i2c.h>
 
 class VL6180X
 {

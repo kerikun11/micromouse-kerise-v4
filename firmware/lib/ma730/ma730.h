@@ -1,3 +1,10 @@
+/**
+ * @file ma730.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief MA730 Magnetic Encoder Driver
+ * @date 2020-05-23
+ * @copyright Copyright (c) 2020 Ryotaro Onuki
+ */
 #pragma once
 
 #include <driver/spi_master.h>
@@ -26,7 +33,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 20000000;
+    dev_cfg.clock_speed_hz = 10 * 1000 * 1000;
     dev_cfg.input_delay_ns = 0;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
@@ -37,18 +44,18 @@ public:
     return true;
   }
   void update() {
-    uint8_t rxbuf[4];
+    uint8_t rx_buf[2];
     static spi_transaction_t tx;
     tx.flags = SPI_TRANS_USE_TXDATA;
     tx.user = this;
     tx.tx_data[0] = 0x00;
     tx.tx_data[1] = 0x00;
-    tx.rx_buffer = rxbuf;
+    tx.rx_buffer = rx_buf;
     tx.length = 16;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< send command
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< read data
 
-    pulses = ((uint16_t)rxbuf[0] << 6) | (rxbuf[1] >> 2);
+    pulses = ((uint16_t)rx_buf[0] << 6) | (rx_buf[1] >> 2);
   }
   int get() const { return pulses; }
 

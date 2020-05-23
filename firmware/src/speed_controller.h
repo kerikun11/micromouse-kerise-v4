@@ -8,8 +8,6 @@
 #include "polar.h"
 #include "pose.h"
 
-#include <atomic>
-
 #define SPEED_CONTROLLER_TASK_PRIORITY 4
 #define SPEED_CONTROLLER_STACK_SIZE 4096
 
@@ -28,12 +26,7 @@ public:
     rot = (wheel[1] - wheel[0]) / 2 / model::RotationRadius;
     tra = (wheel[1] + wheel[0]) / 2;
   }
-  void clear() {
-    tra = 0;
-    rot = 0;
-    wheel[0] = 0;
-    wheel[1] = 0;
-  }
+  void clear() { tra = rot = wheel[0] = wheel[1] = 0; }
 };
 
 class SpeedController {
@@ -81,6 +74,7 @@ public:
     accel.clear(ctrl::Polar(imu.accel.y, imu.angular_accel));
     fix.clear();
     fbc.reset();
+    xLastWakeTime = xTaskGetTickCount();
   }
   void update() {
     /* sampling */
@@ -96,6 +90,7 @@ public:
     /* wait for end sampling */
     imu.update();
     enc.update();
+    wd.update();
     /* add new samples */
     for (int i = 0; i < 2; i++)
       wheel_position[i].push(enc.get_position(i));
@@ -150,9 +145,9 @@ public:
     /* drive the motors */
     mt.drive(pwm_value_L, pwm_value_R);
   }
+  void hold() { vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1)); }
 
 private:
-  std::atomic_bool enabled{false};
-  std::atomic_bool reset_requested{false};
   ctrl::Pose fix;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
 };

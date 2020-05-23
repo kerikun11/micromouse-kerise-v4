@@ -26,7 +26,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 10000000;
+    dev_cfg.clock_speed_hz = 10 * 1000 * 1000;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
     dev_cfg.queue_size = 1;
@@ -36,19 +36,19 @@ public:
     return true;
   }
   bool update() {
-    uint8_t rxbuf[4];
+    uint8_t rx_buf[4];
     static spi_transaction_t tx;
     tx.flags = SPI_TRANS_USE_TXDATA;
     tx.tx_data[0] = 0xFF;
     tx.tx_data[1] = 0xFF;
     tx.tx_data[2] = 0xFF;
     tx.tx_data[3] = 0xFF;
-    tx.rx_buffer = rxbuf;
+    tx.rx_buffer = rx_buf;
     tx.length = 32;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
 
-    pulses[0] = (uint16_t(0x3F & rxbuf[0]) << 8) | rxbuf[1];
-    pulses[1] = (uint16_t(0x3F & rxbuf[2]) << 8) | rxbuf[3];
+    pulses[0] = (uint16_t(0x3F & rx_buf[0]) << 8) | rx_buf[1];
+    pulses[1] = (uint16_t(0x3F & rx_buf[2]) << 8) | rx_buf[3];
 
     return true;
   }

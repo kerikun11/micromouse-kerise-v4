@@ -27,12 +27,12 @@ extern Reflector ref;
 extern ToF tof;
 
 /* Supporter */
+#include "wall_detector.h"
+extern WallDetector wd;
 #include "speed_controller.h"
 extern SpeedController sc;
 #include "user_interface.h"
 extern UserInterface ui;
-#include "wall_detector.h"
-extern WallDetector wd;
 
 /* Conductor */
 #include "logger.h"

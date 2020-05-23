@@ -26,6 +26,7 @@ void printTask(void *arg) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
     // tof.print();
+    // wd.print();
   }
 }
 
@@ -33,8 +34,6 @@ void driveTask(void *arg) {
   // Machine::driveAutomatically();
   while (1) {
     int mode = ui.waitForSelect(16);
-    if (mode < 0)
-      continue;
     switch (mode) {
     case 0: /* 迷路走行 */
       Machine::driveNormally();
@@ -88,5 +87,4 @@ void driveTask(void *arg) {
       break;
     }
   }
-  vTaskDelay(portMAX_DELAY);
 }

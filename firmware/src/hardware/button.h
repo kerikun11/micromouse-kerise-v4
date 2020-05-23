@@ -12,8 +12,7 @@ public:
   static constexpr int button_time_long_press_2 = 100;
   static constexpr int button_time_long_press_3 = 500;
 
-  static constexpr UBaseType_t BUTTON_TASK_PRIORITY = 1;
-  static constexpr uint32_t BUTTON_STACK_SIZE = 1024;
+  static constexpr UBaseType_t Task_Priority = 1;
 
 public:
   Button(const gpio_num_t pin) : pin(pin) {
@@ -21,7 +20,7 @@ public:
     gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
     flags = 0x00;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Button", BUTTON_STACK_SIZE, this, BUTTON_TASK_PRIORITY, NULL);
+                "Button", configMINIMAL_STACK_SIZE, this, Task_Priority, NULL);
   }
   union {
     uint8_t flags; /**< all flags */
@@ -38,7 +37,7 @@ public:
   };
 
 private:
-  gpio_num_t pin;
+  const gpio_num_t pin;
   int counter = 0;
 
   void update() {
