@@ -114,8 +114,6 @@ public:
    */
   static bool waitForCover(bool side = false) {
     while (1) {
-      sc.sampling_sync();
-      ;
       vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */
       if (!side && ref.front(0) > thr_ref_front &&
@@ -146,8 +144,6 @@ public:
   static bool waitForPickup(const int wait_ms = 2000) {
     led = 0xf;
     for (int ms = 0; ms < wait_ms; ms++) {
-      sc.sampling_sync();
-      ;
       vTaskDelay(pdMS_TO_TICKS(1));
       if (std::abs(imu.gyro.y) > M_PI) {
         bz.play(Buzzer::CANCEL);
@@ -167,8 +163,6 @@ public:
   static bool waitForFix() {
     int fix_count = 0;
     while (1) {
-      sc.sampling_sync();
-      ;
       vTaskDelay(pdMS_TO_TICKS(1));
       /* FIX */
       if (std::abs(imu.gyro.x) < thr_fix_gyro &&

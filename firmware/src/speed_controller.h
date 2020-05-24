@@ -73,7 +73,8 @@ public:
   void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
   void imu_calibration(const bool wait_for_end = true) {
     imu_calibration_requested = true;
-    while (imu_calibration_requested)
+    // calibration will be conducted in background task()
+    while (wait_for_end && imu_calibration_requested)
       vTaskDelay(pdMS_TO_TICKS(1));
   }
 
