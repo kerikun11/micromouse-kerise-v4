@@ -47,6 +47,8 @@ public:
       bz.play(Buzzer::ERROR);
     if (!wd.init())
       bz.play(Buzzer::ERROR);
+    if (!sc.init())
+      bz.play(Buzzer::ERROR);
 
     // if (!ec.init())
     //   bz.play(Buzzer::ERROR);
@@ -165,8 +167,8 @@ public:
       return;
     if (value > 7)
       value -= 16;
-    for (auto &cg : ma.rp_fast.curve_gain)
-      cg *= std::pow(ma.rp_fast.cg_factor, float(value));
+    for (auto &vs : ma.rp_fast.v_slalom)
+      vs *= std::pow(ma.rp_fast.vs_factor, float(value));
     /* 最大速度 */
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
@@ -286,19 +288,16 @@ public:
       return;
     led = 6;
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     led = 9;
-    sc.reset();
+    sc.enable();
     sc.set_target(0, 0);
-    while (!mt.isEmergency()) {
-      sc.update();
-      sc.drive();
+    while (!mt.is_emergency())
       vTaskDelay(pdMS_TO_TICKS(1));
-    }
     mt.drive(0, 0);
     vTaskDelay(pdMS_TO_TICKS(100));
-    mt.free();
-    mt.emergencyRelease();
+    sc.disable();
+    mt.emergency_release();
     bz.play(Buzzer::CANCEL);
   }
   static void sysid() {
@@ -323,19 +322,17 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     fan.drive(0.5);
     delay(500);
     /* start */
-    sc.reset();
     if (dir == 1)
       mt.drive(-gain * 0.05f, gain * 0.05f); //< 回転
     else
       mt.drive(gain * 0.1f, gain * 0.1f); //< 並進
     for (int i = 0; i < 2000; i++) {
+      sc.sampling_sync();
       printLog();
-      sc.update();
-      sc.hold();
     }
     fan.drive(0);
     mt.drive(0, 0);
@@ -370,7 +367,7 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     fan.drive(0.2);
     delay(500);
     ctrl::AccelDesigner ad;
@@ -388,25 +385,22 @@ public:
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     /* start */
-    sc.reset();
+    sc.enable();
     for (float t = 0; t < ad.t_end() + 0.1f; t += 1e-3f) {
       if (dir == 0)
         sc.set_target(ad.v(t), 0, ad.a(t), 0);
       else
         sc.set_target(0, ad.v(t), 0, ad.a(t));
-      sc.update();
-      sc.drive();
-      sc.hold();
+      sc.sampling_sync();
       if ((int)(t * 1000) % 2 == 0)
         printLog();
-      if (mt.isEmergency()) {
-        bz.play(Buzzer::EMERGENCY);
+      if (mt.is_emergency())
         break;
-      }
     }
+    sc.disable();
     fan.drive(0);
-    mt.free();
-    mt.emergencyRelease();
+    if (mt.is_emergency())
+      mt.emergency_release(), bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::CANCEL);
   }
   static void slalom_test() {
@@ -454,7 +448,7 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const float velocity = 420;
     const float Ts = 1e-3f;
@@ -465,7 +459,7 @@ public:
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
     /* start */
-    sc.reset();
+    sc.enable();
     tt.reset(0);
     /* accel */
     ctrl::straight::Trajectory ref;
@@ -476,9 +470,7 @@ public:
       const auto est_q = sc.est_p;
       const auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      sc.update();
-      sc.drive();
-      sc.hold();
+      sc.sampling_sync();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();
@@ -493,9 +485,7 @@ public:
       auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      sc.update();
-      sc.drive();
-      sc.hold();
+      sc.sampling_sync();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     const auto &net = st.getShape().curve;
@@ -505,23 +495,21 @@ public:
     /* decel */
     ref.reset(j_max, a_max, v_max, sc.ref_v.tra, 0, dist + shape.straight_post);
     for (float t = 0; t < ref.t_end(); t += Ts) {
+      sc.sampling_sync();
       ctrl::State ref_s;
       ref.update(ref_s, t);
       auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
-      sc.update();
-      sc.drive();
-      sc.hold();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* end */
     bz.play(Buzzer::CANCEL);
-    if (mt.isEmergency()) {
+    if (mt.is_emergency()) {
       bz.play(Buzzer::EMERGENCY);
-      mt.emergencyRelease();
+      mt.emergency_release();
     }
     mt.free();
   }
@@ -583,7 +571,7 @@ public:
       return;
     delay(500);
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     ma.enqueue_action(RobotBase::START_STEP);
     ma.enqueue_action(RobotBase::TURN_R);
     ma.enqueue_action(RobotBase::ST_FULL);
@@ -591,7 +579,7 @@ public:
     ma.enqueue_action(RobotBase::ST_HALF_STOP);
     ma.enable();
     ma.waitForEndAction();
-    mt.emergencyRelease();
+    mt.emergency_release();
   }
   static void position_recovery(const bool pi_enabled = false) {
     while (1) {
@@ -600,7 +588,7 @@ public:
         return;
       led = 0;
       delay(500);
-      ma.positionRecovery();
+      ma.position_recovery();
     }
   }
 };

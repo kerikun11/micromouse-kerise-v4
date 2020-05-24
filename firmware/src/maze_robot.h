@@ -124,13 +124,13 @@ public:
       /* 既知区間斜めを無効化 */
       ma.rp_search.diag_enabled = false;
       /* 復帰 */
-      ma.positionRecovery();
+      ma.position_recovery();
       /* ゴール区画の訪問を指定 */
       setForceGoingToGoal(!state.has_reached_goal);
       /* 同定 */
       if (!positionIdentifyRun()) {
         bz.play(Buzzer::ERROR);
-        mt.emergencyStop(); //< 復帰用
+        mt.emergency_stop(); //< 復帰用
         return false;
       }
       bz.play(Buzzer::COMPLETE);
@@ -156,7 +156,7 @@ public:
       // break;
       if (!fastRun()) {
         bz.play(Buzzer::ERROR);
-        mt.emergencyStop(); //< 復帰用
+        mt.emergency_stop(); //< 復帰用
         return false;
       }
       bz.play(Buzzer::SUCCESSFUL);
@@ -186,7 +186,7 @@ protected:
   void waitForEndAction() override {
     // delay(300); // for debug
     ma.waitForEndAction();
-    if (mt.isEmergency())
+    if (mt.is_emergency())
       setBreakFlag();
   }
   void queueAction(const RobotBase::SearchAction action) override {
@@ -202,7 +202,7 @@ protected:
   void startDequeue() override { ma.enable(); }
   void calibration() override {
     bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
+    sc.imu_calibration();
     enc.clearOffset();
   }
   void calcNextDirectionsPreCallback() override {

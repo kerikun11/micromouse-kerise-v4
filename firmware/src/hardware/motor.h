@@ -68,21 +68,21 @@ public:
     mt_R.drive(valueR);
     if (std::abs(valueL) > emergency_threshold ||
         std::abs(valueR) > emergency_threshold)
-      emergencyStop();
+      emergency_stop();
   }
   void free() {
     mt_L.free();
     mt_R.free();
   }
-  void emergencyStop() {
+  void emergency_stop() {
     emergency = true;
     free();
   }
-  void emergencyRelease() {
+  void emergency_release() {
     emergency = false;
     free();
   }
-  bool isEmergency() const { return emergency; }
+  bool is_emergency() const { return emergency; }
 
 private:
   bool emergency = false;

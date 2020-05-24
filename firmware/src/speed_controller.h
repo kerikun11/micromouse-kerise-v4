@@ -1,15 +1,15 @@
 #pragma once
 
-#include "accumulator.h"
 #include "config/model.h"
 #include "global.h"
 
-#include "feedback_controller.h"
-#include "polar.h"
-#include "pose.h"
+#include <accumulator.h>
+#include <feedback_controller.h>
+#include <freertospp/semphr.h>
+#include <polar.h>
+#include <pose.h>
 
-#define SPEED_CONTROLLER_TASK_PRIORITY 4
-#define SPEED_CONTROLLER_STACK_SIZE 4096
+#include <atomic>
 
 struct WheelParameter {
 public:
@@ -43,7 +43,7 @@ public:
   ctrl::FeedbackController<ctrl::Polar>::Model M;
   ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
-  static constexpr int acc_num = 8;
+  static constexpr int acc_num = 4;
   Accumulator<float, acc_num> wheel_position[2];
   Accumulator<ctrl::Polar, acc_num> accel;
 
@@ -53,15 +53,69 @@ public:
       : M(M), G(G), fbc(M, G) {
     reset();
   }
-  void set_target(const float v_tra, const float v_rot, const float a_tra = 0,
-                  const float a_rot = 0) {
-    ref_v.tra = v_tra;
-    ref_v.rot = v_rot;
-    ref_a.tra = a_tra;
-    ref_a.rot = a_rot;
+  bool init() {
+    const UBaseType_t Priority = 5;
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "SC", 4096, this, Priority, NULL);
+    return true;
   }
-  void fix_pose(const ctrl::Pose fix) { this->fix += fix; }
+  void enable() {
+    reset();
+    enable_requested = true;
+  }
+  void disable() { disable_requested = false; }
+  void sampling_sync() const { sampling_end_semaphore.take(); }
+  void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
+    ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
+    reference_set_semaphore.take(0);
+    drive();
+  }
+  void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
+  void imu_calibration(const bool wait_for_end = true) {
+    imu_calibration_requested = true;
+    while (imu_calibration_requested)
+      vTaskDelay(pdMS_TO_TICKS(1));
+  }
 
+private:
+  std::atomic_bool enable_requested{false};
+  std::atomic_bool disable_requested{false};
+  std::atomic_bool imu_calibration_requested{false};
+  freertospp::Semaphore sampling_end_semaphore;
+  freertospp::Semaphore reference_set_semaphore;
+  ctrl::Pose fix;
+
+  void task() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    bool enabled = false;
+    while (1) {
+      /* sampling */
+      update_samples();
+      update_estimator();
+      update_odometry();
+      update_fix();
+      /* notify end sampling */
+      sampling_end_semaphore.give();
+      /* give reference */
+      reference_set_semaphore.give();
+      /* sync */
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      /* request management */
+      if (imu_calibration_requested) {
+        mt.free();
+        imu.calibration();
+        imu_calibration_requested = false;
+        xLastWakeTime = xTaskGetTickCount();
+      }
+      if (enable_requested)
+        enabled = true;
+      if (disable_requested)
+        enabled = false, mt.free();
+      /* if reference not changed */
+      if (enabled && reference_set_semaphore.take(0))
+        drive();
+    }
+  }
   void reset() {
     ref_v.clear();
     ref_a.clear();
@@ -74,17 +128,6 @@ public:
     accel.clear(ctrl::Polar(imu.accel.y, imu.angular_accel));
     fix.clear();
     fbc.reset();
-    xLastWakeTime = xTaskGetTickCount();
-  }
-  void update() {
-    /* sampling */
-    update_samples();
-    /* estimate */
-    update_estimator();
-    /* calculate odometry value */
-    update_odometry();
-    /* Fix Pose */
-    update_fix();
   }
   void update_samples() {
     /* wait for end sampling */
@@ -145,9 +188,4 @@ public:
     /* drive the motors */
     mt.drive(pwm_value_L, pwm_value_R);
   }
-  void hold() { vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1)); }
-
-private:
-  ctrl::Pose fix;
-  TickType_t xLastWakeTime = xTaskGetTickCount();
 };
