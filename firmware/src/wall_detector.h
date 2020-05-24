@@ -64,7 +64,7 @@ public:
     if (!restore())
       return false;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "WallDetector", configMINIMAL_STACK_SIZE, this, 3, NULL);
+                "WallDetector", 4096, this, 3, NULL);
     return true;
   }
   bool backup() {

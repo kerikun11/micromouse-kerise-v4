@@ -33,7 +33,7 @@ public:
     float v_max = 720;
     float a_max = 3600;
     float j_max = 240000;
-    float fan_duty = 0.2;
+    float fan_duty = 0.4;
     std::array<float, field::ShapeIndexMax> v_slalom;
 
   public:
@@ -79,23 +79,24 @@ public:
   void enable(const TaskAction ta) {
     task_action = ta;
     enabled = true;
-    end_action_semaphore.take(0); //< 既存のフラグを回収
-    createTask("MoveAction", 3, 4096);
+    createTask("MoveAction", 3, 8192);
   }
   void disable() {
     deleteTask();
     enabled = false;
   }
   void waitForEndAction(portTickType xBlockTime = portMAX_DELAY) const {
-    if (enabled)
-      end_action_semaphore.take(xBlockTime);
+    while (enabled)
+      vTaskDelay(pdMS_TO_TICKS(1));
   }
   void enqueue_action(const MazeLib::RobotBase::SearchAction action) {
     sa_queue.push(action);
+    enabled = true;
   }
   void emergency_release() {
     if (mt.is_emergency()) {
       bz.play(Buzzer::EMERGENCY);
+      fan.drive(0);
       delay(400);
       mt.emergency_release();
       tof.enable();
@@ -122,7 +123,6 @@ private:
       break;
     }
     enabled = false;
-    end_action_semaphore.give();
     vTaskDelay(portMAX_DELAY);
   }
 
@@ -135,7 +135,6 @@ public:
 
 private:
   std::atomic_bool enabled{false};
-  freertospp::Semaphore end_action_semaphore;
   // std::queue<MazeLib::RobotBase::SearchAction> sa_queue;
   lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
   ctrl::Pose offset;
@@ -591,7 +590,7 @@ private:
       is_wall = wd.is_wall;
       /* 探索器に終了を通知 */
       if (sa_queue.empty())
-        end_action_semaphore.give();
+        enabled = false;
       /* Actionがキューされるまで直進で待つ */
       search_run_queue_wait_decel(rp);
       /* 既知区間走行 */
@@ -745,6 +744,7 @@ private:
     /* 最短走行用にパターンを置換 */
     const auto path = MazeLib::RobotBase::pathConvertSearchToFast(
         search_actions, rp.diag_enabled);
+    // logi << path.size() << std::endl;
     /* キャリブレーション */
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
@@ -783,12 +783,7 @@ private:
       delay(200);
     sc.disable();
     /* クラッシュ時の処理 */
-    // if (mt.is_emergency()) {
-    //   delay(500);
-    //   mt.emergency_release();
-    //   bz.play(Buzzer::EMERGENCY);
-    //   return false;
-    // }
+    // emergency_release();
     bz.play(Buzzer::COMPLETE);
     return true;
   }

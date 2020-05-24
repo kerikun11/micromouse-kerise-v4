@@ -330,9 +330,10 @@ private:
     /* 最短経路の作成 */
     if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;
-    const auto path = convertDirectionsToSearch(getShortestDirections());
+    const auto search_path = convertDirectionsToSearch(getShortestDirections());
+    // logi << search_path.size() << std::endl;
     //> FastRun Start
-    ma.set_fast_path(path);
+    ma.set_fast_path(search_path);
     ma.enable(MoveAction::TaskActionFastRun);
     ma.waitForEndAction();
     ma.disable();
