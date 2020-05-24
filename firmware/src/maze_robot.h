@@ -109,52 +109,21 @@ public:
   }
   bool autoRun(const bool isForceSearch = false) {
     /* 迷路のチェック */
-    if (!isComplete())
-      bz.play(Buzzer::CANCEL);
-    if (!isSolvable())
-      bz.play(Buzzer::ERROR);
-    while (!isSolvable()) {
-      maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
-      if (getMaze().getWallRecords().empty())
-        reset(), bz.play(Buzzer::ERROR);
-    }
-    /* 自動復帰: 任意 -> ゴール -> スタート */
-    if (isPositionIdentifying) {
-      isPositionIdentifying = false;
-      /* 既知区間斜めを無効化 */
-      ma.rp_search.diag_enabled = false;
-      /* 復帰 */
-      ma.position_recovery();
-      /* ゴール区画の訪問を指定 */
-      setForceGoingToGoal(!state.has_reached_goal);
-      /* 同定 */
-      if (!positionIdentifyRun()) {
-        bz.play(Buzzer::ERROR);
-        mt.emergency_stop(); //< 復帰用
-        return false;
-      }
-      bz.play(Buzzer::COMPLETE);
-      if (ui.waitForPickup())
-        return true;
-    }
+    auto_maze_check();
+    // /* 自動復帰: 任意 -> ゴール -> スタート */
+    // if (!auto_pi_run())
+    //   return false;
     /* 探索走行: スタート -> ゴール -> スタート */
-    if (isForceSearch || !calcShortestDirections(true)) {
-      state.newRun(); //< 0 -> 1
-      if (!searchRun()) {
-        bz.play(Buzzer::ERROR);
+    if (isForceSearch || !calcShortestDirections(true))
+      if (!auto_search_run())
         return false;
-      }
-      bz.play(Buzzer::COMPLETE);
-      if (ui.waitForPickup())
-        return true;
-    }
     /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
       state.newRun(); //< 1 -> 2
       /* 5走終了離脱 */
       // if (state.try_count > 5)
       // break;
-      if (!fastRun()) {
+      if (!auto_fast_run()) {
         bz.play(Buzzer::ERROR);
         mt.emergency_stop(); //< 復帰用
         return false;
@@ -248,7 +217,69 @@ protected:
   void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
 
 private:
-  bool fastRun() {
+  bool auto_maze_check() {
+    if (!isComplete())
+      bz.play(Buzzer::CANCEL);
+    if (!isSolvable())
+      bz.play(Buzzer::ERROR);
+    while (!isSolvable()) {
+      maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
+      if (getMaze().getWallRecords().empty())
+        reset(), bz.play(Buzzer::ERROR);
+    }
+    return true;
+  }
+  bool auto_pi_run() {
+    /* 自動復帰: 任意 -> ゴール -> スタート */
+    while (1) {
+      /* 既知区間斜めを無効化 */
+      ma.rp_search.diag_enabled = false;
+      /* 姿勢復帰 */
+      ma.position_recovery();
+      /* ゴール区画の訪問を指定 */
+      setForceGoingToGoal(!state.has_reached_goal);
+      /* 同定 */
+      if (positionIdentifyRun())
+        break;
+      /* エラー処理 */
+      if (mt.is_emergency())
+        ma.emergency_release();
+      else
+        bz.play(Buzzer::ERROR);
+      if (ui.waitForPickup())
+        return false;
+    }
+    /* スタート位置に戻ってきた */
+    bz.play(Buzzer::COMPLETE);
+    if (ui.waitForPickup())
+      return false;
+    return true;
+  }
+  bool auto_search_run() {
+    /* 探索走行: スタート -> ゴール -> スタート */
+    state.newRun(); //< 0 -> 1
+    if (!searchRun()) {
+      /* エラー処理 */
+      if (mt.is_emergency())
+        ma.emergency_release();
+      else {
+        /* 探索失敗 */
+        bz.play(Buzzer::ERROR);
+        return false;
+        /* ToDo: 迷路を編集して探索を再開 */
+        /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
+      }
+      /* 自動復帰 */
+      if (ui.waitForPickup())
+        return false;
+      auto_pi_run();
+    }
+    bz.play(Buzzer::COMPLETE);
+    if (ui.waitForPickup())
+      return false;
+    return true;
+  }
+  bool auto_fast_run() {
 #if 0
     /* 走行パラメータ選択 */
     if (state.is_fast_run) {
