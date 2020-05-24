@@ -235,9 +235,18 @@ private:
       /* 既知区間斜めを無効化 */
       ma.rp_search.diag_enabled = false;
       /* 姿勢復帰 */
-      ma.enable(MoveAction::TaskActionPositionRecovery);
-      ma.waitForEndAction();
-      ma.disable();
+      while (1) {
+        ma.enable(MoveAction::TaskActionPositionRecovery);
+        ma.waitForEndAction();
+        ma.disable();
+        if (!mt.is_emergency())
+          break;
+        ma.emergency_release();
+        if (ui.waitForPickup())
+          return false;
+      }
+      if (ui.waitForPickup())
+        return false;
       /* ゴール区画の訪問を指定 */
       setForceGoingToGoal(!state.has_reached_goal);
       /* 同定 */

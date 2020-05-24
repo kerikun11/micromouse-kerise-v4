@@ -75,16 +75,19 @@ public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
     for (auto &vs : rp_search.v_slalom)
       vs = v_search;
-  }
-  void enable(const TaskAction ta) {
-    task_action = ta;
-    enabled = true;
     createTask("MoveAction", 4, 8192);
   }
+  void enable(const TaskAction ta) {
+    disable();
+    task_action = ta;
+    enabled = true;
+    break_requested = false;
+  }
   void disable() {
-    deleteTask();
+    break_requested = true;
+    while (enabled)
+      vTaskDelay(pdMS_TO_TICKS(1));
     sc.disable();
-    enabled = false;
   }
   void waitForEndAction(portTickType xBlockTime = portMAX_DELAY) const {
     while (enabled)
@@ -93,6 +96,9 @@ public:
   void enqueue_action(const MazeLib::RobotBase::SearchAction action) {
     sa_queue.push(action);
     enabled = true;
+  }
+  void set_fast_path(const std::string &fast_path) {
+    this->fast_path = fast_path;
   }
   void emergency_release() {
     if (mt.is_emergency()) {
@@ -104,28 +110,28 @@ public:
       delay(100);
     }
   }
-  void set_fast_path(const std::string &fast_path) {
-    this->fast_path = fast_path;
-  }
 
 private:
   void task() override {
-    delay(100);
-    switch (task_action) {
-    case TaskAction::TaskActionSearchRun:
-      search_run_task();
-      break;
-    case TaskAction::TaskActionFastRun:
-      fast_run(fast_path);
-      break;
-    case TaskAction::TaskActionPositionRecovery:
-      position_recovery();
-      break;
-    default:
-      break;
+    while (1) {
+      vTaskDelay(pdMS_TO_TICKS(1));
+      if (!enabled)
+        continue;
+      switch (task_action) {
+      case TaskAction::TaskActionSearchRun:
+        search_run_task();
+        break;
+      case TaskAction::TaskActionFastRun:
+        fast_run(fast_path);
+        break;
+      case TaskAction::TaskActionPositionRecovery:
+        position_recovery();
+        break;
+      default:
+        break;
+      }
+      enabled = false;
     }
-    enabled = false;
-    vTaskDelay(portMAX_DELAY);
   }
 
 public:
@@ -137,6 +143,7 @@ public:
 
 private:
   std::atomic_bool enabled{false};
+  std::atomic_bool break_requested{false};
   // std::queue<MazeLib::RobotBase::SearchAction> sa_queue;
   lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
   ctrl::Pose offset;
@@ -398,6 +405,8 @@ private:
       tt.reset(v_start);
       float int_y = 0; //< 角度補正用
       for (float t = 0; true; t += 1e-3f) {
+        if (mt.is_emergency())
+          break;
         /* 終了条件 */
         const float remain = distance - sc.est_p.x;
         if (remain < 0 || t > trajectory.t_end() + 0.1f)
@@ -429,6 +438,8 @@ private:
     const float dth_max = 4 * M_PI;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     for (float t = 0; t < ad.t_end(); t += 1e-3f) {
+      if (break_requested || mt.is_emergency())
+        break;
       sc.sampling_sync();
       const float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                           sc.est_p.y * std::sin(-sc.est_p.th);
@@ -454,6 +465,8 @@ private:
     if (std::abs(sc.est_p.x) > 1)
       bz.play(Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
+      if (mt.is_emergency())
+        break;
       /* データの更新 */
       sc.sampling_sync();
       /* 補正 */
@@ -482,6 +495,8 @@ private:
   void SlalomProcess(const field::ShapeIndex si, const bool mirror_x,
                      const bool reverse, float &straight,
                      const RunParameter &rp) {
+    if (break_requested || mt.is_emergency())
+      return;
     const auto &shape = field::shapes[si];
     ctrl::slalom::Trajectory st(shape, mirror_x);
     const auto straight_prev = shape.straight_prev;
@@ -512,6 +527,8 @@ private:
     straight += reverse ? straight_prev : straight_post;
   }
   void uturn() {
+    if (break_requested || mt.is_emergency())
+      return;
     if (wd.distance.side[0] < wd.distance.side[1]) {
       wall_attach();
       turn(-M_PI / 2);
@@ -525,20 +542,23 @@ private:
     }
   }
   void wall_stop_aebs() {
+    if (break_requested || mt.is_emergency())
+      return;
     bz.play(Buzzer::AEBS);
     // ToDo: compiler bug avoidance!
-    // for (float v = sc.ref_v.tra; v > 0; v -= 12) {
-    //   sc.sampling_sync();
-    //   sc.set_target(v, 0);
-    // }
+    for (float v = sc.ref_v.tra; v > 0; v -= 12) {
+      sc.sampling_sync();
+      sc.set_target(v, 0);
+    }
     sc.set_target(0, 0);
     vTaskDelay(pdMS_TO_TICKS(200));
     sc.disable();
     mt.emergency_stop();
-    enabled = false;
-    vTaskDelay(portMAX_DELAY);
+    break_requested = true;
   }
   void start_step() {
+    if (break_requested || mt.is_emergency())
+      return;
     sc.disable();
     mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -551,6 +571,8 @@ private:
     offset = ctrl::Pose(field::SegWidthFull / 2, 0, M_PI / 2);
   }
   void start_init() {
+    if (break_requested || mt.is_emergency())
+      return;
     wall_attach();
     turn(M_PI / 2);
     wall_attach();
@@ -558,10 +580,11 @@ private:
     put_back();
     mt.free();
     sc.disable();
-    enabled = false;
-    vTaskDelay(portMAX_DELAY);
+    break_requested = true;
   }
   void put_back() {
+    if (break_requested || mt.is_emergency())
+      return;
     const int max_v = 150;
     const float th_gain = 50.0f;
     for (int i = 0; i < max_v; i++) {
@@ -588,6 +611,8 @@ private:
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         field::SegWidthFull / 2 + model::CenterShift, M_PI / 2);
     while (1) {
+      if (break_requested || mt.is_emergency())
+        break;
       /* 壁を確認 */
       is_wall = wd.is_wall;
       /* 探索器に終了を通知 */
@@ -617,6 +642,8 @@ private:
     tt.reset(v_start);
     float int_y = 0; //< 角度補正
     for (float t = 0; sa_queue.empty(); t += 1e-3f) {
+      if (break_requested || mt.is_emergency())
+        break;
       sc.sampling_sync();
       wall_avoid(0, rp, int_y);
       const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a,
@@ -664,6 +691,8 @@ private:
   }
   void search_run_switch(const MazeLib::RobotBase::SearchAction action,
                          const RunParameter &rp) {
+    if (break_requested || mt.is_emergency())
+      return;
     const bool no_front_front_wall =
         tof.getDistance() > field::SegWidthFull * 2 + field::SegWidthFull / 2;
     const bool unknown_accel = rp.unknown_accel_enabled &&
@@ -767,7 +796,7 @@ private:
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
     /* 走行 */
     for (int path_index = 0; path_index < path.length(); path_index++) {
-      if (mt.is_emergency())
+      if (break_requested || mt.is_emergency())
         break;
       const auto action =
           static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
@@ -871,6 +900,8 @@ private:
     sc.enable();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += 1e-3f) {
+      if (break_requested || mt.is_emergency())
+        break;
       sc.sampling_sync();
       const float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                           sc.est_p.y * std::sin(-sc.est_p.th);
