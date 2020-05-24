@@ -168,10 +168,10 @@ protected:
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma.disable(); }
-  void startDequeue() override { ma.enable(); }
+  void startDequeue() override { ma.enable(MoveAction::TaskActionSearchRun); }
   void calibration() override {
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     enc.clearOffset();
   }
   void calcNextDirectionsPreCallback() override {
@@ -235,7 +235,9 @@ private:
       /* 既知区間斜めを無効化 */
       ma.rp_search.diag_enabled = false;
       /* 姿勢復帰 */
-      ma.position_recovery();
+      ma.enable(MoveAction::TaskActionPositionRecovery);
+      ma.waitForEndAction();
+      ma.disable();
       /* ゴール区画の訪問を指定 */
       setForceGoingToGoal(!state.has_reached_goal);
       /* 同定 */
@@ -330,10 +332,11 @@ private:
       return false;
     const auto path = convertDirectionsToSearch(getShortestDirections());
     //> FastRun Start
-    bool fast_result = ma.fast_run(path);
+    ma.set_fast_path(path);
+    ma.enable(MoveAction::TaskActionFastRun);
+    ma.waitForEndAction();
+    ma.disable();
     //< FastRun End
-    if (!fast_result)
-      return false;
     /* 最短成功 */
     state.is_fast_run = false;
     state.max_parameter = state.running_parameter;

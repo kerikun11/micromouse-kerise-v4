@@ -64,13 +64,20 @@ public:
       }
     }
   };
+  enum TaskAction {
+    TaskActionSearchRun,
+    TaskActionFastRun,
+    TaskActionPositionRecovery,
+  };
+  TaskAction task_action = TaskActionSearchRun;
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
     for (auto &vs : rp_search.v_slalom)
       vs = v_search;
   }
-  void enable() {
+  void enable(const TaskAction ta) {
+    task_action = ta;
     enabled = true;
     end_action_semaphore.take(0); //< 既存のフラグを回収
     createTask("MoveAction", 3, 4096);
@@ -89,136 +96,34 @@ public:
   void emergency_release() {
     if (mt.is_emergency()) {
       bz.play(Buzzer::EMERGENCY);
-      delay(500);
+      delay(400);
       mt.emergency_release();
       tof.enable();
+      delay(100);
     }
   }
-  bool position_recovery() {
-    /* 1周回って壁を探す */
-    static constexpr float dddth_max = 4800 * M_PI;
-    static constexpr float ddth_max = 48 * M_PI;
-    static constexpr float dth_max = 2 * M_PI;
-    const float angle = 2 * M_PI;
-    ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
-    /* 走査データ格納用変数 */
-    constexpr int table_size = 96;
-    std::bitset<table_size> is_valid;
-    std::array<uint16_t, table_size> table;
-    table.fill(255);
-    /* start */
-    sc.enable();
-    int index = 0;
-    for (float t = 0; t < ad.t_end(); t += 1e-3f) {
-      sc.sampling_sync();
-      const float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
-                          sc.est_p.y * std::sin(-sc.est_p.th);
-      constexpr float back_gain = 10.0f;
-      sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
-      if (ad.x(t) > 2 * M_PI * index / table_size) {
-        index++;
-        table[index % table_size] = tof.getDistance();
-        is_valid[index % table_size] = tof.isValid();
-      }
-    }
-    /* 最小分散を探す */
-    float min_var = 999;
-    int min_i = 0;
-    for (int i = 0; i < table_size; ++i) {
-      if (!is_valid[i])
-        continue;
-      const int window = table_size / 12;
-      int sum = 0;
-      for (int j = -window / 2; j < window / 2; ++j)
-        sum += table[(table_size + i + j) % table_size];
-      int ave = sum / window;
-      int var = 0;
-      for (int j = -window / 2; j < window / 2; ++j)
-        var = std::pow(table[(table_size + i + j) % table_size] - ave, 2);
-      if (min_var > var) {
-        min_var = var;
-        min_i = i;
-      }
-    }
-    /* 最小分散の方向を向く */
-    sc.est_p.clear();
-    turn(2 * M_PI * min_i / table_size);
-    /* 壁が遠い場合は直進する */
-    if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
-      straight_x(tof.getDistance() - field::SegWidthFull / 2, 240, 0,
-                 rp_search);
-    }
-    /* 前壁補正 */
-    wall_attach(true);
-    turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
-    delay(20); //< ToFが有効化するのを待つ
-    /* 壁のない方向を向く */
-    while (!mt.is_emergency()) {
-      if (tof.getDistance() > field::SegWidthFull)
-        break;
-      wall_attach(true);
-      turn(-M_PI / 2);
-    }
-    sc.disable();
-    if (mt.is_emergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      mt.emergency_release();
-      return false;
-    }
-    return true;
+  void set_fast_path(const std::string &fast_path) {
+    this->fast_path = fast_path;
   }
-  bool fast_run(const std::string &search_actions) {
-    /* パラメータを取得 */
-    const auto &rp = rp_fast;
-    /* 最短走行用にパターンを置換 */
-    const auto path = MazeLib::RobotBase::pathConvertSearchToFast(
-        search_actions, rp.diag_enabled);
-    /* キャリブレーション */
-    bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
-    /* 壁に背中を確実につける */
-    mt.drive(-0.25f, -0.25f);
-    delay(200);
-    mt.free();
-    /* ファンを始動 */
-    fan.drive(rp.fan_duty);
-    delay(400); //< ファンの回転数が一定なるのを待つ
-    /* 走行開始 */
-    sc.enable();
-    /* 初期位置を設定 */
-    offset = ctrl::Pose(field::SegWidthFull / 2,
-                        model::TailLength + field::WallThickness / 2, M_PI / 2);
-    /* 最初の直線を追加 */
-    float straight =
-        field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
-    /* 走行 */
-    for (int path_index = 0; path_index < path.length(); path_index++) {
-      if (mt.is_emergency())
-        break;
-      const auto action =
-          static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
-      fast_run_switch(action, straight, rp);
+
+private:
+  void task() override {
+    switch (task_action) {
+    case TaskAction::TaskActionSearchRun:
+      search_run_task();
+      break;
+    case TaskAction::TaskActionFastRun:
+      fast_run(fast_path);
+      break;
+    case TaskAction::TaskActionPositionRecovery:
+      position_recovery();
+      break;
+    default:
+      break;
     }
-    /* 最後の直線を消化 */
-    if (straight > 0.1f) {
-      straight_x(straight, rp.v_max, 0, rp);
-      straight = 0;
-    }
-    /* 停止処理 */
-    sc.set_target(0, 0);
-    fan.drive(0);
-    if (!mt.is_emergency())
-      delay(200);
-    sc.disable();
-    /* クラッシュ時の処理 */
-    if (mt.is_emergency()) {
-      delay(500);
-      mt.emergency_release();
-      bz.play(Buzzer::EMERGENCY);
-      return false;
-    }
-    bz.play(Buzzer::COMPLETE);
-    return true;
+    enabled = false;
+    end_action_semaphore.give();
+    vTaskDelay(portMAX_DELAY);
   }
 
 public:
@@ -672,7 +577,8 @@ private:
     vTaskDelay(pdMS_TO_TICKS(200));
     mt.drive(0, 0);
   }
-  void task() override { search_run_task(); }
+
+private:
   void search_run_task() {
     const auto &rp = rp_search;
     /* スタート */
@@ -687,7 +593,7 @@ private:
       if (sa_queue.empty())
         end_action_semaphore.give();
       /* Actionがキューされるまで直進で待つ */
-      queue_wait_decel(rp);
+      search_run_queue_wait_decel(rp);
       /* 既知区間走行 */
       if (sa_queue.size() >= 2)
         search_run_known(rp);
@@ -699,11 +605,8 @@ private:
       }
     }
     sc.disable();
-    enabled = false;
-    end_action_semaphore.give();
-    vTaskDelay(portMAX_DELAY);
   }
-  void queue_wait_decel(const RunParameter &rp) {
+  void search_run_queue_wait_decel(const RunParameter &rp) {
     /* Actionがキューされるまで減速しながら待つ */
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
@@ -832,6 +735,63 @@ private:
       break;
     }
   }
+
+private:
+  std::string fast_path;
+
+  bool fast_run(const std::string &search_actions) {
+    /* パラメータを取得 */
+    const auto &rp = rp_fast;
+    /* 最短走行用にパターンを置換 */
+    const auto path = MazeLib::RobotBase::pathConvertSearchToFast(
+        search_actions, rp.diag_enabled);
+    /* キャリブレーション */
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    /* 壁に背中を確実につける */
+    mt.drive(-0.25f, -0.25f);
+    delay(200);
+    mt.free();
+    /* ファンを始動 */
+    fan.drive(rp.fan_duty);
+    delay(400); //< ファンの回転数が一定なるのを待つ
+    /* 走行開始 */
+    sc.enable();
+    /* 初期位置を設定 */
+    offset = ctrl::Pose(field::SegWidthFull / 2,
+                        model::TailLength + field::WallThickness / 2, M_PI / 2);
+    /* 最初の直線を追加 */
+    float straight =
+        field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
+    /* 走行 */
+    for (int path_index = 0; path_index < path.length(); path_index++) {
+      if (mt.is_emergency())
+        break;
+      const auto action =
+          static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+      fast_run_switch(action, straight, rp);
+    }
+    /* 最後の直線を消化 */
+    if (straight > 0.1f) {
+      straight_x(straight, rp.v_max, 0, rp);
+      straight = 0;
+    }
+    /* 停止処理 */
+    sc.set_target(0, 0);
+    fan.drive(0);
+    if (!mt.is_emergency())
+      delay(200);
+    sc.disable();
+    /* クラッシュ時の処理 */
+    // if (mt.is_emergency()) {
+    //   delay(500);
+    //   mt.emergency_release();
+    //   bz.play(Buzzer::EMERGENCY);
+    //   return false;
+    // }
+    bz.play(Buzzer::COMPLETE);
+    return true;
+  }
   void fast_run_switch(const MazeLib::RobotBase::FastAction action,
                        float &straight, const RunParameter &rp) {
     switch (action) {
@@ -895,5 +855,80 @@ private:
     default:
       break;
     }
+  }
+
+private:
+  bool position_recovery() {
+    /* 1周回って壁を探す */
+    static constexpr float dddth_max = 4800 * M_PI;
+    static constexpr float ddth_max = 48 * M_PI;
+    static constexpr float dth_max = 2 * M_PI;
+    const float angle = 2 * M_PI;
+    ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
+    /* 走査データ格納用変数 */
+    constexpr int table_size = 96;
+    std::bitset<table_size> is_valid;
+    std::array<uint16_t, table_size> table;
+    table.fill(255);
+    /* start */
+    sc.enable();
+    int index = 0;
+    for (float t = 0; t < ad.t_end(); t += 1e-3f) {
+      sc.sampling_sync();
+      const float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
+                          sc.est_p.y * std::sin(-sc.est_p.th);
+      constexpr float back_gain = 10.0f;
+      sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
+      if (ad.x(t) > 2 * M_PI * index / table_size) {
+        index++;
+        table[index % table_size] = tof.getDistance();
+        is_valid[index % table_size] = tof.isValid();
+      }
+    }
+    /* 最小分散を探す */
+    float min_var = 999;
+    int min_i = 0;
+    for (int i = 0; i < table_size; ++i) {
+      if (!is_valid[i])
+        continue;
+      const int window = table_size / 12;
+      int sum = 0;
+      for (int j = -window / 2; j < window / 2; ++j)
+        sum += table[(table_size + i + j) % table_size];
+      int ave = sum / window;
+      int var = 0;
+      for (int j = -window / 2; j < window / 2; ++j)
+        var = std::pow(table[(table_size + i + j) % table_size] - ave, 2);
+      if (min_var > var) {
+        min_var = var;
+        min_i = i;
+      }
+    }
+    /* 最小分散の方向を向く */
+    sc.est_p.clear();
+    turn(2 * M_PI * min_i / table_size);
+    /* 壁が遠い場合は直進する */
+    if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
+      straight_x(tof.getDistance() - field::SegWidthFull / 2, 240, 0,
+                 rp_search);
+    }
+    /* 前壁補正 */
+    wall_attach(true);
+    turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
+    delay(20); //< ToFが有効化するのを待つ
+    /* 壁のない方向を向く */
+    while (!mt.is_emergency()) {
+      if (tof.getDistance() > field::SegWidthFull)
+        break;
+      wall_attach(true);
+      turn(-M_PI / 2);
+    }
+    sc.disable();
+    // if (mt.is_emergency()) {
+    //   bz.play(Buzzer::EMERGENCY);
+    //   mt.emergency_release();
+    //   return false;
+    // }
+    return true;
   }
 };

@@ -31,7 +31,7 @@ private:
       char c = getChar();
       switch (c) {
       case 'c':
-        sc.imu_calibration();
+        imu.calibration();
         bz.play(Buzzer::CALIBRATION);
         imu.angle = 0;
         break;

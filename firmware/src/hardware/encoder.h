@@ -1,16 +1,18 @@
 #pragma once
 
-#include "app_log.h"
-
 #include <as5048a.h>
+#include <cmath>
+#include <freertospp/semphr.h>
+#include <iomanip>
 #include <ma730.h>
 
-#include <cmath>
-#include <iomanip>
-
+#include "app_log.h"
 #include "config/model.h" //< for KERISE_SELECT
 
 class Encoder {
+public:
+  static constexpr UBaseType_t Priority = 5;
+
 public:
   Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -19,6 +21,8 @@ public:
       loge << "AS5048A init failed :(" << std::endl;
       return false;
     }
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
 #elif KERISE_SELECT == 5
@@ -31,6 +35,8 @@ public:
       loge << "Encoder R init failed :(" << std::endl;
       return false;
     }
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
 #endif
@@ -53,6 +59,31 @@ public:
               << " pulses (" //
               << std::setw(6) << std::setfill(' ') << e.get_raw(0) << ", "
               << std::setw(6) << std::setfill(' ') << e.get_raw(1) << ")";
+  }
+  void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
+    sampling_end_semaphore.take(xBlockTime);
+  }
+
+private:
+#if KERISE_SELECT == 3 || KERISE_SELECT == 4
+  AS5048A_DUAL as;
+#elif KERISE_SELECT == 5
+  MA730 ma[2];
+#endif
+  const float encoder_factor;
+  int pulses[2];
+  int pulses_prev[2];
+  int pulses_ovf[2];
+  float positions[2];
+  freertospp::Semaphore sampling_end_semaphore;
+
+  void task() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      update();
+      sampling_end_semaphore.give();
+    }
   }
 
   void update() {
@@ -87,16 +118,4 @@ public:
     positions[0] *= -1;
 #endif
   }
-
-private:
-#if KERISE_SELECT == 3 || KERISE_SELECT == 4
-  AS5048A_DUAL as;
-#elif KERISE_SELECT == 5
-  MA730 ma[2];
-#endif
-  const float encoder_factor;
-  int pulses[2];
-  int pulses_prev[2];
-  int pulses_ovf[2];
-  float positions[2];
 };

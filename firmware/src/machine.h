@@ -288,7 +288,7 @@ public:
       return;
     led = 6;
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     led = 9;
     sc.enable();
     sc.set_target(0, 0);
@@ -322,7 +322,7 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     fan.drive(0.5);
     delay(500);
     /* start */
@@ -367,7 +367,7 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     fan.drive(0.2);
     delay(500);
     ctrl::AccelDesigner ad;
@@ -448,7 +448,7 @@ public:
       });
     };
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const float velocity = 420;
     const float Ts = 1e-3f;
@@ -571,13 +571,13 @@ public:
       return;
     delay(500);
     bz.play(Buzzer::CALIBRATION);
-    sc.imu_calibration();
+    imu.calibration();
     ma.enqueue_action(RobotBase::START_STEP);
     ma.enqueue_action(RobotBase::TURN_R);
     ma.enqueue_action(RobotBase::ST_FULL);
     ma.enqueue_action(RobotBase::TURN_L);
     ma.enqueue_action(RobotBase::ST_HALF_STOP);
-    ma.enable();
+    ma.enable(MoveAction::TaskActionSearchRun);
     ma.waitForEndAction();
     mt.emergency_release();
   }
@@ -588,7 +588,10 @@ public:
         return;
       led = 0;
       delay(500);
-      ma.position_recovery();
+      ma.enable(MoveAction::TaskActionPositionRecovery);
+      ma.waitForEndAction();
+      ma.disable();
+      ma.emergency_release();
     }
   }
 };

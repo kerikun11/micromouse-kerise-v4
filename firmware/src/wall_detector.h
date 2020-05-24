@@ -7,17 +7,13 @@
 #include <iostream>
 #include <vector>
 
-#define WALL_DETECTOR_TASK_PRIORITY 4
-#define WALL_DETECTOR_STACK_SIZE 4096
-
-#define WALL_DETECTOR_BACKUP_PATH "/spiffs/WallDetector.bin"
-
-#define WALL_DETECTOR_THRESHOLD_FRONT 135
-#define WALL_DETECTOR_THRESHOLD_SIDE -25
-
 class WallDetector {
 public:
   static constexpr float Ts = 1e-3f;
+  static constexpr int wall_threshold_front = 135;
+  static constexpr int wall_threshold_side = -25;
+  static constexpr auto WALL_DETECTOR_BACKUP_PATH = "/spiffs/WallDetector.bin";
+
   union WallValue {
     // 意味をもったメンバ
     struct {
@@ -58,45 +54,18 @@ public:
   };
 
 public:
+  WallValue distance;
+  WallValue diff;
+  std::array<bool, 3> is_wall;
+
+public:
   WallDetector() {}
   bool init() {
     if (!restore())
       return false;
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "WallDetector", configMINIMAL_STACK_SIZE, this, 3, NULL);
     return true;
-  }
-  void update() {
-    // データの更新
-    for (int i = 0; i < 2; i++) {
-      distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
-      distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
-    }
-    buffer.push(distance);
-
-    // 前壁の更新
-    if (tof.getDistance() < WALL_DETECTOR_THRESHOLD_FRONT * 0.95f)
-      is_wall[2] = true;
-    else if (tof.getDistance() > WALL_DETECTOR_THRESHOLD_FRONT * 1.05f)
-      is_wall[2] = false;
-    if (tof.passedTimeMs() > 50)
-      is_wall[2] = false;
-
-    // 横壁の更新
-    for (int i = 0; i < 2; i++) {
-      const float value = distance.side[i];
-      if (value > WALL_DETECTOR_THRESHOLD_SIDE * 0.95f)
-        is_wall[i] = true;
-      else if (value < WALL_DETECTOR_THRESHOLD_SIDE * 1.05f)
-        is_wall[i] = false;
-    }
-
-    // 変化量の更新
-    // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
-    WallValue tmp;
-    for (int i = 0; i < ave_num / 2; ++i)
-      tmp += buffer[i];
-    for (int i = 0; i < ave_num / 2; ++i)
-      tmp -= buffer[ave_num / 2 + i];
-    diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
   }
   bool backup() {
     std::ofstream of(WALL_DETECTOR_BACKUP_PATH, std::ios::binary);
@@ -173,14 +142,53 @@ public:
       std::cout << "," << diff.value[i];
     std::cout << std::endl;
   }
-  WallValue distance;
-  WallValue diff;
-  std::array<bool, 3> is_wall;
 
 private:
   WallValue wall_ref;
   static const int ave_num = 32;
   Accumulator<WallValue, ave_num> buffer;
+
+  void task() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      update();
+    }
+  }
+  void update() {
+    // データの更新
+    for (int i = 0; i < 2; i++) {
+      distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
+      distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
+    }
+    buffer.push(distance);
+
+    // 前壁の更新
+    if (tof.getDistance() < wall_threshold_front * 0.95f)
+      is_wall[2] = true;
+    else if (tof.getDistance() > wall_threshold_front * 1.05f)
+      is_wall[2] = false;
+    if (tof.passedTimeMs() > 50)
+      is_wall[2] = false;
+
+    // 横壁の更新
+    for (int i = 0; i < 2; i++) {
+      const float value = distance.side[i];
+      if (value > wall_threshold_side * 0.95f)
+        is_wall[i] = true;
+      else if (value < wall_threshold_side * 1.05f)
+        is_wall[i] = false;
+    }
+
+    // 変化量の更新
+    // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
+    WallValue tmp;
+    for (int i = 0; i < ave_num / 2; ++i)
+      tmp += buffer[i];
+    for (int i = 0; i < ave_num / 2; ++i)
+      tmp -= buffer[ave_num / 2 + i];
+    diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
+  }
 
   float ref2dist(const int16_t value) const {
     return 12.9035f * std::log(float(value)) - 86.7561f;

@@ -5,11 +5,9 @@
 #include <accumulator.h>
 #include <array>
 
-#define REFLECTOR_TASK_PRIORITY 20
-#define REFLECTOR_STACK_SIZE 4096
-
 class Reflector {
 public:
+  static constexpr UBaseType_t Priority = 20;
   static constexpr int CH_SIZE = 4;
 
 public:
@@ -23,12 +21,12 @@ public:
       adcAttachPin(rx_pins[i]);
     }
     ts.periodic(100);
-    xTaskCreate([](void *obj) { static_cast<Reflector *>(obj)->task(); },
-                "Reflector", REFLECTOR_STACK_SIZE, this,
-                REFLECTOR_TASK_PRIORITY, NULL);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "Reflector", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
   int16_t side(uint8_t isRight) const {
+    return read(isRight ? 1 : 0);
     if (isRight == 0)
       return read(0);
     else

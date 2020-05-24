@@ -18,6 +18,9 @@ struct MotionParameter {
   const MotionParameter operator+(const MotionParameter &obj) const {
     return MotionParameter(x + obj.x, y + obj.y, z + obj.z);
   }
+  const MotionParameter operator-(const MotionParameter &obj) const {
+    return MotionParameter(x - obj.x, y - obj.y, z - obj.z);
+  }
   const MotionParameter operator*(const float mul) const {
     return MotionParameter(x * mul, y * mul, z * mul);
   }
@@ -29,6 +32,9 @@ struct MotionParameter {
   }
   const MotionParameter &operator+=(const MotionParameter &obj) {
     return x += obj.x, y += obj.y, z += obj.z, *this;
+  }
+  const MotionParameter &operator-=(const MotionParameter &obj) {
+    return x -= obj.x, y -= obj.y, z -= obj.z, *this;
   }
 };
 
@@ -153,21 +159,21 @@ public:
     bond.l = rx[13];
     gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.z;
   }
-  void calibration() {
-    const int ave_count = 100;
-    for (int j = 0; j < 2; j++) {
-      TickType_t xLastWakeTime = xTaskGetTickCount();
-      MotionParameter accel_sum, gyro_sum;
-      for (int i = 0; i < ave_count; i++) {
-        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-        update();
-        accel_sum += accel;
-        gyro_sum += gyro;
-      }
-      accel_offset += accel_sum / ave_count;
-      gyro_offset += gyro_sum / ave_count;
-    }
-  }
+  // void calibration() {
+  //   const int ave_count = 100;
+  //   for (int j = 0; j < 2; j++) {
+  //     TickType_t xLastWakeTime = xTaskGetTickCount();
+  //     MotionParameter accel_sum, gyro_sum;
+  //     for (int i = 0; i < ave_count; i++) {
+  //       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+  //       update();
+  //       accel_sum += accel;
+  //       gyro_sum += gyro;
+  //     }
+  //     accel_offset += accel_sum / ave_count;
+  //     gyro_offset += gyro_sum / ave_count;
+  //   }
+  // }
 
 private:
   spi_device_handle_t spi_handle;

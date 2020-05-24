@@ -1,7 +1,7 @@
 #pragma once
 
-#include "config/model.h"
 #include "global.h"
+#include "machine/wheel_parameter.h"
 
 #include <accumulator.h>
 #include <feedback_controller.h>
@@ -10,24 +10,6 @@
 #include <pose.h>
 
 #include <atomic>
-
-struct WheelParameter {
-public:
-  float tra;      //< translation [mm]
-  float rot;      //< rotation [rad]
-  float wheel[2]; //< wheel position [mm], wheel[0]:left, wheel[1]:right
-public:
-  WheelParameter() { clear(); }
-  void pole2wheel() {
-    wheel[0] = tra - model::RotationRadius * rot;
-    wheel[1] = tra + model::RotationRadius * rot;
-  }
-  void wheel2pole() {
-    rot = (wheel[1] - wheel[0]) / 2 / model::RotationRadius;
-    tra = (wheel[1] + wheel[0]) / 2;
-  }
-  void clear() { tra = rot = wheel[0] = wheel[1] = 0; }
-};
 
 class SpeedController {
 public:
@@ -56,7 +38,7 @@ public:
   bool init() {
     const UBaseType_t Priority = 5;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "SC", 4096, this, Priority, NULL);
+                "SC", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
   void enable() {
@@ -71,17 +53,10 @@ public:
     drive();
   }
   void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
-  void imu_calibration(const bool wait_for_end = true) {
-    imu_calibration_requested = true;
-    // calibration will be conducted in background task()
-    while (wait_for_end && imu_calibration_requested)
-      vTaskDelay(pdMS_TO_TICKS(1));
-  }
 
 private:
   std::atomic_bool enable_requested{false};
   std::atomic_bool disable_requested{false};
-  std::atomic_bool imu_calibration_requested{false};
   freertospp::Semaphore sampling_end_semaphore;
   freertospp::Semaphore reference_set_semaphore;
   ctrl::Pose fix;
@@ -102,12 +77,6 @@ private:
       /* sync */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       /* request management */
-      if (imu_calibration_requested) {
-        mt.free();
-        imu.calibration();
-        imu_calibration_requested = false;
-        xLastWakeTime = xTaskGetTickCount();
-      }
       if (enable_requested)
         enabled = true;
       if (disable_requested)
@@ -132,9 +101,11 @@ private:
   }
   void update_samples() {
     /* wait for end sampling */
-    imu.update();
-    enc.update();
-    wd.update();
+    imu.sampling_sync();
+    enc.sampling_sync();
+    // imu.update();
+    // enc.update();
+    // wd.update();
     /* add new samples */
     for (int i = 0; i < 2; i++)
       wheel_position[i].push(enc.get_position(i));
