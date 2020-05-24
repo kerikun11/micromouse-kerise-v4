@@ -4,9 +4,6 @@
 #include <accumulator.h>
 #include <peripheral/i2c.h>
 
-#define TOF_TASK_PRIORITY 1
-#define TOF_TASK_STACK_SIZE 4096
-
 class ToF {
 public:
   static constexpr UBaseType_t Priority = 1;

@@ -36,54 +36,61 @@ public:
     reset();
   }
   bool init() {
-    const UBaseType_t Priority = 5;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "SC", configMINIMAL_STACK_SIZE, this, Priority, NULL);
+                "SC", 4096, this, 5, NULL);
     return true;
   }
   void enable() {
     reset();
-    enable_requested = true;
+    enabled = true;
   }
-  void disable() { disable_requested = false; }
-  void sampling_sync() const { sampling_end_semaphore.take(); }
+  void disable() {
+    enabled = false;
+    vTaskDelay(pdMS_TO_TICKS(10));
+    mt.free();
+    fan.drive(0);
+  }
   void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
     ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
-    reference_set_semaphore.take(0);
-    drive();
+    reference_ready_semaphore.give();
   }
   void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
+  void sampling_sync() const { //
+    data_ready_semaphore.take();
+  }
 
 private:
-  std::atomic_bool enable_requested{false};
-  std::atomic_bool disable_requested{false};
-  freertospp::Semaphore sampling_end_semaphore;
-  freertospp::Semaphore reference_set_semaphore;
+  std::atomic_bool enabled{false};
+  freertospp::Semaphore data_ready_semaphore;
+  freertospp::Semaphore reference_ready_semaphore;
   ctrl::Pose fix;
 
   void task() {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    bool enabled = false;
+    // TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
+      const int us_start = esp_timer_get_time();
+      /* sync */
+      // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      imu.sampling_sync();
+      enc.sampling_sync();
       /* sampling */
       update_samples();
       update_estimator();
       update_odometry();
       update_fix();
-      /* notify end sampling */
-      sampling_end_semaphore.give();
-      /* give reference */
-      reference_set_semaphore.give();
-      /* sync */
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      /* request management */
-      if (enable_requested)
-        enabled = true;
-      if (disable_requested)
-        enabled = false, mt.free();
-      /* if reference not changed */
-      if (enabled && reference_set_semaphore.take(0))
+      /* notify */
+      data_ready_semaphore.give();
+      /* reference wait */
+      // reference_ready_semaphore.take(pdMS_TO_TICKS(1));
+      /* drive */
+      if (enabled)
         drive();
+      const int us_end = esp_timer_get_time();
+      /* debug */
+      if (us_end - us_start > 1500) {
+        bz.play(Buzzer::SHORT9);
+        logw << "sampling overtime: " << int(us_end - us_start) << std::endl;
+      }
     }
   }
   void reset() {
@@ -100,12 +107,6 @@ private:
     fbc.reset();
   }
   void update_samples() {
-    /* wait for end sampling */
-    imu.sampling_sync();
-    enc.sampling_sync();
-    // imu.update();
-    // enc.update();
-    // wd.update();
     /* add new samples */
     for (int i = 0; i < 2; i++)
       wheel_position[i].push(enc.get_position(i));

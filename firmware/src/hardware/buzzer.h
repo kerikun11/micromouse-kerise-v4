@@ -28,6 +28,7 @@ public:
     SHORT6,
     SHORT7,
     SHORT8,
+    SHORT9,
     BOOT,
     SHUTDOWN,
     TIMEOUT,
@@ -139,6 +140,10 @@ private:
         break;
       case SHORT8:
         sound(NOTE_C, 8, 50);
+        mute(50);
+        break;
+      case SHORT9:
+        sound(NOTE_G, 8, 50);
         mute(50);
         break;
       case MAZE_BACKUP:

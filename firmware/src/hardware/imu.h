@@ -9,7 +9,6 @@
 
 class IMU {
 public:
-  static constexpr UBaseType_t Priority = 5;
   static constexpr float Ts = 1e-3f;
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -32,7 +31,7 @@ public:
         return false;
       }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "IMU", 4096, this, Priority, NULL);
+                "IMU", 4096, this, 6, NULL);
     return true;
   }
   void print() {

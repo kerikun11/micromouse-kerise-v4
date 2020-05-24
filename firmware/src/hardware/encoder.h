@@ -11,9 +11,6 @@
 
 class Encoder {
 public:
-  static constexpr UBaseType_t Priority = 5;
-
-public:
   Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
   bool init(spi_host_device_t spi_host, int8_t pin_cs) {
@@ -22,7 +19,7 @@ public:
       return false;
     }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
+                "Encoder", configMINIMAL_STACK_SIZE, this, 7, NULL);
     return true;
   }
 #elif KERISE_SELECT == 5

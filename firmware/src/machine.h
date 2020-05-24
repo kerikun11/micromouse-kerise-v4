@@ -300,6 +300,27 @@ public:
     mt.emergency_release();
     bz.play(Buzzer::CANCEL);
   }
+  static void petitcon() {
+    if (!ui.waitForCover())
+      return;
+    delay(500);
+    std::string path;
+    path += "s";
+    for (int j = 0; j < 4; ++j) {
+      for (int i = 0; i < 28; ++i)
+        path += "s";
+      path += "r";
+      for (int i = 0; i < 12; ++i)
+        path += "s";
+      path += "r";
+    }
+    path += "s";
+    ma.set_fast_path(path);
+    ma.enable(MoveAction::TaskActionFastRun);
+    ma.waitForEndAction();
+    ma.disable();
+    ma.emergency_release();
+  }
   static void sysid() {
     int dir = ui.waitForSelect(2);
     int gain = ui.waitForSelect();
@@ -398,7 +419,6 @@ public:
         break;
     }
     sc.disable();
-    fan.drive(0);
     if (mt.is_emergency())
       mt.emergency_release(), bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::CANCEL);
@@ -505,13 +525,11 @@ public:
     }
     sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
-    /* end */
+    /* ending */
+    sc.disable();
+    if (mt.is_emergency())
+      mt.emergency_release(), bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::CANCEL);
-    if (mt.is_emergency()) {
-      bz.play(Buzzer::EMERGENCY);
-      mt.emergency_release();
-    }
-    mt.free();
   }
   static void pidTuner() {
     ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.G;

@@ -79,10 +79,11 @@ public:
   void enable(const TaskAction ta) {
     task_action = ta;
     enabled = true;
-    createTask("MoveAction", 3, 8192);
+    createTask("MoveAction", 4, 8192);
   }
   void disable() {
     deleteTask();
+    sc.disable();
     enabled = false;
   }
   void waitForEndAction(portTickType xBlockTime = portMAX_DELAY) const {
@@ -109,6 +110,7 @@ public:
 
 private:
   void task() override {
+    delay(100);
     switch (task_action) {
     case TaskAction::TaskActionSearchRun:
       search_run_task();
