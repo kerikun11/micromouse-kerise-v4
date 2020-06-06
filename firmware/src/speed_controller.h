@@ -4,10 +4,11 @@
 #include "machine/wheel_parameter.h"
 
 #include <accumulator.h>
-#include <feedback_controller.h>
 #include <freertospp/semphr.h>
-#include <polar.h>
-#include <pose.h>
+
+#include <ctrl/feedback_controller.h>
+#include <ctrl/polar.h>
+#include <ctrl/pose.h>
 
 #include <atomic>
 

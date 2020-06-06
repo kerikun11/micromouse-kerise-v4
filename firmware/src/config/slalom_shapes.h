@@ -1,6 +1,6 @@
 #pragma once
 
-#include "slalom.h"
+#include <ctrl/slalom.h>
 
 namespace field {
 

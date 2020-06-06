@@ -11,10 +11,10 @@
 #include <freertospp/semphr.h>
 #include <queue>
 
-#include <accel_designer.h>
-#include <slalom.h>
-#include <straight.h>
-#include <trajectory_tracker.h>
+#include <ctrl/accel_designer.h>
+#include <ctrl/slalom.h>
+#include <ctrl/straight.h>
+#include <ctrl/trajectory_tracker.h>
 
 class MoveAction : TaskBase {
 public:
@@ -563,7 +563,6 @@ private:
     mt.drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
     vTaskDelay(pdMS_TO_TICKS(500));
     mt.free();
-    imu.angle = 0;
     sc.sampling_sync();
     sc.enable();
     sc.est_p.clear();
@@ -645,6 +644,7 @@ private:
       if (break_requested || mt.is_emergency())
         break;
       sc.sampling_sync();
+      int_y = 0; //< 角度補正はしない
       wall_avoid(0, rp, int_y);
       const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a,
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
