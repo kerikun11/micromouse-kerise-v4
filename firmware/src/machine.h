@@ -5,9 +5,8 @@
 #include "global.h"
 
 #include "config/io_mapping.h"
+#include "peripheral/spiffs.h"
 
-#include <Arduino.h>
-#include <SPIFFS.h>
 #include <WiFi.h>
 
 class Machine {
@@ -20,17 +19,18 @@ public:
     /* Buzzer */
     bz.init(BUZZER_PIN, LEDC_CH_BUZZER);
     /* I2C */
-    if (!I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
+    if (!peripheral::I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
       bz.play(Buzzer::ERROR);
     if (!led.init())
       bz.play(Buzzer::ERROR);
     ui.batteryCheck();
     bz.play(Buzzer::BOOT);
 
-    if (!SPIFFS.begin(true))
+    if (!peripheral::SPIFFS::init())
       bz.play(Buzzer::ERROR);
-    if (!SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN, CONFIG_SPI_MISO_PIN,
-                      CONFIG_SPI_MOSI_PIN, CONFIG_SPI_DMA_CHAIN))
+    if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,
+                                  CONFIG_SPI_MISO_PIN, CONFIG_SPI_MOSI_PIN,
+                                  CONFIG_SPI_DMA_CHAIN))
       bz.play(Buzzer::ERROR);
     if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);

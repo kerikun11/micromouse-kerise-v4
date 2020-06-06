@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Arduino.h>
+#include <esp32-hal.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 class Buzzer {
 public:

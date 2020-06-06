@@ -50,6 +50,6 @@ private:
     return writeReg(0x08, data);
   }
   bool writeReg(uint8_t reg, uint8_t data) {
-    return I2C::writeReg8(i2c_port, PCA9632_DEV_ID, reg, &data, 1);
+    return peripheral::I2C::writeReg8(i2c_port, PCA9632_DEV_ID, reg, &data, 1);
   }
 };

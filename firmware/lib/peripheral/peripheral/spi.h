@@ -10,6 +10,8 @@
 #include <driver/spi_master.h>
 #include <esp_err.h>
 
+namespace peripheral {
+
 class SPI {
 public:
   static bool install(spi_host_device_t spi_host, gpio_num_t pin_sclk,
@@ -28,3 +30,5 @@ public:
     return ret == ESP_OK;
   }
 };
+
+}; // namespace peripheral

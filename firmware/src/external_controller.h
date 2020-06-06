@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Arduino.h>
+#include <HardwareSerial.h>
+#include <pins_arduino.h>
 
 #define EXTERNAL_CONTROLLER_TASK_PRIORITY 1
 #define EXTERNAL_CONTROLLER_STACK_SIZE 4096

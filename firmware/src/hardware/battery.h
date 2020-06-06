@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include <esp32-hal-adc.h>
 
 class Battery {
 public:

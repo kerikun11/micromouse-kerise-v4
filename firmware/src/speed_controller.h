@@ -42,10 +42,10 @@ public:
   }
   void enable() {
     reset();
-    enabled = true;
+    drive_enabled = true;
   }
   void disable() {
-    enabled = false;
+    drive_enabled = false;
     vTaskDelay(pdMS_TO_TICKS(10));
     mt.free();
     fan.drive(0);
@@ -60,7 +60,7 @@ public:
   }
 
 private:
-  std::atomic_bool enabled{false};
+  std::atomic_bool drive_enabled{false};
   freertospp::Semaphore data_ready_semaphore;
   freertospp::Semaphore reference_ready_semaphore;
   ctrl::Pose fix;
@@ -83,7 +83,7 @@ private:
       /* reference wait */
       // reference_ready_semaphore.take(pdMS_TO_TICKS(1));
       /* drive */
-      if (enabled)
+      if (drive_enabled)
         drive();
       const int us_end = esp_timer_get_time();
       /* debug */

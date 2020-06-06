@@ -11,6 +11,8 @@
 #include <esp_err.h>
 #include <iostream>
 
+namespace peripheral {
+
 class I2C {
 public:
   static bool install(i2c_port_t port, gpio_num_t sda, gpio_num_t scl,
@@ -92,3 +94,5 @@ public:
     return ret == ESP_OK;
   }
 };
+
+}; // namespace peripheral

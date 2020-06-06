@@ -1,4 +1,6 @@
 #include "VL6180X.h"
+
+#include <Arduino.h> //< for constrain, millis
 //#include <Wire.h>
 
 // Defines /////////////////////////////////////////////////////////////////////
