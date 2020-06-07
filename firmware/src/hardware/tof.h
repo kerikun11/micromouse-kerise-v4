@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VL6180X.h>
-#include <accumulator.h>
+#include <ctrl/accumulator.h>
 #include <peripheral/i2c.h>
 
 class ToF {
@@ -42,7 +42,7 @@ private:
   bool enabled = true;
   uint16_t distance;
   int passed_ms;
-  Accumulator<uint16_t, 10> log;
+  ctrl::Accumulator<uint16_t, 10> log;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();

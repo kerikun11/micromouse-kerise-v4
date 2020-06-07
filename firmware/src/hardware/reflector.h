@@ -2,8 +2,8 @@
 
 #include "esp32-hal-adc.h"
 #include <TimerSemaphore.h>
-#include <accumulator.h>
 #include <array>
+#include <ctrl/accumulator.h>
 
 class Reflector {
 public:
@@ -64,7 +64,7 @@ private:
   std::array<int16_t, CH_SIZE> value;        //< リフレクタの測定値
   TimerSemaphore ts; //< インターバル用タイマー
   static const int ave_num = 16;
-  Accumulator<uint16_t, ave_num> buffer[CH_SIZE];
+  ctrl::Accumulator<uint16_t, ave_num> buffer[CH_SIZE];
 
   void update() {
     ts.take(); //< スタートを同期

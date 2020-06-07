@@ -597,6 +597,7 @@ public:
     ma.enqueue_action(RobotBase::ST_HALF_STOP);
     ma.enable(MoveAction::TaskActionSearchRun);
     ma.waitForEndAction();
+    ma.disable();
     mt.emergency_release();
   }
   static void position_recovery(const bool pi_enabled = false) {

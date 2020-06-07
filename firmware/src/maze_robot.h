@@ -110,27 +110,32 @@ public:
   bool autoRun(const bool isForceSearch = false) {
     /* 迷路のチェック */
     auto_maze_check();
-    // /* 自動復帰: 任意 -> ゴール -> スタート */
-    // if (!auto_pi_run())
-    //   return false;
     /* 探索走行: スタート -> ゴール -> スタート */
     if (isForceSearch || !calcShortestDirections(true))
       if (!auto_search_run())
         return false;
     /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
-      state.newRun(); //< 1 -> 2
       /* 5走終了離脱 */
       // if (state.try_count > 5)
       // break;
-      if (!auto_fast_run()) {
-        bz.play(Buzzer::ERROR);
-        mt.emergency_stop(); //< 復帰用
+      /* 回収待ち */
+      if (ui.waitForPickup())
         return false;
+      state.newRun(); //< 1 -> 2
+      if (!auto_fast_run()) {
+        if (!mt.is_emergency()) {
+          bz.play(Buzzer::ERROR);
+          return false;
+        }
+        /* クラッシュ後 */
+        ma.emergency_release();
+        /* 自動復帰 */
+        if (ui.waitForPickup())
+          return false;
+        auto_pi_run();
       }
       bz.play(Buzzer::SUCCESSFUL);
-      if (ui.waitForPickup())
-        return true;
     }
     /* 5走終了 */
     bz.play(Buzzer::COMPLETE);
@@ -162,9 +167,9 @@ protected:
     return ma.enqueue_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {
-    left = ma.is_wall[0];
-    right = ma.is_wall[1];
-    front = ma.is_wall[2];
+    left = ma.getSensedWalls()[0];
+    right = ma.getSensedWalls()[1];
+    front = ma.getSensedWalls()[2];
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma.disable(); }
@@ -208,7 +213,8 @@ protected:
       return;
     if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
       bz.play(Buzzer::SUCCESSFUL);
-    if (prevState == SearchAlgorithm::IDENTIFYING_POSITION)
+    if (prevState == SearchAlgorithm::IDENTIFYING_POSITION &&
+        newState != SearchAlgorithm::IMPOSSIBLE)
       bz.play(Buzzer::COMPLETE);
     if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
         newState != SearchAlgorithm::IMPOSSIBLE && !isForceBackToStart)
@@ -230,26 +236,33 @@ private:
     return true;
   }
   bool auto_pi_run() {
+    /* 既知区間斜めを無効化 */
+    ma.rp_search.diag_enabled = false;
     /* 自動復帰: 任意 -> ゴール -> スタート */
     while (1) {
-      /* 既知区間斜めを無効化 */
-      ma.rp_search.diag_enabled = false;
-      /* 姿勢復帰 */
+      /* 姿勢復帰ループ */
       while (1) {
+        /* 回収待ち */
+        if (ui.waitForPickup())
+          return false;
+        /* 姿勢復帰走行 */
         ma.enable(MoveAction::TaskActionPositionRecovery);
         ma.waitForEndAction();
         ma.disable();
-        if (!mt.is_emergency())
-          break;
-        ma.emergency_release();
-        if (ui.waitForPickup())
-          return false;
+        /* 失敗したらもう一度 */
+        if (mt.is_emergency()) {
+          ma.emergency_release();
+          continue;
+        }
+        /* 成功 */
+        break;
       }
+      /* 回収待ち */
       if (ui.waitForPickup())
         return false;
       /* ゴール区画の訪問を指定 */
       setForceGoingToGoal(!state.has_reached_goal);
-      /* 同定 */
+      /* 自己位置同定走行 */
       if (positionIdentifyRun())
         break;
       /* エラー処理 */
@@ -257,13 +270,9 @@ private:
         ma.emergency_release();
       else
         bz.play(Buzzer::ERROR);
-      if (ui.waitForPickup())
-        return false;
     }
     /* スタート位置に戻ってきた */
     bz.play(Buzzer::COMPLETE);
-    if (ui.waitForPickup())
-      return false;
     return true;
   }
   bool auto_search_run() {
@@ -281,13 +290,9 @@ private:
         /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
       }
       /* 自動復帰 */
-      if (ui.waitForPickup())
-        return false;
       auto_pi_run();
     }
     bz.play(Buzzer::COMPLETE);
-    if (ui.waitForPickup())
-      return false;
     return true;
   }
   bool auto_fast_run() {
@@ -347,13 +352,15 @@ private:
     ma.waitForEndAction();
     ma.disable();
     //< FastRun End
+    if (mt.is_emergency())
+      return false;
     /* 最短成功 */
     state.is_fast_run = false;
     state.max_parameter = state.running_parameter;
     state.save();
     /* ゴールで回収されるか待つ */
     if (ui.waitForPickup())
-      return true;
+      return false;
     /* 帰る */
     return endFastRunBackingToStartRun();
   }

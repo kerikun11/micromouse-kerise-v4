@@ -146,7 +146,7 @@ public:
 private:
   WallValue wall_ref;
   static const int ave_num = 32;
-  Accumulator<WallValue, ave_num> buffer;
+  ctrl::Accumulator<WallValue, ave_num> buffer;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();

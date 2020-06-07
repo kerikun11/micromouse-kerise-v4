@@ -796,9 +796,9 @@ INPUT                  = \
     ../src/hardware \
     ../lib/utils \
     ../lib/peripheral \
-    ../lib/AccelDesigner/include \
-    ../lib/MazeLib/include \
-    ../lib/MazeLib/src \
+    ../lib/ctrl/include/ctrl \
+    ../lib/maze/include \
+    ../lib/maze/src \
     ../README.md
 
 # This tag can be used to specify the character encoding of the source files

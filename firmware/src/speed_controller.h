@@ -3,9 +3,9 @@
 #include "global.h"
 #include "machine/wheel_parameter.h"
 
-#include <accumulator.h>
 #include <freertospp/semphr.h>
 
+#include <ctrl/accumulator.h>
 #include <ctrl/feedback_controller.h>
 #include <ctrl/polar.h>
 #include <ctrl/pose.h>
@@ -27,8 +27,8 @@ public:
   ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
   static constexpr int acc_num = 4;
-  Accumulator<float, acc_num> wheel_position[2];
-  Accumulator<ctrl::Polar, acc_num> accel;
+  ctrl::Accumulator<float, acc_num> wheel_position[2];
+  ctrl::Accumulator<ctrl::Polar, acc_num> accel;
 
 public:
   SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
