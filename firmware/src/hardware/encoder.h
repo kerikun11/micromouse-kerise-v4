@@ -1,13 +1,14 @@
 #pragma once
 
-#include <as5048a.h>
-#include <cmath>
-#include <freertospp/semphr.h>
-#include <iomanip>
-#include <ma730.h>
-
 #include "app_log.h"
 #include "config/model.h" //< for KERISE_SELECT
+
+#include <as5048a.h>
+#include <freertospp/semphr.h>
+#include <ma730.h>
+
+#include <cmath>
+#include <iomanip>
 
 class Encoder {
 public:

@@ -63,7 +63,7 @@ void driveTask(void *arg) {
       Machine::wallCalibration();
       break;
     case 9: /* プチコン */
-      // Machine::petitcon();
+      Machine::petitcon();
       break;
     case 10: /* 迷路の表示 */
       mr.print();

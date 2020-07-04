@@ -6,19 +6,11 @@
 
 class Button {
 public:
-  static constexpr int button_sampling_time_ms = 20;
-  static constexpr int button_time_press = 1;
-  static constexpr int button_time_long_press_1 = 20;
-  static constexpr int button_time_long_press_2 = 100;
-  static constexpr int button_time_long_press_3 = 500;
-
-  static constexpr UBaseType_t Task_Priority = 1;
-
-public:
   Button(const gpio_num_t pin) : pin(pin) {
     gpio_set_direction(pin, GPIO_MODE_INPUT);
     gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
     flags = 0x00;
+    constexpr UBaseType_t Task_Priority = 1;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "Button", configMINIMAL_STACK_SIZE, this, Task_Priority, NULL);
   }
@@ -35,6 +27,13 @@ public:
       uint8_t long_pressing_3 : 1; /**< long-pressing level 3 */
     };
   };
+
+private:
+  static constexpr int button_sampling_time_ms = 20;
+  static constexpr int button_time_press = 1;
+  static constexpr int button_time_long_press_1 = 20;
+  static constexpr int button_time_long_press_2 = 100;
+  static constexpr int button_time_long_press_3 = 500;
 
 private:
   const gpio_num_t pin;

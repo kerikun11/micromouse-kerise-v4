@@ -532,7 +532,7 @@ public:
     bz.play(Buzzer::CANCEL);
   }
   static void pidTuner() {
-    ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.G;
+    ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.fbc.getGain();
     /* load */
     constexpr auto filepath = "/spiffs/machine/pid.gain";
     {
@@ -556,7 +556,7 @@ public:
       return;
     switch (mode) {
     case 0:
-      gain = sc.G;
+      gain = sc.fbc.getGain();
     case 1:
       gain.Kp.tra *= std::pow(1.1f, float(value));
       break;
@@ -581,7 +581,7 @@ public:
       else
         of.write((const char *)(&gain), sizeof(gain));
     }
-    sc.G = gain;
+    sc.fbc.setGain(gain);
     bz.play(Buzzer::SUCCESSFUL);
   }
   static void SearchRun_test() {

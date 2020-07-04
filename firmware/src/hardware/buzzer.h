@@ -6,22 +6,7 @@
 
 class Buzzer {
 public:
-  static constexpr int BUZZER_TASK_PRIORITY = 1;
-  static constexpr int BUZZER_TASK_STACK_SIZE = 4096;
-  static constexpr int BUZZER_QUEUE_SIZE = 10;
-
-public:
-  Buzzer() { playList = xQueueCreate(BUZZER_QUEUE_SIZE, sizeof(enum Music)); }
-  bool init(int pin, uint8_t channel) {
-    this->channel = channel;
-    ledcSetup(channel, 880, 4);
-    ledcAttachPin(pin, channel);
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Buzzer", BUZZER_TASK_STACK_SIZE, this, BUZZER_TASK_PRIORITY,
-                NULL);
-    return true;
-  }
-  enum Music {
+  enum Music : uint8_t {
     SELECT,
     CANCEL,
     CONFIRM,
@@ -41,11 +26,25 @@ public:
     CALIBRATION,
     AEBS,
   };
+
+public:
+  Buzzer() {
+    playList = xQueueCreate(/* uxQueueLength = */ 20, sizeof(enum Music));
+  }
+  bool init(int8_t pin, uint8_t channel) {
+    this->channel = channel;
+    ledcSetup(channel, 880, 4);
+    ledcAttachPin(pin, channel);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "Buzzer", 4096, this, 1, NULL);
+    return true;
+  }
   void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
 
 private:
   uint8_t channel;
   QueueHandle_t playList;
+
   void sound(const note_t note, uint8_t octave, uint32_t time_ms) {
     ledcWriteNote(channel, note, octave);
     vTaskDelay(pdMS_TO_TICKS(time_ms));

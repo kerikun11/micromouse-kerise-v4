@@ -23,8 +23,6 @@ public:
   ctrl::Polar est_a;
   WheelParameter enc_v;
   ctrl::Pose est_p;
-  ctrl::FeedbackController<ctrl::Polar>::Model M;
-  ctrl::FeedbackController<ctrl::Polar>::Gain G;
   ctrl::FeedbackController<ctrl::Polar> fbc;
   static constexpr int acc_num = 4;
   ctrl::Accumulator<float, acc_num> wheel_position[2];
@@ -33,7 +31,7 @@ public:
 public:
   SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
                   const ctrl::FeedbackController<ctrl::Polar>::Gain &G)
-      : M(M), G(G), fbc(M, G) {
+      : fbc(M, G) {
     reset();
   }
   bool init() {
@@ -53,7 +51,6 @@ public:
   }
   void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
     ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
-    reference_ready_semaphore.give();
   }
   void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
   void sampling_sync() const { //
@@ -63,7 +60,6 @@ public:
 private:
   std::atomic_bool drive_enabled{false};
   freertospp::Semaphore data_ready_semaphore;
-  freertospp::Semaphore reference_ready_semaphore;
   ctrl::Pose fix;
 
   void task() {
@@ -81,8 +77,6 @@ private:
       update_fix();
       /* notify */
       data_ready_semaphore.give();
-      /* reference wait */
-      // reference_ready_semaphore.take(pdMS_TO_TICKS(1));
       /* drive */
       if (drive_enabled)
         drive();

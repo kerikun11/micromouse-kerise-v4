@@ -9,17 +9,18 @@
 class LED {
 private:
   static constexpr uint8_t PCA9632_DEV_ID = 0x62; //全体制御用のI2Cアドレス
-  static constexpr int LED_STACK_SIZE = 2048;
-  static constexpr int LED_TASK_PRIORITY = 1;
 
 public:
   LED(i2c_port_t i2c_port) : i2c_port(i2c_port) {
-    playList = xQueueCreate(5, sizeof(uint8_t));
+    playList = xQueueCreate(/* uxQueueLength = */ 5, sizeof(uint8_t));
   }
   bool init() {
     writeReg(0x00, 0b10000001);
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "LED", LED_STACK_SIZE, this, LED_TASK_PRIORITY, NULL);
+    xTaskCreate(/* pvTaskCode = */
+                [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                /* pcName = */ "LED", /* usStackDepth = */ 2048,
+                /* pvParameters = */ this, /* uxPriority = */ 1,
+                /* pvCreatedTask = */ NULL);
     return true;
   }
   operator uint8_t() const { return value; }

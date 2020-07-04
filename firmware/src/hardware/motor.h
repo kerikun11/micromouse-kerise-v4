@@ -28,8 +28,10 @@ public:
     mcpwm_kerise_set_signal_low(unit, timer, MCPWM_OPR_B);
   }
   void drive(float duty) {
-    if (!std::isfinite(duty))
+    if (!std::isfinite(duty)) {
       std::cout << __FILE__ ":" << __LINE__ << "\t" << duty << std::endl;
+      return;
+    }
     // const float duty_cycle = std::clamp(duty * 100, -100, 100);
     float duty_cycle = duty * 100; //< [-1,1] to [-100,100]
     duty_cycle = std::min(duty_cycle, 100.0f);

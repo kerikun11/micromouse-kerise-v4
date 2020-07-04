@@ -1,11 +1,12 @@
 #pragma once
 
-#include <atomic>
+#include "app_log.h"
+#include "config/model.h" //< for KERISE_SELECT
+
 #include <freertospp/semphr.h>
 #include <icm20602.h>
 
-#include "app_log.h"
-#include "config/model.h" //< for KERISE_SELECT
+#include <atomic>
 
 class IMU {
 public:
@@ -34,6 +35,15 @@ public:
                 "IMU", 4096, this, 6, NULL);
     return true;
   }
+  void calibration(const bool wait_for_end = true) {
+    calibration_requested = true;
+    // calibration will be conducted in background task()
+    while (wait_for_end && calibration_requested)
+      vTaskDelay(pdMS_TO_TICKS(1));
+  }
+  void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
+    sampling_end_semaphore.take(xBlockTime);
+  }
   void print() {
     logi << "Gyro:"
          << "\t" << gyro.x //
@@ -47,15 +57,6 @@ public:
          << std::endl;
     logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
-  void calibration(const bool wait_for_end = true) {
-    calibration_requested = true;
-    // calibration will be conducted in background task()
-    while (wait_for_end && calibration_requested)
-      vTaskDelay(pdMS_TO_TICKS(1));
-  }
-  void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
-    sampling_end_semaphore.take(xBlockTime);
-  }
 
 private:
   ICM20602 icm[IMU_NUM];
@@ -66,29 +67,35 @@ private:
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
+      /* sync */
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      /* fetch */
       update();
+      /* give */
       sampling_end_semaphore.give();
       /* calibration */
       if (calibration_requested) {
-        const int ave_count = 200;
-        for (int j = 0; j < 2; j++) {
-          MotionParameter accel_sum, gyro_sum;
-          for (int i = 0; i < ave_count; i++) {
-            vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-            update();
-            sampling_end_semaphore.give();
-            accel_sum += accel;
-            gyro_sum += gyro;
-          }
-          accel_offset += accel_sum / ave_count;
-          gyro_offset += gyro_sum / ave_count;
-        }
+        task_calibration(xLastWakeTime);
         calibration_requested = false;
       }
     }
   }
 
+  void task_calibration(TickType_t &xLastWakeTime) {
+    const int ave_count = 200;
+    for (int j = 0; j < 2; j++) {
+      MotionParameter accel_sum, gyro_sum;
+      for (int i = 0; i < ave_count; i++) {
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+        update();
+        sampling_end_semaphore.give();
+        accel_sum += accel;
+        gyro_sum += gyro;
+      }
+      accel_offset += accel_sum / ave_count;
+      gyro_offset += gyro_sum / ave_count;
+    }
+  }
   void update() {
     for (size_t i = 0; i < IMU_NUM; i++)
       icm[i].update();
