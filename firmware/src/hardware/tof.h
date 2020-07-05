@@ -16,6 +16,7 @@ public:
     sensor.init();
     sensor.configureDefault();
     sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 0x20);
+    // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 0x40);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "ToF", 4096, this, Priority, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));
@@ -31,7 +32,7 @@ public:
   const auto &getLog() const { return log; }
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
-  void print() const { log_d("ToF: %d [mm]", getDistance()); }
+  void print() const { log_d("ToF: %d [mm] Dur: %d [ms]", getDistance(), dur); }
   void csv() const {
     printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
   }
@@ -41,6 +42,7 @@ private:
   float tof_dist_offset;
   bool enabled = true;
   uint16_t distance;
+  uint16_t dur;
   int passed_ms;
   ctrl::Accumulator<uint16_t, 10> log;
 
@@ -53,6 +55,7 @@ private:
         continue;
       }
       /* sampling start */
+      sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
       sensor.writeReg(VL6180X::SYSRANGE__START, 0x01);
       {
         uint32_t startAt = millis();
@@ -63,10 +66,10 @@ private:
           if (millis() - startAt > 100)
             break;
         }
+        dur = millis() - startAt;
       }
       /* get data from sensor */
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
-      sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
       distance = range + tof_dist_offset;
       log.push(distance);
       if (range != 255) {

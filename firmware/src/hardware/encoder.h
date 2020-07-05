@@ -20,7 +20,7 @@ public:
       return false;
     }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", configMINIMAL_STACK_SIZE, this, 7, NULL);
+                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
 #elif KERISE_SELECT == 5
@@ -63,6 +63,7 @@ public:
   }
 
 private:
+  static constexpr int Priority = 7;
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
   AS5048A_DUAL as;
 #elif KERISE_SELECT == 5
