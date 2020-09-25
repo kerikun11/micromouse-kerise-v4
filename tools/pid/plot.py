@@ -39,6 +39,9 @@ def process(filename):
     v_rot = raw[:, 8:10]
     a_rot = raw[:, 10:12]
     u_rot = raw[:, 12:16]
+    x = raw[:, 16:18]
+    y = raw[:, 18:20]
+    th = raw[:, 20:22]
 
     # calculate input sum
     u_tra = np.hstack(
@@ -76,6 +79,20 @@ def process(filename):
 
     # fit
     fig.tight_layout()
+
+    # plot xy
+    fig_xt = plt.figure(figsize=(8, 6))
+    plt.plot(x, y)
+    ax = plt.gca()
+    ax.grid(which='major', linestyle='-')
+    ax.grid(which='minor', linestyle=':')
+    ax.set_xticks(np.arange(-360, 360, 15))
+    ax.set_xticks(np.arange(-360, 360, 5), minor=True)
+    ax.set_yticks(ax.get_xticks())
+    ax.set_yticks(ax.get_xticks(minor=True), minor=True)
+    plt.axis('equal')
+    plt.xlabel('x [mm]')
+    plt.ylabel('y [mm]')
 
     # save
     for ext in [

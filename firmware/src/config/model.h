@@ -123,18 +123,18 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        .Kp = ctrl::Polar(5.3985e-03, 9.6774e-02),
-        .Ki = ctrl::Polar(1.3552e-01, 1.6892e+00),
-        .Kd = ctrl::Polar(7.7803e-06, 4.7964e-05),
+        .Kp = ctrl::Polar(1.8413e-03, 6.2920e-02),
+        .Ki = ctrl::Polar(1.6712e-02 * 10, 9.1158e-01 * 5), //< modified
+        .Kd = ctrl::Polar(9.1648e-07, 3.1232e-05),
 };
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.05f, 0.2f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.1f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.6f,
     .omega_n = 10.0f,
-    .low_zeta = 1.0f,
-    .low_b = 1e-2f,
+    .low_zeta = 0.6f,
+    .low_b = 1e-3f,
 };
 
 #endif

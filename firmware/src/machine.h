@@ -424,7 +424,7 @@ public:
     bz.play(Buzzer::CANCEL);
   }
   static void slalom_test() {
-    ctrl::TrajectoryTracker::Gain gain;
+    ctrl::TrajectoryTracker::Gain gain = model::TrajectoryTrackerGain;
     // gain.omega_n = gain.zeta = gain.low_b = gain.low_zeta = 0;
     int mode = ui.waitForSelect(3);
     // int mode = 0;
@@ -470,12 +470,12 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
-    const float velocity = 420;
+    const float velocity = 540;
     const float Ts = 1e-3f;
     const float j_max = 120000;
     const float a_max = 6000;
     const float v_max = velocity;
-    const float dist = 1 * 90;
+    const float dist = 1 * 45;
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
     /* start */
@@ -515,12 +515,12 @@ public:
     /* decel */
     ref.reset(j_max, a_max, v_max, sc.ref_v.tra, 0, dist + shape.straight_post);
     for (float t = 0; t < ref.t_end(); t += Ts) {
-      sc.sampling_sync();
       ctrl::State ref_s;
       ref.update(ref_s, t);
       auto est_q = sc.est_p;
       auto ref = tt.update(est_q, sc.est_v, sc.est_a, ref_s);
       sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
+      sc.sampling_sync();
       printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sc.est_p.x -= ref.x_end();

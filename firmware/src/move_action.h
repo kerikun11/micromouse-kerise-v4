@@ -18,14 +18,14 @@
 
 class MoveAction : TaskBase {
 public:
-  static constexpr float unknown_accel_velocity = 540;
+  static constexpr float v_unknown_accel = 600;
   static constexpr float v_search = 300;
 
 public:
   struct RunParameter {
   public:
-    bool diag_enabled = 1;
-    bool unknown_accel_enabled = 0;
+    bool diag_enabled = 0;
+    bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 1;
@@ -734,7 +734,7 @@ private:
     const bool unknown_accel = rp.unknown_accel_enabled &&
                                continue_straight_if_no_front_wall &&
                                no_front_front_wall;
-    const auto v_end = unknown_accel ? unknown_accel_velocity : v_search;
+    const auto v_end = unknown_accel ? v_unknown_accel : v_search;
     switch (action) {
     case MazeLib::RobotBase::SearchAction::START_STEP:
       start_step(rp);
