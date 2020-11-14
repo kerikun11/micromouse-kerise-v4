@@ -57,6 +57,9 @@ public:
          << std::endl;
     logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
+  void csv() {
+    std::cout << "0," << gyro.x << "," << gyro.y << "," << gyro.z << std::endl;
+  }
 
 private:
   ICM20602 icm[IMU_NUM];

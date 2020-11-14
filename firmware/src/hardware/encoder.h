@@ -98,6 +98,7 @@ private:
       pulses[i] = ma[i].get();
     }
 #endif
+    float mm[2];
     for (int i = 0; i < 2; i++) {
       /* count overflow */
       if (pulses[i] > pulses_prev[i] + pulses_size / 2) {
@@ -107,14 +108,15 @@ private:
       }
       pulses_prev[i] = pulses[i];
       /* calculate position */
-      positions[i] =
-          (pulses_ovf[i] + float(pulses[i]) / pulses_size) * encoder_factor;
+      mm[i] = (pulses_ovf[i] + float(pulses[i]) / pulses_size) * encoder_factor;
     }
     /* fix rotation direction */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
-    positions[1] *= -1;
+    positions[0] = +mm[0];
+    positions[1] = -mm[1];
 #elif KERISE_SELECT == 5
-    positions[0] *= -1;
+    positions[0] = -mm[0];
+    positions[1] = +mm[1];
 #endif
   }
 };
