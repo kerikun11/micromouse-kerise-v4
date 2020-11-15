@@ -12,18 +12,11 @@
 
 class MA730 {
 public:
-  static constexpr int MA730_PULSES = 16384;
   static constexpr int PULSES_SIZE = 16384;
-#ifndef M_PI
-  static constexpr float M_PI = 3.1415926535897932384626433832795f;
-#endif
 
 public:
   MA730() {}
   bool init(spi_host_device_t spi_host, gpio_num_t pin_cs) {
-    this->pin_cs = pin_cs;
-    gpio_set_direction(pin_cs, GPIO_MODE_OUTPUT);
-    gpio_set_level(pin_cs, 1);
     // ESP-IDF SPI device initialization
     static spi_device_interface_config_t dev_cfg;
     dev_cfg.command_bits = 0;
@@ -52,15 +45,13 @@ public:
     tx.tx_data[1] = 0x00;
     tx.rx_buffer = rx_buf;
     tx.length = 16;
-    ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< send command
-    ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx)); //< read data
+    ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
 
-    pulses = ((uint16_t)rx_buf[0] << 6) | (rx_buf[1] >> 2);
+    pulses = uint16_t(rx_buf[0] << 6) | (rx_buf[1] >> 2);
   }
   int get() const { return pulses; }
 
 private:
   spi_device_handle_t encoder_spi = NULL;
-  gpio_num_t pin_cs;
   int pulses;
 };

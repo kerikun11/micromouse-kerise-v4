@@ -38,7 +38,7 @@ public:
     return true;
   }
 #endif
-  int get_raw(uint8_t ch) const { return pulses[ch]; }
+  int get_raw(uint8_t ch) const { return pulses_raw[ch]; }
   float get_position(uint8_t ch) const {
     /* the reason the type of pulses is no problem with type int */
     /* estimated position 1,000 [mm/s] * 10 [min] * 60 [s/min] = 600,000 [mm] */
@@ -47,14 +47,25 @@ public:
   }
   void clearOffset() { pulses_ovf[0] = pulses_ovf[1] = 0; }
   void csv() {
-    std::cout << "0," << get_position(0) << "," << get_position(1) << std::endl;
+    // std::cout << "0," << get_position(0) << "," << get_position(1) <<
+    // std::endl;
     // std::cout << "0," << get_raw(0) << "," << get_raw(1) << std::endl;
+    // std::cout << -pulses[0] << "," << pulses[1] << std::endl;
+#if 1
+    static int pre[2];
+    int now[2];
+    for (int i : {0, 1})
+      now[i] = pulses[i];
+    std::cout << -(now[0] - pre[0]) << "," << now[1] - pre[1] << std::endl;
+    for (int i : {0, 1})
+      pre[i] = now[i];
+#endif
   }
   friend std::ostream &operator<<(std::ostream &os, const Encoder &e) {
     return os << "Encoder: position (" //
               << std::setw(6) << std::setfill(' ') << e.get_position(0) << ", "
               << std::setw(6) << std::setfill(' ') << e.get_position(1) << ")"
-              << " pulses (" //
+              << " pulses_raw (" //
               << std::setw(6) << std::setfill(' ') << e.get_raw(0) << ", "
               << std::setw(6) << std::setfill(' ') << e.get_raw(1) << ")";
   }
@@ -71,6 +82,7 @@ private:
 #endif
   const float encoder_factor;
   int pulses[2];
+  int pulses_raw[2];
   int pulses_prev[2];
   int pulses_ovf[2];
   float positions[2];
@@ -87,28 +99,32 @@ private:
 
   void update() {
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
-    int pulses_size = AS5048A_DUAL::PULSES_SIZE;
+    constexpr int pulses_size = AS5048A_DUAL::PULSES_SIZE;
     as.update();
     for (int i = 0; i < 2; i++)
-      pulses[i] = as.get(i);
+      pulses_raw[i] = as.get(i);
 #elif KERISE_SELECT == 5
-    int pulses_size = MA730::PULSES_SIZE;
+    constexpr int pulses_size = MA730::PULSES_SIZE;
     for (int i = 0; i < 2; i++) {
       ma[i].update();
-      pulses[i] = ma[i].get();
+      pulses_raw[i] = ma[i].get();
     }
+    // pulses_raw[0] += 3.0e-2f * pulses_size * std::sin(2 * M_PI * (float(pulses_raw[0]) / pulses_size - 0.0e-1f + 0.5f)) - 6.01938394716907e-14f;
+    // pulses_raw[1] += 5.0e-2f * pulses_size * std::sin(2 * M_PI * (float(pulses_raw[1]) / pulses_size - 7.5e-1f + 0.5f)) - (-819.2f);
 #endif
     float mm[2];
     for (int i = 0; i < 2; i++) {
       /* count overflow */
-      if (pulses[i] > pulses_prev[i] + pulses_size / 2) {
+      if (pulses_raw[i] > pulses_prev[i] + pulses_size / 2) {
         pulses_ovf[i]--;
-      } else if (pulses[i] < pulses_prev[i] - pulses_size / 2) {
+      } else if (pulses_raw[i] < pulses_prev[i] - pulses_size / 2) {
         pulses_ovf[i]++;
       }
-      pulses_prev[i] = pulses[i];
+      pulses_prev[i] = pulses_raw[i];
       /* calculate position */
-      mm[i] = (pulses_ovf[i] + float(pulses[i]) / pulses_size) * encoder_factor;
+      pulses[i] = pulses_ovf[i] * pulses_size + pulses_raw[i];
+      mm[i] =
+          (pulses_ovf[i] + float(pulses_raw[i]) / pulses_size) * encoder_factor;
     }
     /* fix rotation direction */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
