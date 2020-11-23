@@ -38,19 +38,19 @@ static constexpr float TailLength = 13.0f + CenterShift;
 static constexpr float tof_dist_offset = 0;
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 18.0f;
-static constexpr float wall_attach_gain_Ki = 1.0f;
+static constexpr float wall_attach_gain_Ki = 0.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 1e-3f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(4000, 90),
-        .T1 = ctrl::Polar(0.13, 0.10),
+        .K1 = ctrl::Polar(4000, 80),
+        .T1 = ctrl::Polar(0.14, 0.08),
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        .Kp = ctrl::Polar(0.0004, 0.08),
-        .Ki = ctrl::Polar(0.05, 5.0),
+        .Kp = ctrl::Polar(0.001, 0.07),
+        .Ki = ctrl::Polar(0.04, 4.0),
         .Kd = ctrl::Polar(0.0, 0.0),
 };
 static constexpr float turn_back_gain = 0.1;
