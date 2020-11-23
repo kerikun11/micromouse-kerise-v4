@@ -453,7 +453,7 @@ private:
     const float dddth_max = 2400 * M_PI;
     const float ddth_max = 54 * M_PI;
     const float dth_max = 4 * M_PI;
-    constexpr float back_gain = 10.0f;
+    constexpr float back_gain = model::turn_back_gain;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     for (float t = 0; t < ad.t_end(); t += 1e-3f) {
       if (break_requested || mt.is_emergency())
@@ -577,7 +577,7 @@ private:
     }
   }
   void wall_stop_aebs() {
-    if (break_requested || mt.is_emergency())
+    if (break_requested && mt.is_emergency())
       return;
     bz.play(Buzzer::AEBS);
     // ToDo: compiler bug avoidance!
@@ -940,7 +940,7 @@ private:
       sc.sampling_sync();
       const float delta = sc.est_p.x * std::cos(-sc.est_p.th) -
                           sc.est_p.y * std::sin(-sc.est_p.th);
-      constexpr float back_gain = 10.0f;
+      constexpr float back_gain = model::turn_back_gain;
       sc.set_target(-delta * back_gain, ad.v(t), 0, ad.a(t));
       if (ad.x(t) > 2 * M_PI * index / table_size) {
         index++;

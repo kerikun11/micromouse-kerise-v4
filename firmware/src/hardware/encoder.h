@@ -50,8 +50,8 @@ public:
     // std::cout << "0," << get_position(0) << "," << get_position(1) <<
     // std::endl;
     // std::cout << "0," << get_raw(0) << "," << get_raw(1) << std::endl;
-    // std::cout << -pulses[0] << "," << pulses[1] << std::endl;
-#if 1
+    std::cout << -pulses[0] << "," << pulses[1] << std::endl;
+#if 0
     static int pre[2];
     int now[2];
     for (int i : {0, 1})
@@ -109,8 +109,16 @@ private:
       ma[i].update();
       pulses_raw[i] = ma[i].get();
     }
-    // pulses_raw[0] += 3.0e-2f * pulses_size * std::sin(2 * M_PI * (float(pulses_raw[0]) / pulses_size - 0.0e-1f + 0.5f)) - 6.01938394716907e-14f;
-    // pulses_raw[1] += 5.0e-2f * pulses_size * std::sin(2 * M_PI * (float(pulses_raw[1]) / pulses_size - 7.5e-1f + 0.5f)) - (-819.2f);
+    pulses_raw[0] +=
+        9.5e-3f * pulses_size *
+            std::sin(2 * M_PI *
+                     (float(pulses_raw[0]) / pulses_size - 0.1e-1f + 0.5f)) -
+        (9.7732187836986f);
+    pulses_raw[1] +=
+        8.0e-3f * pulses_size *
+            std::sin(2 * M_PI *
+                     (float(pulses_raw[1]) / pulses_size - 9.9e-1f + 0.5f)) -
+        (-8.23007897574619f);
 #endif
     float mm[2];
     for (int i = 0; i < 2; i++) {

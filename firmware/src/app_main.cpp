@@ -27,6 +27,7 @@ void printTask(void *arg) {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
     // tof.print();
     // wd.print();
+    // enc.csv();
   }
 }
 
@@ -73,14 +74,15 @@ void driveTask(void *arg) {
       break;
     case 12:
       Machine::position_recovery();
+      // Machine::sysid();
       break;
     case 13:
-      Machine::pidTuner();
+      // Machine::pidTuner();
+      // Machine::encoder_test();
+      Machine::accel_test();
       break;
     case 14: /* テスト */
-      // Machine::accel_test();
       Machine::slalom_test();
-      // Machine::sysid();
       break;
     case 15: /* ログの表示 */
       lgr.print();

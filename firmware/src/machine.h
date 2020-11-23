@@ -366,8 +366,8 @@ public:
       return;
     delay(500);
     lgr.clear();
-    auto printLog = []() {
-      auto &bd = sc.fbc.getBreakdown();
+    const auto printLog = []() {
+      const auto &bd = sc.fbc.getBreakdown();
       lgr.push({
           sc.ref_v.tra,
           sc.est_v.tra,
@@ -386,6 +386,8 @@ public:
           bd.fbi.rot,
           bd.fbd.rot,
       });
+      // (float)enc.get_raw(0),
+      // (float)enc.get_raw(1),
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
@@ -393,8 +395,8 @@ public:
     delay(500);
     ctrl::AccelDesigner ad;
     if (dir == 0) {
-      const float j_max = 120000;
-      const float a_max = 6000;
+      const float j_max = 240'000;
+      const float a_max = 9000;
       const float v_max = 900;
       const float dist = 90 * 4;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
@@ -470,12 +472,13 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
-    const float velocity = 540;
+    const float velocity = 600;
     const float Ts = 1e-3f;
-    const float j_max = 120000;
-    const float a_max = 6000;
-    const float v_max = velocity;
-    const float dist = 1 * 45;
+    const float j_max = 240'000;
+    const float a_max = 3600;
+    const float v_max = 900;
+    const float d_1 = 6 * 45;
+    const float d_2 = ctrl::AccelCurve(j_max, a_max, velocity, 0).x_end();
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
     /* start */
@@ -483,7 +486,7 @@ public:
     tt.reset(0);
     /* accel */
     ctrl::straight::Trajectory ref;
-    ref.reset(j_max, a_max, v_max, 0, velocity, dist + shape.straight_prev);
+    ref.reset(j_max, a_max, v_max, 0, velocity, d_1 + shape.straight_prev);
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
@@ -496,7 +499,6 @@ public:
     sc.est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
-#if 1
     ctrl::slalom::Trajectory st(shape);
     st.reset(velocity);
     ctrl::State ref_s;
@@ -511,9 +513,8 @@ public:
     const auto &net = st.getShape().curve;
     sc.est_p = (sc.est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
-#endif
     /* decel */
-    ref.reset(j_max, a_max, v_max, sc.ref_v.tra, 0, dist + shape.straight_post);
+    ref.reset(j_max, a_max, v_max, sc.ref_v.tra, 0, d_2 + shape.straight_post);
     for (float t = 0; t < ref.t_end(); t += Ts) {
       ctrl::State ref_s;
       ref.update(ref_s, t);
@@ -600,7 +601,7 @@ public:
     ma.disable();
     mt.emergency_release();
   }
-  static void position_recovery(const bool pi_enabled = false) {
+  static void position_recovery() {
     while (1) {
       led = 15;
       if (!ui.waitForCover(true))
@@ -612,5 +613,16 @@ public:
       ma.disable();
       ma.emergency_release();
     }
+  }
+  static void encoder_test() {
+    int value = ui.waitForSelect(16);
+    led = 15;
+    if (!ui.waitForCover())
+      return;
+    delay(400);
+    float pwm = 0.05 * value;
+    mt.drive(pwm, pwm);
+    ui.waitForCover(true);
+    mt.free();
   }
 };

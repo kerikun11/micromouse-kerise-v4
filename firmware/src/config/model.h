@@ -24,41 +24,42 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 3
+#define KERISE_SELECT 5
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.7f;
+static constexpr float WheelDiameter = 12.65f;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
 static constexpr float tof_dist_offset = 0;
 /* Reflector */
-static constexpr float wall_attach_gain_Kp = 12.0f;
-static constexpr float wall_attach_gain_Ki = 0.05f;
-static constexpr float wall_attach_end = 0.01f;
+static constexpr float wall_attach_gain_Kp = 18.0f;
+static constexpr float wall_attach_gain_Ki = 1.0f;
+static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 1e-3f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5463.0f, 137.0f),
-        .T1 = ctrl::Polar(float(0.1998 / 1.6), 0.1354f),
+        .K1 = ctrl::Polar(4000, 90),
+        .T1 = ctrl::Polar(0.13, 0.10),
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        .Kp = ctrl::Polar(0.0003f, 0.04f),
-        .Ki = ctrl::Polar(0.06f, 1.0f),
-        .Kd = ctrl::Polar(0, 0),
+        .Kp = ctrl::Polar(0.0004, 0.08),
+        .Ki = ctrl::Polar(0.05, 5.0),
+        .Kd = ctrl::Polar(0.0, 0.0),
 };
+static constexpr float turn_back_gain = 0.1;
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(1.0f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 1.0f,
-    .omega_n = 1.0f,
+    .omega_n = 10.0f,
     .low_zeta = 0.5f,
     .low_b = 1e-3f,
 };
@@ -90,6 +91,7 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
         .Ki = ctrl::Polar(0.1f, 6.0f), /*< 4 */
         .Kd = ctrl::Polar(0, 0),
 };
+static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
@@ -127,6 +129,7 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
         .Ki = ctrl::Polar(1.6712e-02 * 10, 9.1158e-01 * 5), //< modified
         .Kd = ctrl::Polar(9.1648e-07, 3.1232e-05),
 };
+static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.1f, 1.0f);
 /* Trajectory Tracking Gain */
