@@ -24,7 +24,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 5
+#define KERISE_SELECT 3
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -120,18 +120,22 @@ static constexpr float wall_avoid_gain = 0.001f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5833.0f, 66.72f),
-        .T1 = ctrl::Polar(0.3694f, 0.1499f),
+        // .K1 = ctrl::Polar(5833.0f, 66.72f),
+        // .T1 = ctrl::Polar(0.12, 0.1499f),
+        .K1 = ctrl::Polar(5833, 1000),
+        .T1 = ctrl::Polar(0.12, 0.48),
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        .Kp = ctrl::Polar(1.8413e-03, 6.2920e-02),
-        .Ki = ctrl::Polar(1.6712e-02 * 10, 9.1158e-01 * 5), //< modified
-        .Kd = ctrl::Polar(9.1648e-07, 3.1232e-05),
+        // .Kp = ctrl::Polar(1.8413e-03, 6.2920e-02),
+        // .Ki = ctrl::Polar(1.6712e-02, 9.1158e-01),
+        .Kp = ctrl::Polar(0.0006, 0.05),
+        .Ki = ctrl::Polar(0.08, 1.0),
+        .Kd = ctrl::Polar(0, 0),
 };
 static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.1f, 1.0f);
+static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.6f,

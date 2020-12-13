@@ -369,25 +369,14 @@ public:
     const auto printLog = []() {
       const auto &bd = sc.fbc.getBreakdown();
       lgr.push({
-          sc.ref_v.tra,
-          sc.est_v.tra,
-          sc.ref_a.tra,
-          sc.est_a.tra,
-          bd.ff.tra,
-          bd.fbp.tra,
-          bd.fbi.tra,
-          bd.fbd.tra,
-          sc.ref_v.rot,
-          sc.est_v.rot,
-          sc.ref_a.rot,
-          sc.est_a.rot,
-          bd.ff.rot,
-          bd.fbp.rot,
-          bd.fbi.rot,
-          bd.fbd.rot,
+        sc.ref_v.tra, sc.est_v.tra, sc.ref_a.tra, sc.est_a.tra, bd.ff.tra,
+            bd.fbp.tra, bd.fbi.tra, bd.fbd.tra, sc.ref_v.rot, sc.est_v.rot,
+            sc.ref_a.rot, sc.est_a.rot, bd.ff.rot, bd.fbp.rot, bd.fbi.rot,
+            bd.fbd.rot,
+#if 0
+            (float)enc.get_raw(0), (float)enc.get_raw(1),
+#endif
       });
-      // (float)enc.get_raw(0),
-      // (float)enc.get_raw(1),
     };
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
@@ -474,8 +463,8 @@ public:
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const float velocity = 600;
     const float Ts = 1e-3f;
-    const float j_max = 240'000;
-    const float a_max = 3600;
+    const float j_max = 120'000;
+    const float a_max = 6000;
     const float v_max = 900;
     const float d_1 = 6 * 45;
     const float d_2 = ctrl::AccelCurve(j_max, a_max, velocity, 0).x_end();
