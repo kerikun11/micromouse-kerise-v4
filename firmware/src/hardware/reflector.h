@@ -3,6 +3,7 @@
 #include "esp32-hal-adc.h"
 #include <TimerSemaphore.h>
 #include <array>
+#include <cstdio>
 #include <ctrl/accumulator.h>
 
 class Reflector {
@@ -11,8 +12,8 @@ public:
   static constexpr int CH_SIZE = 4;
 
 public:
-  Reflector(std::array<int8_t, CH_SIZE> tx_pins,
-            std::array<int8_t, CH_SIZE> rx_pins)
+  Reflector(const std::array<int8_t, CH_SIZE> &tx_pins,
+            const std::array<int8_t, CH_SIZE> &rx_pins)
       : tx_pins(tx_pins), rx_pins(rx_pins) {}
   bool init() {
     for (int8_t i = 0; i < CH_SIZE; i++) {
@@ -25,37 +26,20 @@ public:
                 "Reflector", configMINIMAL_STACK_SIZE, this, Priority, NULL);
     return true;
   }
-  int16_t side(uint8_t isRight) const {
-    return read(isRight ? 1 : 0);
-    if (isRight == 0)
-      return read(0);
-    else
-      return read(1);
-  }
-  int16_t front(uint8_t isRight) const {
-    if (isRight == 0)
-      return read(2);
-    else
-      return read(3);
-  }
-  int16_t read(const int8_t ch) const {
-    if (ch < 0 || ch >= CH_SIZE) {
-      log_e("you refered an invalid channel!");
-      return 0;
-    }
-    return value[ch];
-  }
+  int16_t side(uint8_t isRight) const { return read(isRight ? 1 : 0); }
+  int16_t front(uint8_t isRight) const { return read(isRight ? 3 : 2); }
+  int16_t read(const int8_t ch) const { return value[ch]; }
   void csv() const {
-    printf("0,1500");
+    std::printf("0,1500");
     for (int8_t i = 0; i < CH_SIZE; i++)
-      printf(",%d", read(i));
-    printf("\n");
+      std::printf(",%d", read(i));
+    std::printf("\n");
   }
   void print() const {
-    printf("Reflector: ");
+    std::printf("Reflector: ");
     for (int8_t i = 0; i < CH_SIZE; i++)
-      printf("\t%04d", read(i));
-    printf("\n");
+      std::printf("\t%04d", read(i));
+    std::printf("\n");
   }
 
 private:

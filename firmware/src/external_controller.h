@@ -3,17 +3,14 @@
 #include <HardwareSerial.h>
 #include <pins_arduino.h>
 
-#define EXTERNAL_CONTROLLER_TASK_PRIORITY 1
-#define EXTERNAL_CONTROLLER_STACK_SIZE 4096
-
-class ExternalController : TaskBase {
+class ExternalController {
 public:
   ExternalController() {}
-  virtual ~ExternalController() {}
   bool init() {
     pinMode(RX, INPUT_PULLUP);
-    return createTask("ExternalController", EXTERNAL_CONTROLLER_TASK_PRIORITY,
-                      EXTERNAL_CONTROLLER_STACK_SIZE);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "EC", 4096, this, 1, NULL);
+    return true;
   }
 
 private:
@@ -24,7 +21,7 @@ private:
     printf("%c\n", c);
     return c;
   }
-  void task() override {
+  void task() {
     TickType_t xLastWakeTime;
     xLastWakeTime = xTaskGetTickCount();
     while (1) {

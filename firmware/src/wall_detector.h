@@ -21,31 +21,24 @@ public:
       float front[2];
     };
     // シリアライズされたメンバ
-    struct {
-      float value[4] = {0};
-    };
-    const WallValue &operator=(const WallValue &wv) {
-      for (int i = 0; i < 4; ++i)
-        value[i] = wv.value[i];
-      return *this;
-    }
-    const WallValue &operator+=(const WallValue &wv) {
+    float value[4] = {0, 0, 0, 0};
+    WallValue &operator+=(const WallValue &wv) {
       for (int i = 0; i < 4; ++i)
         value[i] += wv.value[i];
       return *this;
     }
-    const WallValue &operator-=(const WallValue &wv) {
+    WallValue &operator-=(const WallValue &wv) {
       for (int i = 0; i < 4; ++i)
         value[i] -= wv.value[i];
       return *this;
     }
-    const WallValue operator-(const WallValue &wv) const {
+    WallValue operator-(const WallValue &wv) const {
       WallValue ret;
       for (int i = 0; i < 4; ++i)
         ret.value[i] = value[i] - wv.value[i];
       return ret;
     }
-    const WallValue operator/(const auto div) const {
+    WallValue operator/(const float div) const {
       WallValue ret;
       for (int i = 0; i < 4; ++i)
         ret.value[i] = value[i] / div;

@@ -15,25 +15,22 @@
 struct MotionParameter {
   float x, y, z;
   MotionParameter(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z) {}
-  const MotionParameter operator+(const MotionParameter &obj) const {
+  MotionParameter operator+(const MotionParameter &obj) const {
     return MotionParameter(x + obj.x, y + obj.y, z + obj.z);
   }
-  const MotionParameter operator-(const MotionParameter &obj) const {
+  MotionParameter operator-(const MotionParameter &obj) const {
     return MotionParameter(x - obj.x, y - obj.y, z - obj.z);
   }
-  const MotionParameter operator*(const float mul) const {
+  MotionParameter operator*(const float mul) const {
     return MotionParameter(x * mul, y * mul, z * mul);
   }
-  const MotionParameter operator/(const float div) const {
+  MotionParameter operator/(const float div) const {
     return MotionParameter(x / div, y / div, z / div);
   }
-  const MotionParameter &operator=(const MotionParameter &obj) {
-    return x = obj.x, y = obj.y, z = obj.z, *this;
-  }
-  const MotionParameter &operator+=(const MotionParameter &obj) {
+  MotionParameter &operator+=(const MotionParameter &obj) {
     return x += obj.x, y += obj.y, z += obj.z, *this;
   }
-  const MotionParameter &operator-=(const MotionParameter &obj) {
+  MotionParameter &operator-=(const MotionParameter &obj) {
     return x -= obj.x, y -= obj.y, z -= obj.z, *this;
   }
 };
@@ -62,7 +59,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 20 * 1000 * 1000;
+    dev_cfg.clock_speed_hz = 20'000'000;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
     dev_cfg.queue_size = 2;
@@ -176,7 +173,7 @@ public:
   // }
 
 private:
-  spi_device_handle_t spi_handle;
+  spi_device_handle_t spi_handle = NULL;
   MotionParameter accel_offset, gyro_offset;
 
   void writeReg(uint8_t reg, uint8_t data) {
