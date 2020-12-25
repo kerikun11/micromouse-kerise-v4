@@ -45,7 +45,7 @@ public:
   }
   void disable() {
     drive_enabled = false;
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(2));
     mt.free();
     fan.drive(0);
   }

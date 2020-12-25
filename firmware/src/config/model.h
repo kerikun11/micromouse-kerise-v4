@@ -58,7 +58,7 @@ static constexpr float turn_back_gain = 0.1;
 static constexpr ctrl::Polar alpha = ctrl::Polar(1.0f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
-    .zeta = 1.0f,
+    .zeta = 0.8f,
     .omega_n = 10.0f,
     .low_zeta = 0.5f,
     .low_b = 1e-3f,

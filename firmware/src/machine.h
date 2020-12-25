@@ -465,7 +465,7 @@ public:
     const float Ts = 1e-3f;
     const float j_max = 120'000;
     const float a_max = 6000;
-    const float v_max = 900;
+    const float v_max = 600;
     const float d_1 = 6 * 45;
     const float d_2 = ctrl::AccelCurve(j_max, a_max, velocity, 0).x_end();
     ctrl::TrajectoryTracker tt(gain);

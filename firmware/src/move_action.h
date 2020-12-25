@@ -19,7 +19,7 @@
 class MoveAction : TaskBase {
 public:
   static constexpr float v_unknown_accel = 600;
-  static constexpr float v_search = 300;
+  static constexpr float v_search = 360;
 
 public:
   struct RunParameter {
@@ -176,7 +176,7 @@ private:
         (wd.distance.front[0] > 0 && wd.distance.front[1] > 0)) {
       led = 6;
       tof.disable();
-      vTaskDelay(pdMS_TO_TICKS(10)); /*< ノイズ防止のためToFを無効化 */
+      vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
       sc.est_p.clear();
       WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
@@ -419,12 +419,12 @@ private:
                        distance - sc.est_p.x, sc.est_p.x);
       tt.reset(v_start);
       float int_y = 0; //< 角度補正用
-      for (float t = 0; true; t += 1e-3f) {
+      for (float t = 0; true; t += sc.Ts) {
         if (break_requested || mt.is_emergency())
           break;
         /* 終了条件 */
         const float remain = distance - sc.est_p.x;
-        if (remain < 0 || t > trajectory.t_end() + 0.1f)
+        if (remain < 0 || t > trajectory.t_end() + 0.01f)
           break; //< 静止の場合を考慮した条件
         /* 衝突被害軽減ブレーキ(AEBS) */
         if (isAlong() && remain > field::SegWidthFull && tof.isValid() &&
@@ -442,6 +442,10 @@ private:
         const auto ref = tt.update(sc.est_p, sc.est_v, sc.est_a, ref_s);
         sc.set_target(ref.v, ref.w, ref.dv, ref.dw);
       }
+    }
+    if (v_end < 1) {
+      sc.set_target(0, 0);
+      delay(200);
     }
     /* 移動した量だけ位置を更新 */
     sc.est_p.x -= distance;
@@ -971,14 +975,12 @@ private:
     sc.est_p.clear();
     turn(2 * M_PI * min_i / table_size);
     /* 壁が遠い場合は直進する */
-    if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2) {
+    if (tof.isValid() && tof.getDistance() > field::SegWidthFull / 2)
       straight_x(tof.getDistance() - field::SegWidthFull / 2, 240, 0,
                  rp_search);
-    }
     /* 前壁補正 */
     wall_attach(true);
     turn(wd.distance.side[0] > wd.distance.side[1] ? M_PI / 2 : -M_PI / 2);
-    delay(20); //< ToFが有効化するのを待つ
     /* 壁のない方向を向く */
     while (!mt.is_emergency()) {
       if (tof.getDistance() > field::SegWidthFull)
