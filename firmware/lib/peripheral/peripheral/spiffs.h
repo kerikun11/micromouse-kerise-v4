@@ -40,7 +40,7 @@ public:
           "Failed to get SPIFFS partition information (" << esp_err_to_name(ret)
                 << ")" << std::endl;
     } else {
-      std::cerr << "[E][" __FILE__ ":" << __LINE__ << "] " << //
+      std::cerr << "[I][" __FILE__ ":" << __LINE__ << "] " << //
           "Partition size: total: " << total << ", used: " << used << std::endl;
     }
 
