@@ -62,7 +62,7 @@ public:
     int running_parameter = 0;     /**< 走行パラメータ */
     bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
     bool is_fast_run = false;      /**< 最短走行かどうか */
-    bool offset_ms = 0;            /**< リセット後を想定 */
+    int offset_ms = 0;             /**< リセット後を想定 */
 
     int getTimeSecond() const { return (offset_ms + millis()) / 1000; }
     bool save(const std::string filepath = STATE_SAVE_PATH) {
@@ -112,7 +112,7 @@ public:
     auto_maze_check();
     /* 探索走行: スタート -> ゴール -> スタート */
     if (isForceSearch || !calcShortestDirections(true))
-      if (!auto_search_run())
+      if (!auto_search_run()) //< 成功するまで戻らない
         return false;
     /* 最短走行: スタート -> ゴール -> スタート */
     while (1) {
@@ -270,22 +270,21 @@ private:
   bool auto_search_run() {
     /* 探索走行: スタート -> ゴール -> スタート */
     state.newRun(); //< 0 -> 1
-    if (!searchRun()) {
-      /* エラー処理 */
-      if (mt.is_emergency())
-        ma.emergency_release();
-      else {
-        /* 探索失敗 */
-        bz.play(Buzzer::ERROR);
-        return false;
-        /* ToDo: 迷路を編集して探索を再開 */
-        /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
-      }
-      /* 自動復帰 */
-      auto_pi_run();
+    if (searchRun()) {
+      bz.play(Buzzer::COMPLETE);
+      return true;
     }
-    bz.play(Buzzer::COMPLETE);
-    return true;
+    /* エラー処理 */
+    if (!isSolvable()) {
+      /* 探索失敗 */
+      bz.play(Buzzer::ERROR);
+      /* ToDo: 迷路を編集して探索を再開 */
+      /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
+      return false;
+    }
+    ma.emergency_release();
+    /* 自動復帰 */
+    return auto_pi_run();
   }
   bool auto_fast_run() {
 #if 0
