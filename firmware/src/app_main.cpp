@@ -79,7 +79,8 @@ void driveTask(void *arg) {
     case 13:
       // Machine::pidTuner();
       // Machine::encoder_test();
-      Machine::accel_test();
+      // Machine::accel_test();
+      Machine::wall_attach_test();
       break;
     case 14: /* テスト */
       Machine::slalom_test();

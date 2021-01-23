@@ -21,8 +21,8 @@ public:
   ctrl::Polar ref_a;
   ctrl::Polar est_v;
   ctrl::Polar est_a;
-  WheelParameter enc_v;
   ctrl::Pose est_p;
+  WheelParameter enc_v;
   ctrl::FeedbackController<ctrl::Polar> fbc;
   static constexpr int acc_num = 4;
   ctrl::Accumulator<float, acc_num> wheel_position[2];

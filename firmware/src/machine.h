@@ -614,4 +614,45 @@ public:
     ui.waitForCover(true);
     mt.free();
   }
+  static void wall_attach_test() {
+    if (!ui.waitForCover())
+      return;
+    delay(400);
+    sc.enable();
+    //
+    led = 6;
+    tof.disable();
+    vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
+    while (1) {
+      if (mt.is_emergency()) {
+        bz.play(Buzzer::EMERGENCY);
+        break;
+      }
+      if (ref.side(0) > 1.2 * UserInterface::thr_ref_side &&
+          ref.side(1) > 1.2 * UserInterface::thr_ref_side) {
+        bz.play(Buzzer::CANCEL);
+        break;
+      }
+      sc.sampling_sync();
+      WheelParameter wp;
+      for (int j = 0; j < 2; ++j)
+        wp.wheel[j] = -wd.distance.front[j] * model::wall_attach_gain_Kp;
+      const float end = model::wall_attach_end;
+      if (std::pow(wp.wheel[0], 2.0f) + std::pow(wp.wheel[1], 2.0f) < end)
+        led = 0;
+      else
+        led = 6;
+      wp.wheel2pole();
+      const float sat_tra = 180.0f;   //< [mm/s]
+      const float sat_rot = 1 * M_PI; //< [rad/s]
+      sc.set_target(MoveAction::saturate(wp.tra, sat_tra),
+                    MoveAction::saturate(wp.rot, sat_rot));
+    }
+    sc.set_target(0, 0);
+    tof.enable();
+    led = 0;
+    //
+    sc.disable();
+    mt.emergency_release();
+  }
 };

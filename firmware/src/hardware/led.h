@@ -23,12 +23,13 @@ public:
                 /* pvCreatedTask = */ NULL);
     return true;
   }
-  operator uint8_t() const { return value; }
-  uint8_t operator=(uint8_t new_value) {
+  uint8_t set(uint8_t new_value) {
     value = new_value;
     xQueueSendToBack(playList, &value, 0);
     return value;
   }
+  operator uint8_t() const { return value; }
+  uint8_t operator=(uint8_t new_value) { return set(new_value); }
 
 private:
   const i2c_port_t i2c_port;
@@ -37,7 +38,6 @@ private:
 
   void task() {
     while (1) {
-      uint8_t value;
       if (xQueueReceive(playList, &value, portMAX_DELAY) == pdTRUE)
         writeValue(value);
     }

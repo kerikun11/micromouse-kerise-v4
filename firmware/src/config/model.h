@@ -37,9 +37,8 @@ static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
 static constexpr float tof_dist_offset = 0;
 /* Reflector */
-static constexpr float wall_attach_gain_Kp = 18.0f;
-static constexpr float wall_attach_gain_Ki = 0.0f;
-static constexpr float wall_attach_end = 0.1f;
+static constexpr float wall_attach_gain_Kp = 36.0f;
+static constexpr float wall_attach_end = 0.2f;
 static constexpr float wall_avoid_gain = 1e-3f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
@@ -76,7 +75,6 @@ static constexpr float TailLength = 16.4f;
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 240.0f;
-static constexpr float wall_attach_gain_Ki = 1.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
@@ -114,7 +112,6 @@ static constexpr float TailLength = 16.4f;
 static constexpr float tof_dist_offset = 22; //< 大きいほど壁に近く
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 240.0f;
-static constexpr float wall_attach_gain_Ki = 0.5f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.001f;
 /* Model */

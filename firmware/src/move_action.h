@@ -114,6 +114,14 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
 
+public:
+  static auto round2(auto value, auto div) {
+    return std::floor((value + div / 2) / div) * div;
+  }
+  static auto saturate(auto src, auto sat) {
+    return std::max(std::min(src, sat), -sat);
+  }
+
 private:
   void task() override {
     while (1) {
@@ -156,12 +164,6 @@ private:
   std::array<bool, 3> is_wall;
   bool prev_wall[2];
 
-  static auto round2(auto value, auto div) {
-    return std::floor((value + div / 2) / div) * div;
-  }
-  static auto saturate(auto src, auto sat) {
-    return std::max(std::min(src, sat), -sat);
-  }
   bool isAlong() { return int(std::abs(offset.th) * 180 / M_PI + 1) % 90 < 2; }
   bool isDiag() {
     return int(std::abs(offset.th) * 180 / M_PI + 45 + 1) % 90 < 2;
@@ -178,29 +180,19 @@ private:
       tof.disable();
       vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
       sc.est_p.clear();
-      WheelParameter wi;
       for (int i = 0; i < 2000; i++) {
         if (break_requested || mt.is_emergency())
           break;
         sc.sampling_sync();
-        const float Kp = model::wall_attach_gain_Kp;
-        const float Ki = model::wall_attach_gain_Ki;
-        const float sat_integral = 30.0f;
-        const float end = model::wall_attach_end;
         WheelParameter wp;
-        for (int j = 0; j < 2; ++j) {
-          wp.wheel[j] = -wd.distance.front[j];
-          wi.wheel[j] += wp.wheel[j] * 1e-3f * Ki;
-          wi.wheel[j] = saturate(wi.wheel[j], sat_integral);
-          wp.wheel[j] = wp.wheel[j] * Kp + wi.wheel[j];
-        }
-        if (std::pow(wp.wheel[0], 2.0f) + std::pow(wp.wheel[1], 2.0f) +
-                std::pow(wi.wheel[0], 2.0f) + std::pow(wi.wheel[1], 2.0f) <
-            end)
+        for (int j = 0; j < 2; ++j)
+          wp.wheel[j] = -wd.distance.front[j] * model::wall_attach_gain_Kp;
+        const float end = model::wall_attach_end;
+        if (std::pow(wp.wheel[0], 2.0f) + std::pow(wp.wheel[1], 2.0f) < end)
           break;
         wp.wheel2pole();
-        const float sat_tra = 120.0f;   //< [mm/s]
-        const float sat_rot = M_PI / 4; //< [rad/s]
+        const float sat_tra = 180.0f;   //< [mm/s]
+        const float sat_rot = M_PI * 1; //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
       }
       sc.set_target(0, 0);

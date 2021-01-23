@@ -10,8 +10,11 @@
 
 using namespace MazeLib;
 
-#define GOAL_SELECT 1
-#if GOAL_SELECT == 1
+#define GOAL_SELECT 0
+#if GOAL_SELECT == 0
+#define MAZE_GOAL                                                              \
+  { MazeLib::Position(2, 2) }
+#elif GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
 #elif GOAL_SELECT == 2

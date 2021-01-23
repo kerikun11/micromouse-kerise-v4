@@ -47,8 +47,8 @@ private:
   const std::array<int8_t, CH_SIZE> rx_pins; //< フォトトランジスタのピン
   std::array<int16_t, CH_SIZE> value;        //< リフレクタの測定値
   TimerSemaphore ts; //< インターバル用タイマー
-  static const int ave_num = 16;
-  ctrl::Accumulator<uint16_t, ave_num> buffer[CH_SIZE];
+  static const int ave_num = 8;
+  ctrl::Accumulator<int, ave_num> buffer[CH_SIZE];
 
   void update() {
     ts.take(); //< スタートを同期

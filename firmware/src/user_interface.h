@@ -19,7 +19,7 @@
 #include <freertos/task.h>
 
 class UserInterface {
-private:
+public:
   /* 定数 */
   static constexpr float thr_battery = 3.8f;
   /* UI パラメータ */
