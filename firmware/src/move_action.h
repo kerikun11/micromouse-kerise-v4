@@ -75,6 +75,7 @@ public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
     for (auto &vs : rp_search.v_slalom)
       vs = v_search;
+    rp_fast.v_slalom[field::ShapeIndex::FS90] = v_search;
     createTask("MoveAction", 4, 8192);
   }
   void enable(const TaskAction ta) {
@@ -192,7 +193,7 @@ private:
           break;
         wp.wheel2pole();
         const float sat_tra = 180.0f;   //< [mm/s]
-        const float sat_rot = M_PI * 1; //< [rad/s]
+        const float sat_rot = M_PI / 2; //< [rad/s]
         sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
       }
       sc.set_target(0, 0);
@@ -210,8 +211,10 @@ private:
       return;
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sc.est_v.tra < 180.0f ||
-        std::abs(sc.est_p.th) > M_PI * 0.1f)
+        std::abs(sc.est_p.th) > M_PI * 0.01f) {
+      led = 0;
       return;
+    }
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
@@ -557,7 +560,7 @@ private:
     trace(st, rp);
     straight += reverse ? straight_prev : straight_post;
   }
-  void uturn() {
+  void u_turn() {
     if (break_requested || mt.is_emergency())
       return;
     if (wd.distance.side[0] < wd.distance.side[1]) {
@@ -787,7 +790,7 @@ private:
       }
       break;
     case MazeLib::RobotBase::SearchAction::ROTATE_180:
-      uturn();
+      u_turn();
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF_STOP:
       front_wall_fix(rp, field::SegWidthFull);
@@ -801,12 +804,11 @@ private:
   std::string fast_path;
 
   bool fast_run(const std::string &search_actions) {
-    /* パラメータを取得 */
+    /* 走行パラメータを取得 */
     const auto &rp = rp_fast;
     /* 最短走行用にパターンを置換 */
     const auto path = MazeLib::RobotBase::pathConvertSearchToFast(
         search_actions, rp.diag_enabled);
-    // logi << path.size() << std::endl;
     /* キャリブレーション */
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();

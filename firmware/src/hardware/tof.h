@@ -12,7 +12,7 @@ public:
   ToF(i2c_port_t i2c_port, float tof_dist_offset)
       : sensor(i2c_port), tof_dist_offset(tof_dist_offset) {}
   bool init() {
-    sensor.setTimeout(80);
+    sensor.setTimeout(20);
     sensor.init();
     sensor.configureDefault();
     sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 0x20);
@@ -68,6 +68,8 @@ private:
         }
         dur = millis() - startAt;
       }
+      // uint8_t range_status = sensor.readReg(VL6180X::RESULT__RANGE_STATUS) >>
+      // 4;
       /* get data from sensor */
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
       distance = range + tof_dist_offset;
