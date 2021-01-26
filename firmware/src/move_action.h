@@ -330,7 +330,7 @@ private:
       return;
     if (!tof.isValid() || std::abs(sc.est_p.th) > M_PI * 0.05f)
       return;
-    const float wall_fix_offset = 8; /*< 調整値．大きく:前壁から遠く */
+    const float wall_fix_offset = model::wall_fix_offset; /*< 大: 壁から遠く */
     const float dist_to_wall = dist_to_wall_ref - sc.est_p.x + wall_fix_offset;
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
                               (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra;

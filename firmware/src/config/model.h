@@ -40,6 +40,7 @@ static constexpr float tof_dist_offset = 5;
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.2f;
 static constexpr float wall_avoid_gain = 1e-3f;
+static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -77,6 +78,7 @@ static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float wall_attach_gain_Kp = 240.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
+static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -114,6 +116,7 @@ static constexpr float tof_dist_offset = 22; //< 大きいほど壁に近く
 static constexpr float wall_attach_gain_Kp = 240.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.001f;
+static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
