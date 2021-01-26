@@ -35,7 +35,7 @@ static constexpr float WheelDiameter = 12.65f;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 0;
+static constexpr float tof_dist_offset = 5;
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.2f;
@@ -58,7 +58,7 @@ static constexpr ctrl::Polar alpha = ctrl::Polar(1.0f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
-    .omega_n = 10.0f,
+    .omega_n = 8.0f,
     .low_zeta = 0.5f,
     .low_b = 1e-3f,
 };

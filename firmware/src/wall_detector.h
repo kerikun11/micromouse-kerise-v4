@@ -157,9 +157,11 @@ private:
     buffer.push(distance);
 
     // 前壁の更新
-    if (tof.getDistance() < wall_threshold_front * 0.95f)
+    // int front_mm = tof.getLog().average(2);
+    int front_mm = tof.getDistance();
+    if (front_mm < wall_threshold_front * 0.95f)
       is_wall[2] = true;
-    else if (tof.getDistance() > wall_threshold_front * 1.05f)
+    else if (front_mm > wall_threshold_front * 1.05f)
       is_wall[2] = false;
     if (tof.passedTimeMs() > 50)
       is_wall[2] = false;

@@ -422,8 +422,8 @@ private:
         if (remain < 0 || t > trajectory.t_end() + 0.01f)
           break; //< 静止の場合を考慮した条件
         /* 衝突被害軽減ブレーキ(AEBS) */
-        if (isAlong() && remain > field::SegWidthFull && tof.isValid() &&
-            tof.getDistance() < field::SegWidthFull)
+        if (isAlong() && tof.isValid() &&
+            tof.getDistance() < std::min(remain, field::SegWidthFull))
           wall_stop_aebs();
         /* 情報の更新 */
         sc.sampling_sync();
@@ -576,7 +576,7 @@ private:
     }
   }
   void wall_stop_aebs() {
-    if (break_requested && mt.is_emergency())
+    if (break_requested || mt.is_emergency())
       return;
     bz.play(Buzzer::AEBS);
     // ToDo: compiler bug avoidance!
