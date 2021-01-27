@@ -111,6 +111,7 @@ public:
     return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
   bool autoRun(const bool isForceSearch = false) {
+    // logi << "auto run" << std::endl;
     /* 迷路のチェック */
     auto_maze_check();
     /* 探索走行: スタート -> ゴール -> スタート */
@@ -231,6 +232,7 @@ private:
     return true;
   }
   bool auto_pi_run() {
+    // logi << "auto pi run" << std::endl;
     /* 既知区間斜めを無効化 */
     ma.rp_search.diag_enabled = false;
     /* 自動復帰: 任意 -> ゴール -> スタート */
@@ -271,6 +273,7 @@ private:
     return true;
   }
   bool auto_search_run() {
+    // logi << "auto search run" << std::endl;
     /* 探索走行: スタート -> ゴール -> スタート */
     state.newRun(); //< 0 -> 1
     if (searchRun()) {

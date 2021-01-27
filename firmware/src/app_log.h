@@ -14,7 +14,7 @@
   (std::cout << "[" c "][" __FILE__ ":" APP_TOSTRING(__LINE__) "] ")
 
 #ifndef logd
-#if 1
+#if 0
 #define logd APP_LOG_OSTREAM_COMMON("D")
 #else
 #define logd std::ostream(0)

@@ -64,10 +64,10 @@ public:
       }
     }
   };
-  enum TaskAction {
-    TaskActionSearchRun,
-    TaskActionFastRun,
-    TaskActionPositionRecovery,
+  enum TaskAction : char {
+    TaskActionSearchRun = 'S',
+    TaskActionFastRun = 'F',
+    TaskActionPositionRecovery = 'P',
   };
   TaskAction task_action = TaskActionSearchRun;
 
@@ -82,6 +82,7 @@ public:
     createTask("MoveAction", 4, 8192);
   }
   void enable(const TaskAction ta) {
+    // logd << "enable: " << (char)ta << std::endl;
     disable();
     task_action = ta;
     in_action = true;
@@ -89,6 +90,7 @@ public:
     enabled = true;
   }
   void disable() {
+    // logd << "disable" << std::endl;
     break_requested = true;
     while (enabled)
       vTaskDelay(pdMS_TO_TICKS(1));
@@ -101,16 +103,20 @@ public:
       vTaskDelay(pdMS_TO_TICKS(1));
   }
   void enqueue_action(const MazeLib::RobotBase::SearchAction action) {
+    // logd << "queue action: " << (char)action << std::endl;
     sa_queue.push(action);
     in_action = true;
+    // logd << "queue size: " << sa_queue.size() << std::endl;
   }
   void set_fast_path(const std::string &fast_path) {
+    // logd << fast_path << std::endl;
     this->fast_path = fast_path;
     in_action = true;
   }
   void emergency_release() {
     if (mt.is_emergency()) {
       bz.play(Buzzer::EMERGENCY);
+      sc.disable();
       fan.drive(0);
       delay(400);
       mt.emergency_release();
@@ -178,6 +184,7 @@ private:
   }
 
   void wall_attach(bool force = false) {
+    // logd << "wall_attach" << std::endl;
 #if 1
     if (break_requested || mt.is_emergency())
       return;
@@ -411,6 +418,7 @@ private:
   }
   void straight_x(const float distance, float v_max, float v_end,
                   const RunParameter &rp, bool unknown_accel = false) {
+    // logd << "straight_x" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     v_end = unknown_accel ? v_unknown_accel : v_end;
@@ -470,6 +478,7 @@ private:
     offset += ctrl::Pose(distance, 0, 0).rotate(offset.th);
   }
   void turn(const float angle) {
+    // logd << "turn" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     const float dddth_max = 2400 * M_PI;
@@ -507,6 +516,7 @@ private:
     offset += net.rotate(offset.th);
   }
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
+    // logd << "trace" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     const float Ts = 1e-3f;
@@ -597,6 +607,7 @@ private:
     }
   }
   void wall_stop_aebs() {
+    // logd << "wall_stop_aebs" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     bz.play(Buzzer::AEBS);
@@ -612,6 +623,7 @@ private:
     break_requested = true;
   }
   void start_step(const RunParameter &rp) {
+    // logd << "start step" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     sc.disable();
@@ -626,6 +638,7 @@ private:
     straight_x(field::SegWidthFull, v_search, v_search, rp);
   }
   void start_init() {
+    // logd << "start init" << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     wall_attach();
@@ -659,6 +672,7 @@ private:
 
 private:
   void search_run_task() {
+    // logd << "search_run_task" << std::endl;
     const auto &rp = rp_search;
     /* スタート */
     sc.enable();
@@ -670,6 +684,7 @@ private:
         break;
       /* 壁を確認 */
       is_wall = wd.is_wall;
+      // logd << "get wall" << std::endl;
       /* 探索器に終了を通知 */
       if (sa_queue.empty())
         in_action = false;
@@ -688,6 +703,7 @@ private:
     sc.disable();
   }
   void search_run_queue_wait_decel(const RunParameter &rp) {
+    // logd << "wait decel" << std::endl;
     /* Actionがキューされるまで減速しながら待つ */
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
@@ -710,6 +726,7 @@ private:
     /* 注意: 現在位置はやや前に進んだ状態 */
   }
   void search_run_known(const RunParameter &rp) {
+    // logd << "search run known" << std::endl;
     /* path の作成 */
     std::string path;
     while (1) {
@@ -726,6 +743,7 @@ private:
         break;
       }
     }
+    // logd << "known path: " << path << std::endl;
     /* 既知区間走行 */
     if (path.size()) {
       /* 既知区間パターンに変換 */
@@ -747,6 +765,7 @@ private:
   }
   void search_run_switch(const MazeLib::RobotBase::SearchAction action,
                          const RunParameter &rp) {
+    // logd << "search run switch: " << action << std::endl;
     if (break_requested || mt.is_emergency())
       return;
     const bool no_front_front_wall =
@@ -824,6 +843,7 @@ private:
   std::string fast_path;
 
   bool fast_run(const std::string &search_actions) {
+    // logd << "fast_run" << std::endl;
     /* 走行パラメータを取得 */
     const auto &rp = rp_fast;
     /* 最短走行用にパターンを置換 */
