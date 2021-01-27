@@ -20,7 +20,7 @@ public:
     // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 32); //< 3.2ms
     // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 64); //< 5.4ms
     /* [max-convergence; includes readout average time] default: 49ms */
-    sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
+    // sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "ToF", 4096, this, Priority, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));

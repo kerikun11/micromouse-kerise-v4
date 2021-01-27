@@ -90,6 +90,8 @@ public:
     while (enabled)
       vTaskDelay(pdMS_TO_TICKS(1));
     sc.disable();
+    in_action = false;
+    break_requested = false;
   }
   void waitForEndAction() const {
     while (in_action)
@@ -142,10 +144,10 @@ private:
       default:
         break;
       }
-      enabled = false;
-      in_action = false;
       while (!sa_queue.empty())
         sa_queue.pop();
+      enabled = false;
+      in_action = false;
     }
   }
 
@@ -400,10 +402,12 @@ private:
     }
     return true;
   }
-  void straight_x(const float distance, const float v_max, const float v_end,
-                  const RunParameter &rp) {
+  void straight_x(const float distance, float v_max, float v_end,
+                  const RunParameter &rp, bool unknown_accel = false) {
     if (break_requested || mt.is_emergency())
       return;
+    v_end = unknown_accel ? v_unknown_accel : v_end;
+    v_max = unknown_accel ? v_unknown_accel : v_max;
     if (distance - sc.est_p.x > 0) {
       const float v_start = sc.ref_v.tra;
       ctrl::TrajectoryTracker tt{tt_gain};
@@ -421,10 +425,22 @@ private:
         const float remain = distance - sc.est_p.x;
         if (remain < 0 || t > trajectory.t_end() + 0.01f)
           break; //< 静止の場合を考慮した条件
-        /* 衝突被害軽減ブレーキ(AEBS) */
-        if (isAlong() && tof.isValid() &&
-            tof.getDistance() < std::min(remain, field::SegWidthFull))
-          wall_stop_aebs();
+        /* 前壁制御 */
+        if (isAlong() && tof.isValid()) {
+          const float tof_mm = tof.getLog().average(2);
+          /* 衝突被害軽減ブレーキ(AEBS) */
+          if (remain > field::SegWidthFull && tof_mm < field::SegWidthFull)
+            wall_stop_aebs();
+          if (v_end > 1 && tof_mm < field::SegWidthFull / 2)
+            wall_stop_aebs();
+          /* 未知区間加速 */
+          if (unknown_accel && tof_mm < 2.1f * field::SegWidthFull) {
+            unknown_accel = false;
+            trajectory.reset(rp.j_max, rp.a_max, v_search, sc.ref_v.tra,
+                             v_search, remain, sc.est_p.x, t);
+            bz.play(Buzzer::MAZE_BACKUP);
+          }
+        }
         /* 情報の更新 */
         sc.sampling_sync();
         /* 壁制御 */
@@ -733,7 +749,6 @@ private:
     const bool unknown_accel = rp.unknown_accel_enabled &&
                                continue_straight_if_no_front_wall &&
                                no_front_front_wall;
-    const auto v_end = unknown_accel ? v_unknown_accel : v_search;
     switch (action) {
     case MazeLib::RobotBase::SearchAction::START_STEP:
       start_step(rp);
@@ -745,7 +760,7 @@ private:
       if (tof.getDistance() < field::SegWidthFull)
         wall_stop_aebs();
       front_wall_fix(rp, 2 * field::SegWidthFull);
-      straight_x(field::SegWidthFull, v_end, v_end, rp);
+      straight_x(field::SegWidthFull, rp.v_max, v_search, rp, unknown_accel);
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF:
       straight_x(field::SegWidthFull / 2 - model::CenterShift, v_search,
