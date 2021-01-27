@@ -10,7 +10,7 @@
 
 using namespace MazeLib;
 
-#define GOAL_SELECT 0
+#define GOAL_SELECT 4
 #if GOAL_SELECT == 0
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(2, 2) }
@@ -326,11 +326,14 @@ private:
       ma.rp_fast.down(1), state.running_parameter -= 1;
     } else {
       /* 初回 or 完走した場合 */
-      if (ma.rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
+      ma.rp_search.diag_enabled = true; //< 帰りの斜め有効化
+      if (ma.rp_fast.diag_enabled) {
+        // 最短斜めあり -> パラメータを上げる
         ma.rp_fast.up(2), state.running_parameter += 2;
-      else //< 斜めなし -> 斜めあり
+      } else {
+        // 最短斜めなし -> 斜めあり
         ma.rp_fast.diag_enabled = true;
-      ma.rp_search.diag_enabled = true;
+      }
     }
     /* 保存 */
     state.is_fast_run = true, state.save();

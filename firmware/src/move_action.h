@@ -19,12 +19,12 @@
 class MoveAction : TaskBase {
 public:
   static constexpr float v_unknown_accel = 600;
-  static constexpr float v_search = 360;
+  static constexpr float v_search = 330;
 
 public:
   struct RunParameter {
   public:
-    bool diag_enabled = 0;
+    bool diag_enabled = 1;
     bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool wall_avoid_enabled = 1;
@@ -75,7 +75,10 @@ public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
     for (auto &vs : rp_search.v_slalom)
       vs = v_search;
-    rp_fast.v_slalom[field::ShapeIndex::FS90] = v_search;
+    // rp_fast.v_slalom[field::ShapeIndex::FS90] = v_search;
+    for (auto &vs : rp_fast.v_slalom)
+      vs = v_search;
+    // vs = std::max(vs, v_search);
     createTask("MoveAction", 4, 8192);
   }
   void enable(const TaskAction ta) {
@@ -124,6 +127,7 @@ public:
   static auto saturate(auto src, auto sat) {
     return std::max(std::min(src, sat), -sat);
   }
+  static auto sum_of_square(auto v1, auto v2) { return v1 * v1 + v2 * v2; }
 
 private:
   void task() override {
@@ -148,6 +152,7 @@ private:
         sa_queue.pop();
       enabled = false;
       in_action = false;
+      break_requested = false;
     }
   }
 
@@ -191,7 +196,7 @@ private:
         for (int j = 0; j < 2; ++j)
           wp.wheel[j] = -wd.distance.front[j] * model::wall_attach_gain_Kp;
         const float end = model::wall_attach_end;
-        if (std::pow(wp.wheel[0], 2.0f) + std::pow(wp.wheel[1], 2.0f) < end)
+        if (sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
           break;
         wp.wheel2pole();
         const float sat_tra = 180.0f;   //< [mm/s]
@@ -238,9 +243,10 @@ private:
       if (rp.wall_theta_fix_enabled) {
         sc.est_p.th += int_y * 1e-8f;
       }
+#if 0
       /* 櫛の壁制御 */
       if (tof.getDistance() > field::SegWidthFull * 3 / 2) {
-        const float comb_threashold = -50.0f;
+        const float comb_threashold = -54.0f;
         const float comb_shift = 0.1f;
         if (wd.distance.front[0] > comb_threashold) {
           sc.est_p.y += comb_shift;
@@ -253,6 +259,7 @@ private:
           bz.play(Buzzer::SHORT7);
         }
       }
+#endif
     }
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
@@ -375,7 +382,7 @@ private:
     const auto abs_x_to_wall = pose_abs.rotate(th_abs_to_wall).x;
     const auto pos_x =
         abs_x_to_wall - round2(abs_x_to_wall, field::SegWidthFull);
-    const float wall_fix_offset = 4; /*< 調整値．大きく:前壁から遠く */
+    const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
     const float dist_to_wall = dist_to_wall_ref - pos_x + wall_fix_offset;
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
                               (tof.passedTimeMs() + 0) * 1e-3f * sc.ref_v.tra;
@@ -509,8 +516,7 @@ private:
     /* start */
     tt.reset(velocity);
     trajectory.reset(velocity);
-    // bool front_fix_ready =
-    //     rp.front_wall_fix_in_trace_enabled; /*< ターン中の前壁修正 */
+    bool front_fix_ready = rp.front_wall_fix_enabled; /*< ターン中の前壁修正 */
     s.q.x = sc.est_p.x; /*< 既に移動した分を反映 */
     if (std::abs(sc.est_p.x) > 1)
       bz.play(Buzzer::CONFIRM);
@@ -524,11 +530,10 @@ private:
       wall_avoid(0, rp, int_y);
       wall_cut(rp);
       /* ターン中の前壁補正 */
-      // const auto &shape = trajectory.getShape();
-      // if (front_fix_ready && t > trajectory.getTimeCurve() / 4)
-      //   if (&shape != &field::shapes[field::ShapeIndex::FS90])
-      //     front_fix_ready = !front_wall_fix_in_trace(rp,
-      //     field::SegWidthFull);
+      const auto &shape = trajectory.getShape();
+      if (front_fix_ready && t > trajectory.getTimeCurve() / 4)
+        if (&shape != &field::shapes[field::ShapeIndex::FS90])
+          front_fix_ready = !front_wall_fix_in_trace(rp, field::SegWidthFull);
       /* ToDo: 補正結果によって t をシフト*/
       /* 軌道を更新 */
       trajectory.update(s, t, Ts);
@@ -758,7 +763,7 @@ private:
       break;
     case MazeLib::RobotBase::SearchAction::ST_FULL:
       if (tof.getDistance() < field::SegWidthFull)
-        wall_stop_aebs();
+        return wall_stop_aebs();
       front_wall_fix(rp, 2 * field::SegWidthFull);
       straight_x(field::SegWidthFull, rp.v_max, v_search, rp, unknown_accel);
       break;
@@ -773,7 +778,7 @@ private:
         ctrl::slalom::Trajectory st(field::shapes[field::ShapeIndex::S90], 0);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[0])
-          wall_stop_aebs();
+          return wall_stop_aebs();
         trace(st, rp);
         straight_x(st.getShape().straight_post, v_search, v_search, rp);
       } else {
@@ -792,7 +797,7 @@ private:
         ctrl::slalom::Trajectory st(field::shapes[field::ShapeIndex::S90], 1);
         straight_x(st.getShape().straight_prev, v_search, v_search, rp);
         if (wd.is_wall[1])
-          wall_stop_aebs();
+          return wall_stop_aebs();
         trace(st, rp);
         straight_x(st.getShape().straight_post, v_search, v_search, rp);
       } else {

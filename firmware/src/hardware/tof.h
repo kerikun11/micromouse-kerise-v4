@@ -20,7 +20,7 @@ public:
     // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 32); //< 3.2ms
     // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 64); //< 5.4ms
     /* [max-convergence; includes readout average time] default: 49ms */
-    // sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
+    sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "ToF", 4096, this, Priority, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));
@@ -79,7 +79,7 @@ private:
       // 4;
       /* get data from sensor */
       uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
-      distance = range + tof_dist_offset;
+      distance = (range + tof_dist_offset - 90) * model::tof_dist_factor + 90;
       log.push(distance);
       if (range != 255)
         passed_ms = 0;
