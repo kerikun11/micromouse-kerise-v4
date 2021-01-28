@@ -10,7 +10,7 @@
 
 using namespace MazeLib;
 
-#define GOAL_SELECT 4
+#define GOAL_SELECT 0
 #if GOAL_SELECT == 0
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(2, 2) }
@@ -37,7 +37,10 @@ using namespace MazeLib;
   }
 #elif GOAL_SELECT == 5
 #define MAZE_GOAL                                                              \
-  { MazeLib::Position(8, 8) }
+  {                                                                            \
+    MazeLib::Position(9, 9), MazeLib::Position(9, 10),                         \
+        MazeLib::Position(10, 9), MazeLib::Position(10, 10),                   \
+  }
 #endif
 
 class MazeRobot : public RobotBase {
