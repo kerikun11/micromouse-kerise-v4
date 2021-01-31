@@ -16,7 +16,7 @@ public:
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
   bool init(spi_host_device_t spi_host, int8_t pin_cs) {
     if (!as.init(spi_host, pin_cs)) {
-      loge << "AS5048A init failed :(" << std::endl;
+      app_loge << "AS5048A init failed :(" << std::endl;
       return false;
     }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
@@ -26,11 +26,11 @@ public:
 #elif KERISE_SELECT == 5
   bool init(spi_host_device_t spi_host, std::array<gpio_num_t, 2> pins_cs) {
     if (!ma[0].init(spi_host, pins_cs[0])) {
-      loge << "Encoder L init failed :(" << std::endl;
+      app_loge << "Encoder L init failed :(" << std::endl;
       return false;
     }
     if (!ma[1].init(spi_host, pins_cs[1])) {
-      loge << "Encoder R init failed :(" << std::endl;
+      app_loge << "Encoder R init failed :(" << std::endl;
       return false;
     }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },

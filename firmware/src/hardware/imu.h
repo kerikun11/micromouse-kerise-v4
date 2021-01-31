@@ -28,7 +28,7 @@ public:
   bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
     for (int i = 0; i < IMU_NUM; ++i)
       if (!icm[i].init(spi_host, pins_cs[i])) {
-        loge << "IMU " << i << " begin failed :(" << std::endl;
+        app_loge << "IMU " << i << " begin failed :(" << std::endl;
         return false;
       }
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
@@ -45,17 +45,17 @@ public:
     sampling_end_semaphore.take(xBlockTime);
   }
   void print() {
-    logi << "Gyro:"
-         << "\t" << gyro.x //
-         << "\t" << gyro.y //
-         << "\t" << gyro.z //
-         << std::endl;
-    logi << "Accel:"
-         << "\t" << accel.x //
-         << "\t" << accel.y //
-         << "\t" << accel.z //
-         << std::endl;
-    logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
+    app_logi << "Gyro:"
+             << "\t" << gyro.x //
+             << "\t" << gyro.y //
+             << "\t" << gyro.z //
+             << std::endl;
+    app_logi << "Accel:"
+             << "\t" << accel.x //
+             << "\t" << accel.y //
+             << "\t" << accel.z //
+             << std::endl;
+    app_logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
   void csv() {
     std::cout << "0," << gyro.x << "," << gyro.y << "," << gyro.z << std::endl;

@@ -3,10 +3,8 @@
 #include "config/model.h"
 #include "global.h"
 
-#include "Agent.h"
 #include "Maze.h"
 #include "RobotBase.h"
-#include "TaskBase.h"
 
 using namespace MazeLib;
 
@@ -75,7 +73,7 @@ public:
       offset_ms = millis();
       std::ofstream of(filepath, std::ios::binary | std::ios::app);
       if (of.fail()) {
-        loge << "failed to open file! " << filepath << std::endl;
+        app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
       of.write((const char *)this, sizeof(State));
@@ -84,7 +82,7 @@ public:
     bool restore(const std::string filepath = STATE_SAVE_PATH) const {
       std::ifstream f(filepath, std::ios::binary);
       if (f.fail()) {
-        loge << "failed to open file! " << filepath << std::endl;
+        app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
       f.read((char *)this, sizeof(State));
@@ -114,7 +112,7 @@ public:
     return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
   bool autoRun(const bool isForceSearch = false) {
-    // logi << "auto run" << std::endl;
+    // app_logi << "auto run; force:" << isForceSearch << std::endl;
     /* 迷路のチェック */
     auto_maze_check();
     /* 探索走行: スタート -> ゴール -> スタート */
@@ -235,7 +233,7 @@ private:
     return true;
   }
   bool auto_pi_run() {
-    // logi << "auto pi run" << std::endl;
+    // app_logi << "auto pi run" << std::endl;
     /* 既知区間斜めを無効化 */
     ma.rp_search.diag_enabled = false;
     /* 自動復帰: 任意 -> ゴール -> スタート */
@@ -276,7 +274,7 @@ private:
     return true;
   }
   bool auto_search_run() {
-    // logi << "auto search run" << std::endl;
+    // app_logi << "auto search run" << std::endl;
     /* 探索走行: スタート -> ゴール -> スタート */
     state.newRun(); //< 0 -> 1
     if (searchRun()) {
@@ -348,7 +346,7 @@ private:
     if (!calcShortestDirections(ma.rp_fast.diag_enabled))
       return false;
     const auto search_path = convertDirectionsToSearch(getShortestDirections());
-    // logi << search_path.size() << std::endl;
+    // app_logi << search_path.size() << std::endl;
     //> FastRun Start
     ma.set_fast_path(search_path);
     ma.enable(MoveAction::TaskActionFastRun);

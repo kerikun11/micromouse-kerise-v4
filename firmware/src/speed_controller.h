@@ -40,12 +40,12 @@ public:
     return true;
   }
   void enable() {
-    // logi << "enable" << std::endl;
+    // app_logi << "enable" << std::endl;
     reset();
     drive_enabled = true;
   }
   void disable() {
-    // logi << "disable" << std::endl;
+    // app_logi << "disable" << std::endl;
     drive_enabled = false;
     sampling_sync();
     sampling_sync();
@@ -87,7 +87,8 @@ private:
       /* debug */
       if (us_end - us_start > 1500 && drive_enabled) {
         bz.play(Buzzer::SHORT9);
-        logw << "sampling overtime: " << int(us_end - us_start) << std::endl;
+        app_logw << "sampling overtime: " << int(us_end - us_start)
+                 << std::endl;
       }
     }
   }

@@ -80,10 +80,10 @@ public:
       return false;
     }
     f.read((char *)(&wall_ref), sizeof(WallDetector::WallValue));
-    logi << "Wall Reference Restore:"
-         << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0] //
-         << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1] //
-         << std::endl;
+    app_logi << "Wall Reference Restore:"
+             << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0] //
+             << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1] //
+             << std::endl;
     return true;
   }
   void calibration_side() {
@@ -97,8 +97,8 @@ public:
     }
     for (int i = 0; i < 2; i++)
       wall_ref.side[i] = sum[i] / ave_count;
-    logi << "Wall Calibration Side: " << wall_ref.side[0] << "\t"
-         << wall_ref.side[1] << std::endl;
+    app_logi << "Wall Calibration Side: " << wall_ref.side[0] << "\t"
+             << wall_ref.side[1] << std::endl;
     tof.enable();
   }
   void calibration_front() {
@@ -112,12 +112,12 @@ public:
     }
     for (int i = 0; i < 2; i++)
       wall_ref.front[i] = sum[i] / ave_count;
-    logi << "Wall Calibration Front: " << wall_ref.front[0] << "\t"
-         << wall_ref.front[1] << std::endl;
+    app_logi << "Wall Calibration Front: " << wall_ref.front[0] << "\t"
+             << wall_ref.front[1] << std::endl;
     tof.enable();
   }
   void print() {
-    logi                                                           //
+    app_logi                                                       //
         << std::setw(10) << std::setfill(' ') << distance.side[0]  //
         << std::setw(10) << std::setfill(' ') << distance.front[0] //
         << std::setw(10) << std::setfill(' ') << distance.front[1] //

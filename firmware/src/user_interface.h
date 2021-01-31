@@ -35,7 +35,6 @@ public:
       0.01f * M_PI; /**< 静止待機の角速度の閾値 */
 
 public:
-  UserInterface() {}
   /**
    * @brief ユーザーに番号を選択させる
    *
@@ -213,9 +212,9 @@ public:
   static void batteryCheck() {
     const float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
-    logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
+    app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
     if (voltage < thr_battery) {
-      logw << "Battery Low!" << std::endl;
+      app_logw << "Battery Low!" << std::endl;
       bz.play(Buzzer::SHUTDOWN);
       while (!btn.pressed)
         vTaskDelay(100 / portTICK_PERIOD_MS);

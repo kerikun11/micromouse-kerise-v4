@@ -13,34 +13,34 @@
 #define APP_LOG_OSTREAM_COMMON(c)                                              \
   (std::cout << "[" c "][" __FILE__ ":" APP_TOSTRING(__LINE__) "] ")
 
-#ifndef logd
+#ifndef app_logd
 #if 0
-#define logd APP_LOG_OSTREAM_COMMON("D")
+#define app_logd APP_LOG_OSTREAM_COMMON("D")
 #else
-#define logd std::ostream(0)
+#define app_logd std::ostream(0)
 #endif
 #endif
 
-#ifndef logi
+#ifndef app_logi
 #if 1
-#define logi APP_LOG_OSTREAM_COMMON("I")
+#define app_logi APP_LOG_OSTREAM_COMMON("I")
 #else
-#define logi std::ostream(0)
+#define app_logi std::ostream(0)
 #endif
 #endif
 
-#ifndef logw
+#ifndef app_logw
 #if 1
-#define logw APP_LOG_OSTREAM_COMMON("W")
+#define app_logw APP_LOG_OSTREAM_COMMON("W")
 #else
-#define logw std::ostream(0)
+#define app_logw std::ostream(0)
 #endif
 #endif
 
-#ifndef loge
+#ifndef app_loge
 #if 1
-#define loge APP_LOG_OSTREAM_COMMON("E")
+#define app_loge APP_LOG_OSTREAM_COMMON("E")
 #else
-#define loge std::ostream(0)
+#define app_loge std::ostream(0)
 #endif
 #endif

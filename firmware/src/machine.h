@@ -528,9 +528,9 @@ public:
     {
       std::ifstream f(filepath, std::ios::binary);
       if (f.fail())
-        loge << "Can't open file!" << std::endl;
+        app_loge << "Can't open file!" << std::endl;
       else if (f.eof())
-        loge << "File size is invalid!" << std::endl;
+        app_loge << "File size is invalid!" << std::endl;
       else
         f.read((char *)(&gain), sizeof(gain));
       std::cout << filepath << std::endl;
