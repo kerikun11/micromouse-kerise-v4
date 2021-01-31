@@ -41,7 +41,7 @@ static constexpr float tof_dist_factor = 1.08f;
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
 static constexpr float wall_avoid_gain = 1e-3f;
-static constexpr float wall_fix_offset = 6; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = 4; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {

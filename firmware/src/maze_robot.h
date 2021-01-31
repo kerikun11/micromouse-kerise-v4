@@ -98,7 +98,7 @@ public:
 public:
   MazeRobot() : RobotBase(maze) { replaceGoals(MAZE_GOAL); }
   void reset() {
-    Agent::reset();
+    RobotBase::reset();
     maze.backupWallRecordsToFile(MAZE_SAVE_PATH, true);
     state = State();
     state.save();
@@ -113,6 +113,7 @@ public:
   }
   bool autoRun(const bool isForceSearch = false) {
     // app_logi << "auto run; force:" << isForceSearch << std::endl;
+    ma.emergency_release();
     /* 迷路のチェック */
     auto_maze_check();
     /* 探索走行: スタート -> ゴール -> スタート */
@@ -221,8 +222,12 @@ protected:
 
 private:
   bool auto_maze_check() {
-    if (!isComplete())
-      bz.play(Buzzer::CANCEL);
+    /* 探索中 */
+    if (!getMaze().getWallRecords().empty() && !isComplete()) {
+      bz.play(Buzzer::MAZE_BACKUP);
+      maze.resetLastWalls(3);
+    }
+    /* 異常検出 */
     if (!isSolvable())
       bz.play(Buzzer::ERROR);
     while (!isSolvable()) {
@@ -233,6 +238,8 @@ private:
     return true;
   }
   bool auto_pi_run() {
+    /* 迷路のチェック */
+    auto_maze_check();
     // app_logi << "auto pi run" << std::endl;
     /* 既知区間斜めを無効化 */
     ma.rp_search.diag_enabled = false;
