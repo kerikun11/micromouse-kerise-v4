@@ -35,8 +35,8 @@ static constexpr float WheelDiameter = 12.65f;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 5;
-static constexpr float tof_dist_factor = 1.07f;
+static constexpr float tof_dist_offset = 23;
+static constexpr float tof_dist_factor = 1.08f;
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
