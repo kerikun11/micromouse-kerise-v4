@@ -10,7 +10,7 @@
 
 using namespace MazeLib;
 
-#define GOAL_SELECT 0
+#define GOAL_SELECT 1
 #if GOAL_SELECT == 0
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(2, 2) }

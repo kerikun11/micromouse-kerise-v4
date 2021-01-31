@@ -5,18 +5,16 @@
 #include "global.h"
 
 #include <RobotBase.h>
-#include <TaskBase.h>
 #include <cmath>
 #include <concurrent_queue.hpp>
-#include <freertospp/semphr.h>
-#include <queue>
+#include <math_utils.hpp>
 
 #include <ctrl/accel_designer.h>
 #include <ctrl/slalom.h>
 #include <ctrl/straight.h>
 #include <ctrl/trajectory_tracker.h>
 
-class MoveAction : TaskBase {
+class MoveAction {
 public:
   static constexpr float v_unknown_accel = 600;
   static constexpr float v_search = 330;
@@ -69,7 +67,6 @@ public:
     TaskActionFastRun = 'F',
     TaskActionPositionRecovery = 'P',
   };
-  TaskAction task_action = TaskActionSearchRun;
 
 public:
   MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
@@ -79,7 +76,8 @@ public:
     for (auto &vs : rp_fast.v_slalom)
       vs = v_search;
     // vs = std::max(vs, v_search);
-    createTask("MoveAction", 4, 8192);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "MoveAction", 8192, this, 4, NULL);
   }
   void enable(const TaskAction ta) {
     logd << "enable: " << (char)ta << std::endl;
@@ -129,17 +127,7 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
 
-public:
-  static auto round2(auto value, auto div) {
-    return std::floor((value + div / 2) / div) * div;
-  }
-  static auto saturate(auto src, auto sat) {
-    return std::max(std::min(src, sat), -sat);
-  }
-  static auto sum_of_square(auto v1, auto v2) { return v1 * v1 + v2 * v2; }
-
-private:
-  void task() override {
+  void task() {
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       if (!enabled)
@@ -172,10 +160,10 @@ public:
   bool continue_straight_if_no_front_wall = false;
 
 private:
+  TaskAction task_action = TaskActionSearchRun;
   std::atomic_bool enabled{false};
   std::atomic_bool in_action{false};
   std::atomic_bool break_requested{false};
-  // std::queue<MazeLib::RobotBase::SearchAction> sa_queue;
   lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
   ctrl::Pose offset;
   std::array<bool, 3> is_wall;
@@ -206,12 +194,13 @@ private:
         for (int j = 0; j < 2; ++j)
           wp.wheel[j] = -wd.distance.front[j] * model::wall_attach_gain_Kp;
         const float end = model::wall_attach_end;
-        if (sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
+        if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
           break;
         wp.wheel2pole();
         const float sat_tra = 180.0f;   //< [mm/s]
         const float sat_rot = M_PI / 2; //< [rad/s]
-        sc.set_target(saturate(wp.tra, sat_tra), saturate(wp.rot, sat_rot));
+        sc.set_target(math_utils::saturate(wp.tra, sat_tra),
+                      math_utils::saturate(wp.rot, sat_rot));
       }
       sc.set_target(0, 0);
       sc.est_p.x = 0;  //< 直進方向の補正
@@ -300,7 +289,8 @@ private:
         if (isAlong()) {
           const float wall_cut_offset = -15; /*< 大きいほど前へ */
           const float x_abs = offset.rotate(offset.th).x + sc.est_p.x;
-          const float x_abs_cut = round2(x_abs, field::SegWidthFull);
+          const float x_abs_cut =
+              math_utils::round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
           if (fixed_x_abs < 3.0f) {
@@ -324,7 +314,8 @@ private:
           /* 壁に沿った方向の位置 */
           const float x_abs =
               offset.rotate(offset.th + th_ref).x + sc.est_p.rotate(th_ref).x;
-          const float x_abs_cut = round2(x_abs, field::SegWidthFull);
+          const float x_abs_cut =
+              math_utils::round2(x_abs, field::SegWidthFull);
           const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
           const auto fixed_x_abs = std::abs(fixed_x);
           if (fixed_x_abs < 5.0f) {
@@ -382,7 +373,7 @@ private:
       return false;
     /* 現在の姿勢が区画に対して垂直か調べる */
     const auto th_abs = offset.th + sc.est_p.th;
-    const auto th_abs_to_wall = round2(th_abs, M_PI / 2);
+    const auto th_abs_to_wall = math_utils::round2(th_abs, M_PI / 2);
     if (std::abs(th_abs - th_abs_to_wall) > 1e-3f * M_PI)
       return false;
     /* 補正開始 */
@@ -391,7 +382,7 @@ private:
     const auto pose_abs = offset + sc.est_p.rotate(offset.th);
     const auto abs_x_to_wall = pose_abs.rotate(th_abs_to_wall).x;
     const auto pos_x =
-        abs_x_to_wall - round2(abs_x_to_wall, field::SegWidthFull);
+        abs_x_to_wall - math_utils::round2(abs_x_to_wall, field::SegWidthFull);
     const float wall_fix_offset = 6; /*< 調整値．大きく:前壁から遠く */
     const float dist_to_wall = dist_to_wall_ref - pos_x + wall_fix_offset;
     const float fixed_x_now = dist_to_wall - tof.getLog()[0] +
