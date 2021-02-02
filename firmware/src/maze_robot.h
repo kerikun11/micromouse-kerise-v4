@@ -96,7 +96,7 @@ public:
   };
 
 public:
-  MazeRobot() : RobotBase(maze) { replaceGoals(MAZE_GOAL); }
+  MazeRobot() { replaceGoals(MAZE_GOAL); }
   void reset() {
     RobotBase::reset();
     maze.backupWallRecordsToFile(MAZE_SAVE_PATH, true);
@@ -156,7 +156,6 @@ public:
   const State &getState() const { return state; }
 
 private:
-  Maze maze;
   State state;
   bool prevIsForceGoingToGoal = false;
   bool isForceSearch = false;
