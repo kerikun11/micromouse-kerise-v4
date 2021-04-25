@@ -429,8 +429,9 @@ private:
       ctrl::State ref_s;
       ctrl::straight::Trajectory trajectory;
       /* start */
-      trajectory.reset(rp.j_max, rp.a_max, v_max, v_start, v_end,
-                       distance - sc.est_p.x, sc.est_p.x);
+      trajectory.reset(rp.j_max, rp.a_max, v_max, v_start,
+                       std::max(v_end, 30.0f), distance - sc.est_p.x,
+                       sc.est_p.x);
       tt.reset(v_start);
       float int_y = 0; //< 角度補正用
       for (float t = 0; true; t += sc.Ts) {

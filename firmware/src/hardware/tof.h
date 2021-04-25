@@ -37,11 +37,11 @@ public:
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const {
-    log_d("ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]", getDistance(), dur,
-          passedTimeMs());
+    std::printf("ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]\n",
+                getDistance(), dur, passedTimeMs());
   }
   void csv() const {
-    printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
+    std::printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
   }
 
 private:
