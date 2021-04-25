@@ -21,9 +21,10 @@ public:
       pinMode(tx_pins[i], OUTPUT);
       adcAttachPin(rx_pins[i]);
     }
-    ts.periodic(100);
+    ts.periodic(200);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Reflector", configMINIMAL_STACK_SIZE, this, Priority, NULL);
+                "Reflector", configMINIMAL_STACK_SIZE * 2, this, Priority,
+                NULL);
     return true;
   }
   int16_t side(uint8_t isRight) const { return read(isRight ? 1 : 0); }
@@ -53,16 +54,12 @@ private:
   void update() {
     ts.take(); //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      // ts.take();                            //< スタートを同期
-      adcStart(rx_pins[i]);                 //< オフセットADCスタート
-      ts.take();                            //< ADC待ち
-      uint16_t offset = adcEnd(rx_pins[i]); //< オフセットを取得
-      digitalWrite(tx_pins[i], HIGH);       //< 放電開始
-      // delayMicroseconds(20);                //< 調整
-      adcStart(rx_pins[i]);              //< ADCスタート
-      ts.take();                         //< ADC待ち
-      uint16_t raw = adcEnd(rx_pins[i]); //< ADC取得
-      digitalWrite(tx_pins[i], LOW);     //< 充電開始
+      ts.take();                                //< 干渉防止のウエイト
+      uint16_t offset = analogRead(rx_pins[i]); //< オフセットを取得
+      digitalWrite(tx_pins[i], HIGH);           //< 放電開始
+      // delayMicroseconds(20);
+      uint16_t raw = analogRead(rx_pins[i]); //< ADC取得
+      digitalWrite(tx_pins[i], LOW);         //< 充電開始
 
       int temp = (int)raw - offset; //< オフセットとの差をとる
       if (temp < 1)
