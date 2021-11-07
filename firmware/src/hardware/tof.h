@@ -47,7 +47,7 @@ public:
 private:
   VL6180X sensor;
   float tof_dist_offset;
-  bool enabled = true;
+  volatile bool enabled = true;
   uint16_t distance;
   uint16_t dur;
   int passed_ms;
