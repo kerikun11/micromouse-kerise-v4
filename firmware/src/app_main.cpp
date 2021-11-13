@@ -12,7 +12,8 @@ void printTask(void *arg);
 void setup() {
   WiFi.mode(WIFI_OFF);
   Serial.begin(2000000);
-  std::cout << std::endl << "I'm KERISE v" << KERISE_SELECT << "!" << std::endl;
+  std::cout << std::endl << "I'm KERISE v" << KERISE_SELECT << "." << std::endl;
+  std::cout << "IDF Version: " << esp_get_idf_version() << std::endl;
   Machine::init();
   xTaskCreate(printTask, "print", 4096, NULL, 2, NULL);
   xTaskCreate(driveTask, "drive", 4096, NULL, 2, NULL);

@@ -57,12 +57,12 @@ typedef enum {
  *
  */
 typedef struct {
-    int mcpwm_kerise0a_out_num;       /*!<MCPWM0A out pin*/
-    int mcpwm_kerise0b_out_num;       /*!<MCPWM0A out pin*/
-    int mcpwm_kerise1a_out_num;       /*!<MCPWM0A out pin*/
-    int mcpwm_kerise1b_out_num;       /*!<MCPWM0A out pin*/
-    int mcpwm_kerise2a_out_num;       /*!<MCPWM0A out pin*/
-    int mcpwm_kerise2b_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm0a_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm0b_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm1a_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm1b_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm2a_out_num;       /*!<MCPWM0A out pin*/
+    int mcpwm2b_out_num;       /*!<MCPWM0A out pin*/
     int mcpwm_kerise_sync0_in_num;    /*!<SYNC0  in pin*/
     int mcpwm_kerise_sync1_in_num;    /*!<SYNC1  in pin*/
     int mcpwm_kerise_sync2_in_num;    /*!<SYNC2  in pin*/
