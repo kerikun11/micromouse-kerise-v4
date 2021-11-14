@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VL6180X.h>
+#include <cstdio>
 #include <ctrl/accumulator.h>
 #include <peripheral/i2c.h>
 
@@ -37,11 +38,11 @@ public:
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const {
-    std::printf("ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]\n",
-                getDistance(), dur, passedTimeMs());
+    log_i("ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]", getDistance(), dur,
+          passedTimeMs());
   }
   void csv() const {
-    std::printf("0,45,90,135,180,%d,%d\n", getDistance(), passed_ms);
+    std::printf("0,45,90,135,180,%d,%d\n", getDistance(), passedTimeMs());
   }
 
 private:

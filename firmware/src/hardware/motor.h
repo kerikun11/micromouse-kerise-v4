@@ -16,7 +16,7 @@ public:
     mcpwm_kerise_gpio_init(unit, io_signals_2, gpio_num_2);
     gpio_pulldown_en(gpio_num_2);
     static mcpwm_kerise_config_t pwm_config;
-    pwm_config.frequency = 250000; //< frequency
+    pwm_config.frequency = 250000; //< frequency (counter period: 640 @ 160MHz)
     pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
     pwm_config.cmpr_b = 0;         //< duty cycle of PWMxb = 0
     pwm_config.counter_mode = MCPWM_UP_COUNTER;

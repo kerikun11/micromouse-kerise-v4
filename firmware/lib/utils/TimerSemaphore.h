@@ -13,15 +13,17 @@ public:
     end();
     vSemaphoreDelete(xSemaphore);
   }
-  void periodic(uint32_t us) {
-    attach(us, true,
-           [](void *arg) { static_cast<TimerSemaphore *>(arg)->giveFromISR(); },
-           this);
+  void periodic(uint32_t microseconds) {
+    attach(
+        microseconds, true,
+        [](void *arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
+        this);
   }
-  void oneshot(uint32_t us) {
-    attach(us, false,
-           [](void *arg) { static_cast<TimerSemaphore *>(arg)->giveFromISR(); },
-           this);
+  void oneshot(uint32_t microseconds) {
+    attach(
+        microseconds, false,
+        [](void *arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
+        this);
   }
   void end() { detach(); }
   portBASE_TYPE take(TickType_t xBlockTime = portMAX_DELAY) {
@@ -33,21 +35,16 @@ private:
   esp_timer_handle_t esp_timer_handle;
 
   portBASE_TYPE giveFromISR() {
-    auto result = xSemaphoreGiveFromISR(xSemaphore, NULL);
-    portYIELD_FROM_ISR();
-    return result;
+    return xSemaphoreGiveFromISR(xSemaphore, NULL);
   }
   void attach(uint32_t microseconds, bool repeat, esp_timer_cb_t callback,
               void *arg) {
-    if (esp_timer_handle) {
-      esp_timer_stop(esp_timer_handle);
-      esp_timer_delete(esp_timer_handle);
-    }
+    detach();
     esp_timer_create_args_t esp_timer_create_args;
     esp_timer_create_args.arg = arg;
     esp_timer_create_args.callback = callback;
     esp_timer_create_args.dispatch_method = ESP_TIMER_TASK;
-    esp_timer_create_args.name = "Ticker";
+    esp_timer_create_args.name = "TimerSemaphore";
     ESP_ERROR_CHECK(
         esp_timer_create(&esp_timer_create_args, &esp_timer_handle));
     if (repeat) {

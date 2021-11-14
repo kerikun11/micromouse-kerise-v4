@@ -1,15 +1,15 @@
 #pragma once
 
-#include "esp32-hal-adc.h"
 #include <TimerSemaphore.h>
 #include <array>
-#include <cstdio>
 #include <ctrl/accumulator.h>
+#include <peripheral/adc.h>
 
 class Reflector {
 public:
   static constexpr UBaseType_t Priority = 20;
   static constexpr int CH_SIZE = 4;
+  static constexpr int ave_num = 8;
 
 public:
   Reflector(const std::array<int8_t, CH_SIZE> &tx_pins,
@@ -31,16 +31,13 @@ public:
   int16_t front(uint8_t isRight) const { return read(isRight ? 3 : 2); }
   int16_t read(const int8_t ch) const { return value[ch]; }
   void csv() const {
-    std::printf("0,1500");
+    std::cout << "0,1000,2000,";
     for (int8_t i = 0; i < CH_SIZE; i++)
-      std::printf(",%d", read(i));
-    std::printf("\n");
+      std::cout << "," << read(i);
+    std::cout << std::endl;
   }
   void print() const {
-    std::printf("Reflector: ");
-    for (int8_t i = 0; i < CH_SIZE; i++)
-      std::printf("\t%04d", read(i));
-    std::printf("\n");
+    log_i("Reflector: %4d %4d %4d %4d", read(0), read(1), read(2), read(3));
   }
 
 private:
@@ -48,16 +45,15 @@ private:
   const std::array<int8_t, CH_SIZE> rx_pins; //< フォトトランジスタのピン
   std::array<int16_t, CH_SIZE> value;        //< リフレクタの測定値
   TimerSemaphore ts; //< インターバル用タイマー
-  static const int ave_num = 8;
-  ctrl::Accumulator<int, ave_num> buffer[CH_SIZE];
+  ctrl::Accumulator<int, ave_num> buffer[CH_SIZE]; //< 平均計算用
 
   void update() {
     ts.take(); //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      ts.take();                                //< 干渉防止のウエイト
-      uint16_t offset = analogRead(rx_pins[i]); //< オフセットを取得
-      digitalWrite(tx_pins[i], HIGH);           //< 放電開始
-      // delayMicroseconds(20);
+      ts.take(); //< 干渉防止のウエイト
+      // uint16_t offset = analogRead(rx_pins[i]); //< オフセットを取得
+      uint16_t offset = 0;                   //< オフセットを取得
+      digitalWrite(tx_pins[i], HIGH);        //< 放電開始
       uint16_t raw = analogRead(rx_pins[i]); //< ADC取得
       digitalWrite(tx_pins[i], LOW);         //< 充電開始
 

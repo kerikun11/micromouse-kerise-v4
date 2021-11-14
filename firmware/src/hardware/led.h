@@ -8,7 +8,7 @@
 
 class LED {
 private:
-  static constexpr uint8_t PCA9632_DEV_ID = 0x62; //全体制御用のI2Cアドレス
+  static constexpr uint8_t PCA9632_DEV_ID = 0x62; //< 全体制御用のI2Cアドレス
 
 public:
   LED(i2c_port_t i2c_port) : i2c_port(i2c_port) {
