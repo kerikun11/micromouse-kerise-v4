@@ -35,13 +35,13 @@ static constexpr float WheelDiameter = 12.65f;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
-static constexpr float tof_dist_offset = 23;
-static constexpr float tof_dist_factor = 1.08f;
+static constexpr float tof_dist_offset = 16;
+static constexpr float tof_dist_factor = 1.06f;
+static constexpr float wall_fix_offset = 0; /*< 大きく: 前壁から遠く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
 static constexpr float wall_avoid_gain = 1e-3f;
-static constexpr float wall_fix_offset = 4; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -76,11 +76,11 @@ static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
+static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 240.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
-static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -115,11 +115,11 @@ static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 22; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
+static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 240.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.001f;
-static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
