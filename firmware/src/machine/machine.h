@@ -12,6 +12,8 @@
 class Machine {
 public:
   static bool init() {
+    /* print info */
+    std::cout << "IDF Version: " << esp_get_idf_version() << std::endl;
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS)
       pinMode(p, INPUT_PULLUP);
@@ -24,8 +26,8 @@ public:
     if (!led.init())
       bz.play(Buzzer::ERROR);
     ui.batteryCheck();
+    /* Normal Boot */
     bz.play(Buzzer::BOOT);
-
     if (!peripheral::SPIFFS::init())
       bz.play(Buzzer::ERROR);
     if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,

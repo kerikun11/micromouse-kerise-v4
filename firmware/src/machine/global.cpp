@@ -1,6 +1,8 @@
 /**
- * @file  global.cpp
+ * @file global.cpp
  * @brief グローバル変数の実体を定義するC++ファイル．
+ * @copyright Copyright (c) 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
  */
 #include "global.h"
 

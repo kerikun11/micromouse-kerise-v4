@@ -2,11 +2,8 @@
  * @file UserInterface.h
  * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief マイクロマウスに備わっているセンサを用いてUIを構成する
- * @version 0.1
  * @date 2019-02-10
- *
- * @copyright Copyright (c) 2019
- *
+ * @copyright Copyright (c) 2019 Ryotaro Onuki
  */
 #pragma once
 

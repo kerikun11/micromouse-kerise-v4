@@ -1,3 +1,10 @@
+/**
+ * @file spiffs.h
+ * @author Ryotaro Onuki (kerikun11+github@gmail.com)
+ * @brief SPIFFS utility
+ * @date 2021-11-21
+ * @copyright Copyright (c) 2021 Ryotaro Onuki
+ */
 #pragma once
 
 #include <esp_err.h>
