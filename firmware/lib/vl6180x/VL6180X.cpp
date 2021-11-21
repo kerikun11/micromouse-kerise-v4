@@ -1,3 +1,9 @@
+/**
+ * @file VL6180X.cpp
+ * @brief VL6180X Driver
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
+ */
 #include "VL6180X.h"
 
 #include <Arduino.h> //< for constrain, millis

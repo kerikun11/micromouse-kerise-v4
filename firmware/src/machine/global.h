@@ -26,6 +26,10 @@ extern Reflector ref;
 #include "hardware/tof.h"
 extern ToF tof;
 
+/* Logger */
+#include "logger.h"
+extern Logger lgr;
+
 /* Supporter */
 #include "wall_detector.h"
 extern WallDetector wd;
@@ -35,8 +39,6 @@ extern SpeedController sc;
 extern UserInterface ui;
 
 /* Conductor */
-#include "logger.h"
-extern Logger lgr;
 #include "move_action.h"
 extern MoveAction ma;
 #include "maze_robot.h"

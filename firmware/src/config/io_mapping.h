@@ -1,7 +1,7 @@
 /**
  * @file io_mapping.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief ハードウェアの設定
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-04-20
  */
 #pragma once

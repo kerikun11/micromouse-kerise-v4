@@ -1,3 +1,9 @@
+/**
+ * @file VL6180X.h
+ * @brief VL6180X Driver
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
+ */
 #ifndef VL6180X_h
 #define VL6180X_h
 

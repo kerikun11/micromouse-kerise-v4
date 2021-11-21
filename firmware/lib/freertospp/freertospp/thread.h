@@ -1,3 +1,9 @@
+/**
+ * @file thread.h
+ * @brief C++ Wrapper for FreeRTOS in ESP32
+ * @author Ryotaro Onuki
+ * @date 2018-07-09
+ */
 #pragma once
 
 #include <freertos/FreeRTOS.h>
@@ -7,6 +13,9 @@
 
 namespace freertospp {
 
+/**
+ * @brief C++ Wrapper for Thread function
+ */
 class Thread {
 public:
   Thread(std::function<void()> func, const char *const pcName = "unknown",

@@ -1,3 +1,9 @@
+/**
+ * @file slalom_shapes.h
+ * @brief スラロームの軌道
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
+ */
 #pragma once
 
 #include <ctrl/slalom.h>

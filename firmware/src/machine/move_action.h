@@ -1,3 +1,9 @@
+/**
+ * @file move_action.h
+ * @brief Move Action
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
+ */
 #pragma once
 
 #include "config/model.h"
@@ -132,6 +138,11 @@ public:
     }
   }
   const auto &getSensedWalls() const { return is_wall; }
+  void calibration() {
+    bz.play(Buzzer::CALIBRATION);
+    imu.calibration();
+    enc.clearOffset();
+  }
 
   void task() {
     while (1) {

@@ -1,7 +1,6 @@
 /**
+ * @file task.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- *
- * @file freertospp.h
  * @author Ryotaro Onuki
  * @date 2018-07-09
  */
@@ -11,6 +10,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+/**
+ * @brief C++ Wrapper for FreeRTOS API
+ */
 namespace freertospp {
 
 /**

@@ -1,7 +1,6 @@
 /**
+ * @file semphr.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- *
- * @file freertospp.h
  * @author Ryotaro Onuki
  * @date 2018-07-09
  */

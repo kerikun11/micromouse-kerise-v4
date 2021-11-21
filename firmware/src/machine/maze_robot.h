@@ -1,3 +1,9 @@
+/**
+ * @file maze_robot.h
+ * @brief Maze Robot
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-21
+ */
 #pragma once
 
 #include "config/model.h"
@@ -76,7 +82,7 @@ public:
         app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
-      of.write((const char *)this, sizeof(State));
+      of.write((const char *)this, sizeof(*this));
       return true;
     }
     bool restore(const std::string filepath = STATE_SAVE_PATH) const {
@@ -85,7 +91,7 @@ public:
         app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
-      f.read((char *)this, sizeof(State));
+      f.read((char *)this, sizeof(*this));
       return true;
     }
     void newRun() {
@@ -179,11 +185,7 @@ protected:
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma.disable(); }
   void startDequeue() override { ma.enable(MoveAction::TaskActionSearchRun); }
-  void calibration() override {
-    bz.play(Buzzer::CALIBRATION);
-    imu.calibration();
-    enc.clearOffset();
-  }
+  void calibration() override { ma.calibration(); }
   void calcNextDirectionsPreCallback() override {
     /* ゴール判定用フラグ */
     prevIsForceGoingToGoal = isForceGoingToGoal;
