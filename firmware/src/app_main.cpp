@@ -5,16 +5,12 @@
  * @date 2019-04-02
  */
 #include "machine/machine.h"
-
-#include <HardwareSerial.h>
 #include <esp_wifi.h>
 
-void setup() {
+extern "C" void app_main() {
   esp_wifi_stop();
-  Serial.begin(2000000);
+  // Serial.begin(2000000);
   Machine machine;
   machine.init();
   vTaskDelay(portMAX_DELAY);
 }
-
-void loop() { vTaskDelay(portMAX_DELAY); }

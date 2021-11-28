@@ -765,7 +765,7 @@ private:
       float straight = 0;
       for (int path_index = 0; path_index < path.length(); path_index++) {
         const auto action =
-            static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+            static_cast<MazeLib::RobotBase::FastAction>(path[path_index]);
         fast_run_switch(action, straight, rp);
       }
       /* 最後の直線を消化 */
@@ -884,7 +884,7 @@ private:
       if (break_requested || mt.is_emergency())
         break;
       const auto action =
-          static_cast<const MazeLib::RobotBase::FastAction>(path[path_index]);
+          static_cast<MazeLib::RobotBase::FastAction>(path[path_index]);
       fast_run_switch(action, straight, rp);
     }
     /* 最後の直線を消化 */

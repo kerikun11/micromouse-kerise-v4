@@ -6,7 +6,8 @@
  */
 #pragma once
 
-#include <algorithm> //< for std::max(), std::min()
+#include <algorithm> //< std::max(), std::min()
+#include <cmath>     //< std::isfinit()
 #include <iostream>
 #include <peripheral/mcpwm_kerise.h>
 
