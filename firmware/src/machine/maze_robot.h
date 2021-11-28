@@ -74,6 +74,7 @@ public:
     bool is_fast_run = false;      /**< 最短走行かどうか */
     int offset_ms = 0;             /**< リセット後を想定 */
 
+    static uint32_t millis() { return esp_timer_get_time() / 1000; }
     int getTimeSecond() const { return (offset_ms + millis()) / 1000; }
     bool save(const std::string filepath = STATE_SAVE_PATH) {
       offset_ms = millis();
@@ -169,7 +170,7 @@ private:
   /* override virtual functions */
 protected:
   void waitForEndAction() override {
-    // delay(300); // for debug
+    // vTaskDelay(pdMS_TO_TICKS(300)); //< 計算処理に時間がかかる場合を模擬
     ma.waitForEndAction();
     if (mt.is_emergency())
       setBreakFlag();

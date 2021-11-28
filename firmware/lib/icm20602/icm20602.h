@@ -121,7 +121,7 @@ public:
   bool whoami() {
     uint8_t v = readReg(117); /*< Who am I */
     if (v != 0x12) {
-      log_e("whoami failed:( 0x%X", v);
+      ESP_LOGE(tag, "whoami failed:( 0x%X", v);
       return false;
     }
     return true;
@@ -173,6 +173,7 @@ public:
   // }
 
 private:
+  const char *tag = "ICM-20602";
   spi_device_handle_t spi_handle = NULL;
   MotionParameter accel_offset, gyro_offset;
 

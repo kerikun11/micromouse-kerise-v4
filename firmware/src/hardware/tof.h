@@ -9,6 +9,7 @@
 #include <VL6180X.h>
 #include <cstdio>
 #include <ctrl/accumulator.h>
+#include <esp_log.h>
 #include <peripheral/i2c.h>
 
 class ToF {
@@ -32,7 +33,7 @@ public:
                 "ToF", 4096, this, Priority, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));
     if (sensor.last_status != 0) {
-      log_e("ToF failed :(");
+      ESP_LOGE(tag, "ToF init failed :(");
       return false;
     }
     return true;
@@ -44,14 +45,15 @@ public:
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const {
-    log_i("ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]", getDistance(), dur,
-          passedTimeMs());
+    ESP_LOGI(tag, "ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
+             getDistance(), dur, passedTimeMs());
   }
   void csv() const {
     std::printf("0,45,90,135,180,%d,%d\n", getDistance(), passedTimeMs());
   }
 
 private:
+  const char *tag = "ToF";
   VL6180X sensor;
   float tof_dist_offset;
   volatile bool enabled = true;
@@ -60,6 +62,7 @@ private:
   int passed_ms;
   ctrl::Accumulator<uint16_t, 10> log;
 
+  static uint32_t millis() { return esp_timer_get_time() / 1000; }
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {

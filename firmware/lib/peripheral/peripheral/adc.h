@@ -1,48 +1,45 @@
-/*
- * ALL CODE BELOW WAS "STOLEN" FROM ORIGINAL REPOSITORY
- * https://github.com/espressif/arduino-esp32 FUNCTIONS adcStart/adcBusy/adcEnd
- * WAS REMOVED AFTER 1.0.4 RELEASE OF "Arduino core for the esp32" BUT THESE
- * FUNCTIONS ARE VERY USEFUL FOR "FINE TUNNING" AND "NO-WAIT" ADC READING. I
- * JUST COPY CODE FROM .c/.h AND TO USE IT IN MY LIBRARY WITHOUT ANY
- * MODIFICATION star0413@gmail.com Ilia Starkov
+/**
+ * @file adc.h
+ * @brief ADC for ESP32
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @date 2021-11-28
  */
-/*
- * Arduino.h - Main include file for the Arduino SDK Copyright (c) 2005-2013
- * Arduino Team.  All right reserved.  This library is free software; you can
- * redistribute it and/or modify it under the terms of the GNU Lesser General
- * Public License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.  This
- * library is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
- * details.  You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
-
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
 
-#include "esp32-hal.h"
+namespace peripheral {
 
-/*
- * Start ADC conversion on attached pin's bus
- */
-bool adcStart(uint8_t pin);
+class ADC {
+public:
+  static bool init() {
+    ESP_ERROR_CHECK(esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF));
+    ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_12Bit));
+    esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, &chars);
+    return true;
+  }
+  static int read_raw(adc1_channel_t channel) {
+    adc1_config_channel_atten(channel, atten);
+    return adc1_get_raw(channel);
+  }
+  static int read_milli_voltage(adc1_channel_t channel,
+                                int num_average_samples = 1) {
+    adc1_config_channel_atten(channel, atten);
+    uint32_t adc_reading = 0;
+    for (int i = 0; i < num_average_samples; i++)
+      adc_reading += adc1_get_raw(channel);
+    adc_reading /= num_average_samples;
+    uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, &chars);
+    return voltage;
+  }
 
-/*
- * Check if conversion on the pin's ADC bus is currently running
- */
-bool adcBusy(uint8_t pin);
+private:
+  static const int DEFAULT_VREF = 1100;
+  static const adc_unit_t unit = ADC_UNIT_1;
+  static const adc_atten_t atten = ADC_ATTEN_DB_11;
+  static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
+  static esp_adc_cal_characteristics_t chars;
+};
 
-/*
- * Get the result of the conversion (will wait if it have not finished)
- */
-uint16_t adcEnd(uint8_t pin);
-
-#ifdef __cplusplus
-}
-#endif
+}; // namespace peripheral

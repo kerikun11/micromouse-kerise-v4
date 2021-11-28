@@ -18,14 +18,20 @@ public:
   static constexpr int ave_num = 8;
 
 public:
-  Reflector(const std::array<int8_t, CH_SIZE> &tx_pins,
-            const std::array<int8_t, CH_SIZE> &rx_pins)
-      : tx_pins(tx_pins), rx_pins(rx_pins) {}
+  Reflector(const std::array<gpio_num_t, CH_SIZE> &tx_pins,
+            const std::array<adc1_channel_t, CH_SIZE> &rx_channels)
+      : tx_pins(tx_pins), rx_channels(rx_channels) {}
   bool init() {
-    for (int8_t i = 0; i < CH_SIZE; i++) {
+    for (int i = 0; i < CH_SIZE; i++) {
       value[i] = 0;
-      pinMode(tx_pins[i], OUTPUT);
-      adcAttachPin(rx_pins[i]);
+      // tx
+      ESP_ERROR_CHECK(gpio_reset_pin(tx_pins[i]));
+      ESP_ERROR_CHECK(gpio_set_level(tx_pins[i], 0));
+      ESP_ERROR_CHECK(gpio_set_direction(tx_pins[i], GPIO_MODE_OUTPUT));
+      // rx
+      gpio_num_t pin;
+      ESP_ERROR_CHECK(adc1_pad_get_io_num(rx_channels[i], &pin));
+      ESP_ERROR_CHECK(gpio_reset_pin(pin));
     }
     ts.periodic(200);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
@@ -37,33 +43,36 @@ public:
   int16_t front(uint8_t isRight) const { return read(isRight ? 3 : 2); }
   int16_t read(const int8_t ch) const { return value[ch]; }
   void csv() const {
-    std::cout << "0,1000,2000,";
+    std::cout << "0,2000,4000,";
     for (int8_t i = 0; i < CH_SIZE; i++)
       std::cout << "," << read(i);
     std::cout << std::endl;
   }
   void print() const {
-    log_i("Reflector: %4d %4d %4d %4d", read(0), read(1), read(2), read(3));
+    static char str[64];
+    snprintf(str, sizeof(str), "Reflector: %4d %4d %4d %4d", read(0), read(1),
+             read(2), read(3));
+    app_logd << str << std::endl;
   }
 
 private:
-  const std::array<int8_t, CH_SIZE> tx_pins; //< 赤外線LEDのピン
-  const std::array<int8_t, CH_SIZE> rx_pins; //< フォトトランジスタのピン
-  std::array<int16_t, CH_SIZE> value;        //< リフレクタの測定値
-  TimerSemaphore ts; //< インターバル用タイマー
+  const std::array<gpio_num_t, CH_SIZE> tx_pins; //< 赤外線LEDのピン
+  const std::array<adc1_channel_t, CH_SIZE>
+      rx_channels; //< フォトトランジスタADC1_CHANNEL
+  std::array<int16_t, CH_SIZE> value; //< リフレクタの測定値
+  TimerSemaphore ts;                  //< インターバル用タイマー
   ctrl::Accumulator<int, ave_num> buffer[CH_SIZE]; //< 平均計算用
 
   void update() {
     ts.take(); //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      ts.take(); //< 干渉防止のウエイト
-      // uint16_t offset = analogRead(rx_pins[i]); //< オフセットを取得
-      uint16_t offset = 0;                   //< オフセットを取得
-      digitalWrite(tx_pins[i], HIGH);        //< 放電開始
-      uint16_t raw = analogRead(rx_pins[i]); //< ADC取得
-      digitalWrite(tx_pins[i], LOW);         //< 充電開始
-
-      int temp = (int)raw - offset; //< オフセットとの差をとる
+      ts.take();                     //< 干渉防止のウエイト
+      gpio_set_level(tx_pins[i], 1); //< 放電開始
+      int raw = peripheral::ADC::read_raw(rx_channels[i]); //< ADC取得
+      gpio_set_level(tx_pins[i], 0);                       //< 充電開始
+      // Calculation
+      int offset = 0;
+      int temp = raw - offset; //< オフセットとの差をとる
       if (temp < 1)
         temp = 1;           //< 0以下にならないように1で飽和
       buffer[i].push(temp); //< 保存

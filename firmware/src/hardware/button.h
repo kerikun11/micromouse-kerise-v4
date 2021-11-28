@@ -13,10 +13,11 @@
 class Button {
 public:
   Button(const gpio_num_t pin) : pin(pin) {
-    gpio_set_direction(pin, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
+    ESP_ERROR_CHECK(gpio_reset_pin(pin));
+    ESP_ERROR_CHECK(gpio_set_direction(pin, GPIO_MODE_INPUT));
+    ESP_ERROR_CHECK(gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY));
     flags = 0x00;
-    constexpr UBaseType_t Task_Priority = 1;
+    const UBaseType_t Task_Priority = 1;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "Button", configMINIMAL_STACK_SIZE, this, Task_Priority, NULL);
   }
@@ -46,7 +47,7 @@ private:
   int counter = 0;
 
   void update() {
-    if (gpio_get_level(pin) == LOW) {
+    if (gpio_get_level(pin) == 0) {
       if (counter < button_time_long_press_3 + 1)
         counter++;
       if (counter == button_time_long_press_3)

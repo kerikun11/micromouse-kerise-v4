@@ -28,6 +28,7 @@ public:
     };
     // シリアライズされたメンバ
     float value[4] = {0, 0, 0, 0};
+
     WallValue &operator+=(const WallValue &wv) {
       for (int i = 0; i < 4; ++i)
         value[i] += wv.value[i];
@@ -57,8 +58,12 @@ public:
   WallValue diff;
   std::array<bool, 3> is_wall;
 
+private:
+  Reflector &ref;
+  ToF &tof;
+
 public:
-  WallDetector() {}
+  WallDetector(Reflector &ref, ToF &tof) : ref(ref), tof(tof) {}
   bool init() {
     if (!restore())
       return false;
@@ -69,7 +74,7 @@ public:
   bool backup() {
     std::ofstream of(WALL_DETECTOR_BACKUP_PATH, std::ios::binary);
     if (of.fail()) {
-      log_e("Can't open file!");
+      app_loge << "Can't open file. " << WALL_DETECTOR_BACKUP_PATH << std::endl;
       return false;
     }
     of.write((const char *)(&(wall_ref)), sizeof(WallDetector::WallValue));
@@ -78,11 +83,12 @@ public:
   bool restore() {
     std::ifstream f(WALL_DETECTOR_BACKUP_PATH, std::ios::binary);
     if (f.fail()) {
-      log_e("Can't open file!");
+      app_loge << "Can't open file. " << WALL_DETECTOR_BACKUP_PATH << std::endl;
       return false;
     }
     if (f.eof()) {
-      log_e("File size is invalid!");
+      app_loge << "invalid file size. " << WALL_DETECTOR_BACKUP_PATH
+               << std::endl;
       return false;
     }
     f.read((char *)(&wall_ref), sizeof(WallDetector::WallValue));

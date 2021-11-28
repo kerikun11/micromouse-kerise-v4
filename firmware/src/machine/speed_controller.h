@@ -34,10 +34,17 @@ public:
   ctrl::Accumulator<float, acc_num> wheel_position[2];
   ctrl::Accumulator<ctrl::Polar, acc_num> accel;
 
+private:
+  Motor &mt;
+  IMU &imu;
+  Encoder &enc;
+  Fan &fan;
+
 public:
   SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
-                  const ctrl::FeedbackController<ctrl::Polar>::Gain &G)
-      : fbc(M, G) {
+                  const ctrl::FeedbackController<ctrl::Polar>::Gain &G,
+                  Motor &mt, IMU &imu, Encoder &enc, Fan &fan)
+      : fbc(M, G), mt(mt), imu(imu), enc(enc), fan(fan) {
     reset();
   }
   bool init() {
@@ -74,7 +81,7 @@ private:
   void task() {
     // TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
-      const int us_start = esp_timer_get_time();
+      // const int us_start = esp_timer_get_time();
       /* sync */
       // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       imu.sampling_sync();
@@ -89,13 +96,13 @@ private:
       /* drive */
       if (drive_enabled)
         drive();
-      const int us_end = esp_timer_get_time();
+      // const int us_end = esp_timer_get_time();
       /* debug */
-      if (us_end - us_start > 1500 && drive_enabled) {
-        bz.play(Buzzer::SHORT9);
-        app_logw << "sampling overtime: " << int(us_end - us_start)
-                 << std::endl;
-      }
+      // if (us_end - us_start > 1500 && drive_enabled) {
+      //   bz.play(Buzzer::SHORT9);
+      //   app_logw << "sampling overtime: " << int(us_end - us_start)
+      //            << std::endl;
+      // }
     }
   }
   void reset() {

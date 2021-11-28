@@ -6,9 +6,10 @@
  */
 #pragma once
 
-#include <esp32-hal.h>
+#include <driver/ledc.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <freertos/task.h>
 
 class Buzzer {
 public:
@@ -37,10 +38,26 @@ public:
   Buzzer() {
     playList = xQueueCreate(/* uxQueueLength = */ 20, sizeof(enum Music));
   }
-  bool init(int8_t pin, uint8_t channel) {
+  bool init(gpio_num_t pin, ledc_channel_t channel, ledc_timer_t timer) {
     this->channel = channel;
-    ledcSetup(channel, 880, 4);
-    ledcAttachPin(pin, channel);
+    this->timer = timer;
+    // LEDC Timer
+    static ledc_timer_config_t ledc_timer;
+    ledc_timer.speed_mode = mode;                  // timer mode
+    ledc_timer.duty_resolution = LEDC_TIMER_8_BIT; // resolution of PWM duty
+    ledc_timer.timer_num = timer;                  // timer index
+    ledc_timer.freq_hz = 5000;                     // frequency of PWM signal
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+    // LEDC Channel
+    static ledc_channel_config_t ledc_channel;
+    ledc_channel.channel = channel;
+    ledc_channel.duty = 0;
+    ledc_channel.gpio_num = pin;
+    ledc_channel.speed_mode = mode;
+    ledc_channel.hpoint = 0;
+    ledc_channel.timer_sel = LEDC_TIMER_0;
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+    // Player Task
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "Buzzer", 4096, this, 1, NULL);
     return true;
@@ -48,15 +65,49 @@ public:
   void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
 
 private:
-  uint8_t channel;
+  static constexpr const char *tag = "Buzzer";
+  ledc_channel_t channel;
+  ledc_timer_t timer;
+  ledc_mode_t mode = LEDC_HIGH_SPEED_MODE;
   QueueHandle_t playList;
+  typedef enum {
+    NOTE_C,
+    NOTE_Cs,
+    NOTE_D,
+    NOTE_Eb,
+    NOTE_E,
+    NOTE_F,
+    NOTE_Fs,
+    NOTE_G,
+    NOTE_Gs,
+    NOTE_A,
+    NOTE_Bb,
+    NOTE_B,
+    NOTE_MAX,
+  } note_t;
 
+  void write_note(note_t note, uint8_t octave) {
+    static const uint32_t noteFrequencyBase[12] = {
+        // C    C#     D    Eb     E     F    F#     G    G#     A    Bb     B
+        4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902};
+    if (octave > 8 || note >= NOTE_MAX) {
+      return;
+    }
+    uint32_t freq = noteFrequencyBase[note] / (1 << (8 - octave));
+    ledc_set_freq(mode, timer, freq);
+    ledc_set_duty(mode, channel, 8);
+    ledc_update_duty(mode, channel);
+  }
+  void write(uint32_t duty) {
+    ledc_set_duty(mode, channel, 0);
+    ledc_update_duty(mode, channel);
+  }
   void sound(const note_t note, uint8_t octave, uint32_t time_ms) {
-    ledcWriteNote(channel, note, octave);
+    write_note(note, octave);
     vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void mute(uint32_t time_ms = 400) {
-    ledcWrite(channel, 0);
+    write(0);
     vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void task() {

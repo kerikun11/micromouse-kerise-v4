@@ -1,5 +1,5 @@
 /**
- * @file  global.h
+ * @file global.h
  * @brief グローバル変数の extern 宣言をするファイル．
  */
 #pragma once
@@ -43,5 +43,3 @@ extern UserInterface ui;
 extern MoveAction ma;
 #include "maze_robot.h"
 extern MazeRobot mr;
-#include "external_controller.h"
-extern ExternalController ec;

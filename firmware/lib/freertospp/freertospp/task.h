@@ -33,7 +33,7 @@ public:
   /**
    * @brief タスクを生成し，実行開始する関数
    *
-   * @oaram obj this ポインタ
+   * @param obj this ポインタ
    * @param func メンバ関数ポインタ，`&T::func` のように渡す
    * @param pcName タスク名文字列
    * @param usStackDepth スタックサイズ

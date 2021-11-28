@@ -35,10 +35,10 @@ public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 1;
-    bool front_wall_fix_enabled = 1;
-    bool wall_avoid_enabled = 1;
-    bool wall_theta_fix_enabled = 1;
+    bool unknown_accel_enabled = 0;
+    bool front_wall_fix_enabled = 0;
+    bool wall_avoid_enabled = 0;
+    bool wall_theta_fix_enabled = 0;
     bool wall_cut_enabled = 0;
     float v_max = 720;
     float a_max = 3600;
@@ -131,10 +131,10 @@ public:
       bz.play(Buzzer::EMERGENCY);
       sc.disable();
       fan.drive(0);
-      delay(400);
+      vTaskDelay(pdMS_TO_TICKS(400));
       mt.emergency_release();
       tof.enable();
-      delay(100);
+      vTaskDelay(pdMS_TO_TICKS(100));
     }
   }
   const auto &getSensedWalls() const { return is_wall; }
@@ -483,7 +483,7 @@ private:
     }
     if (v_end < 1) {
       sc.set_target(0, 0);
-      delay(200);
+      vTaskDelay(pdMS_TO_TICKS(200));
     }
     /* 移動した量だけ位置を更新 */
     sc.est_p.x -= distance;
@@ -866,11 +866,11 @@ private:
     imu.calibration();
     /* 壁に背中を確実につける */
     mt.drive(-0.25f, -0.25f);
-    delay(200);
+    vTaskDelay(pdMS_TO_TICKS(200));
     mt.free();
     /* ファンを始動 */
     fan.drive(rp.fan_duty);
-    delay(400); //< ファンの回転数が一定なるのを待つ
+    vTaskDelay(pdMS_TO_TICKS(400)); //< ファンの回転数が一定なるのを待つ
     /* 走行開始 */
     sc.enable();
     /* 初期位置を設定 */
@@ -896,7 +896,7 @@ private:
     sc.set_target(0, 0);
     fan.drive(0);
     if (!mt.is_emergency())
-      delay(200);
+      vTaskDelay(pdMS_TO_TICKS(200));
     sc.disable();
     /* クラッシュ時の処理 */
     if (!mt.is_emergency())

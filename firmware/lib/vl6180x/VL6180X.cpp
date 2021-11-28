@@ -6,8 +6,20 @@
  */
 #include "VL6180X.h"
 
-#include <Arduino.h> //< for constrain, millis
-//#include <Wire.h>
+// #include <Arduino.h> //< for constrain, millis
+// #include <Wire.h>
+
+// Arduino /////////////////////////////////////////////////////////////////////
+#include <esp_timer.h>
+
+#ifndef constrain
+#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+#endif
+
+static unsigned long IRAM_ATTR millis()
+{
+  return (unsigned long) (esp_timer_get_time() / 1000ULL);
+}
 
 // Defines /////////////////////////////////////////////////////////////////////
 

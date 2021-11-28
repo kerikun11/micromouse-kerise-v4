@@ -11,26 +11,35 @@
 #include "global.h"
 
 #include "config/io_mapping.h"
+#include "config/model.h"
+#include "freertospp/task.h"
 #include "peripheral/spiffs.h"
-
-#include <WiFi.h>
 
 class Machine {
 public:
-  static bool init() {
+  Machine() {}
+  bool init() {
     /* print info */
+    std::cout << std::endl;
+    std::cout << "I'm KERISE v" << KERISE_SELECT << "." << std::endl;
     std::cout << "IDF Version: " << esp_get_idf_version() << std::endl;
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
-    for (auto p : CONFIG_SPI_CS_PINS)
-      pinMode(p, INPUT_PULLUP);
-    pinMode(RX, INPUT_PULLUP);
+    for (auto p : CONFIG_SPI_CS_PINS) {
+      gpio_set_direction(p, GPIO_MODE_INPUT);
+      gpio_pullup_en(p);
+    }
     /* Buzzer */
-    bz.init(BUZZER_PIN, LEDC_CH_BUZZER);
+    bz.init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
     /* I2C */
     if (!peripheral::I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
       bz.play(Buzzer::ERROR);
+    /* LED */
     if (!led.init())
       bz.play(Buzzer::ERROR);
+    /* ADC */
+    if (!peripheral::ADC::init())
+      bz.play(Buzzer::ERROR);
+    /* Battery Check */
     ui.batteryCheck();
     /* Normal Boot */
     bz.play(Buzzer::BOOT);
@@ -57,12 +66,89 @@ public:
       bz.play(Buzzer::ERROR);
     if (!sc.init())
       bz.play(Buzzer::ERROR);
-
-    // if (!ec.init())
-    //   bz.play(Buzzer::ERROR);
+    /* start task */
+    task_drive.start(this, &Machine::task, "Drive", 4096, 1, tskNO_AFFINITY);
+    task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
     return true;
   }
-  static void restore() {
+
+private:
+  freertospp::Task<Machine> task_drive;
+  freertospp::Task<Machine> task_print;
+
+  void task() {
+    // Machine::driveAutomatically();
+    while (1) {
+      int mode = ui.waitForSelect(16);
+      switch (mode) {
+      case 0: /* 迷路走行 */
+        Machine::driveNormally();
+        break;
+      case 1: /* パラメータの相対設定 */
+        Machine::selectParamManually();
+        break;
+      case 2: /* パラメータの絶対設定 */
+        Machine::selectParamPreset();
+        break;
+      case 3: /* 斜め走行などの設定 */
+        Machine::selectRunConfig();
+        break;
+      case 4: /* ファンの設定 */
+        Machine::selectFanGain();
+        break;
+      case 5: /* 迷路データの復元 */
+        Machine::restore();
+        break;
+      case 6: /* データ消去 */
+        Machine::reset();
+        break;
+      case 7: /* 宴会芸 */
+        Machine::partyStunt();
+        break;
+      case 8: /* 壁センサキャリブレーション */
+        Machine::wallCalibration();
+        break;
+      case 9: /* プチコン */
+        Machine::petitcon();
+        break;
+      case 10: /* 迷路の表示 */
+        mr.print();
+        break;
+      case 11: /* ゴール区画の設定 */
+        Machine::setGoalPositions();
+        break;
+      case 12:
+        Machine::position_recovery();
+        // Machine::sysid();
+        break;
+      case 13:
+        // Machine::pidTuner();
+        // Machine::encoder_test();
+        // Machine::accel_test();
+        Machine::wall_attach_test();
+        break;
+      case 14: /* テスト */
+        Machine::slalom_test();
+        break;
+      case 15: /* ログの表示 */
+        lgr.print();
+        break;
+      }
+    }
+  }
+  void print() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(9));
+      // tof.print();
+      // ref.csv();
+      // wd.print();
+      // enc.csv();
+    }
+  }
+  void restore() {
     if (!mr.restore())
       bz.play(Buzzer::ERROR);
     else
@@ -71,19 +157,19 @@ public:
     if (!mr.isSolvable())
       bz.play(Buzzer::ERROR);
   }
-  static void reset() {
+  void reset() {
     if (!ui.waitForCover())
       return;
     bz.play(Buzzer::MAZE_BACKUP);
     mr.reset();
   }
-  static void driveAutomatically() {
+  void driveAutomatically() {
     restore();
     if (ui.waitForPickup())
       return;
     mr.autoRun();
   }
-  static void driveNormally() {
+  void driveNormally() {
     /* 探索状態のお知らせ */
     if (mr.getMaze().getWallRecords().empty()) //< 完全に未探索状態
       bz.play(Buzzer::CONFIRM);
@@ -114,10 +200,10 @@ public:
     if (!ui.waitForCover())
       return;
     led = 9;
-    // delay(5000); //< 動画用 delay
+    vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
     mr.autoRun(forceSearch);
   }
-  static void selectParamPreset() {
+  void selectParamPreset() {
     for (int i = 0; i < 1; i++)
       bz.play(Buzzer::SHORT7);
     int value = ui.waitForSelect(16);
@@ -130,7 +216,7 @@ public:
       ma.rp_fast.down(16 - value);
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void selectRunConfig() {
+  void selectRunConfig() {
     int mode = ui.waitForSelect(16);
     if (mode < 0)
       return;
@@ -165,7 +251,7 @@ public:
     }
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void selectParamManually() {
+  void selectParamManually() {
     int value;
     /* ターン速度 */
     for (int i = 0; i < 1; i++)
@@ -198,9 +284,9 @@ public:
     /* 成功 */
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void selectFanGain() {
+  void selectFanGain() {
     fan.drive(0.5f);
-    delay(100);
+    vTaskDelay(pdMS_TO_TICKS(100));
     fan.drive(0);
     int value = ui.waitForSelect(11);
     if (value < 0)
@@ -213,7 +299,7 @@ public:
     mt.drive(0, 0);
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void wallCalibration() {
+  void wallCalibration() {
     int mode = ui.waitForSelect(3);
     switch (mode) {
     /* 前壁補正データの保存 */
@@ -232,7 +318,7 @@ public:
       led = 9;
       if (!ui.waitForCover())
         return;
-      delay(1000);
+      vTaskDelay(pdMS_TO_TICKS(1000));
       bz.play(Buzzer::CONFIRM);
       wd.calibration_side();
       bz.play(Buzzer::CANCEL);
@@ -242,14 +328,14 @@ public:
       led = 6;
       if (!ui.waitForCover(true))
         return;
-      delay(1000);
+      vTaskDelay(pdMS_TO_TICKS(1000));
       bz.play(Buzzer::CONFIRM);
       wd.calibration_front();
       bz.play(Buzzer::CANCEL);
       break;
     }
   }
-  static void setGoalPositions() {
+  void setGoalPositions() {
     for (int i = 0; i < 2; i++)
       bz.play(Buzzer::SHORT7);
     int value = ui.waitForSelect(6);
@@ -291,7 +377,7 @@ public:
     }
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void partyStunt() {
+  void partyStunt() {
     if (!ui.waitForCover())
       return;
     led = 6;
@@ -308,10 +394,10 @@ public:
     mt.emergency_release();
     bz.play(Buzzer::CANCEL);
   }
-  static void petitcon() {
+  void petitcon() {
     if (!ui.waitForCover())
       return;
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     std::string path;
     path += "s";
     for (int j = 0; j < 4; ++j) {
@@ -329,14 +415,14 @@ public:
     ma.disable();
     ma.emergency_release();
   }
-  static void sysid() {
+  void sysid() {
     int dir = ui.waitForSelect(2);
     int gain = ui.waitForSelect();
     if (gain < 0)
       return;
     if (!ui.waitForCover())
       return;
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     lgr.clear();
     const auto printLog = [&]() {
       lgr.push({
@@ -353,7 +439,7 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     fan.drive(0.5);
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     /* start */
     if (dir == 1)
       mt.drive(-gain * 0.05f, gain * 0.05f); //< 回転
@@ -365,14 +451,14 @@ public:
     }
     fan.drive(0);
     mt.drive(0, 0);
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     mt.free();
   }
-  static void accel_test() {
+  void accel_test() {
     int dir = ui.waitForSelect(2);
     if (!ui.waitForCover())
       return;
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     lgr.clear();
     const auto printLog = []() {
       const auto &bd = sc.fbc.getBreakdown();
@@ -389,7 +475,7 @@ public:
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     fan.drive(0.2);
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     ctrl::AccelDesigner ad;
     if (dir == 0) {
       const float j_max = 240'000;
@@ -422,7 +508,7 @@ public:
       mt.emergency_release(), bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::CANCEL);
   }
-  static void slalom_test() {
+  void slalom_test() {
     ctrl::TrajectoryTracker::Gain gain = model::TrajectoryTrackerGain;
     // gain.omega_n = gain.zeta = gain.low_b = gain.low_zeta = 0;
     int mode = ui.waitForSelect(3);
@@ -450,7 +536,7 @@ public:
     led = 15;
     if (!ui.waitForCover())
       return;
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     lgr.clear();
     const auto printLog = [](const auto ref_q, const auto est_q) {
       const auto &bd = sc.fbc.getBreakdown();
@@ -529,7 +615,7 @@ public:
       mt.emergency_release(), bz.play(Buzzer::EMERGENCY);
     bz.play(Buzzer::CANCEL);
   }
-  static void pidTuner() {
+  void pidTuner() {
     ctrl::FeedbackController<ctrl::Polar>::Gain gain = sc.fbc.getGain();
     /* load */
     constexpr auto filepath = "/spiffs/machine/pid.gain";
@@ -572,20 +658,20 @@ public:
     if (!ui.waitForCover())
       return;
     /* save */
-    {
-      std::ofstream of(filepath, std::ios::binary);
-      if (of.fail())
-        log_e("Can't open file!");
-      else
-        of.write((const char *)(&gain), sizeof(gain));
+    std::ofstream of(filepath, std::ios::binary);
+    if (of.fail()) {
+      app_loge << "Can't open file. " << filepath << std::endl;
+      bz.play(Buzzer::ERROR);
+    } else {
+      of.write((const char *)(&gain), sizeof(gain));
     }
     sc.fbc.setGain(gain);
     bz.play(Buzzer::SUCCESSFUL);
   }
-  static void SearchRun_test() {
+  void SearchRun_test() {
     if (!ui.waitForCover())
       return;
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     bz.play(Buzzer::CALIBRATION);
     imu.calibration();
     ma.enqueue_action(RobotBase::START_STEP);
@@ -598,34 +684,34 @@ public:
     ma.disable();
     mt.emergency_release();
   }
-  static void position_recovery() {
+  void position_recovery() {
     while (1) {
       led = 15;
       if (!ui.waitForCover(true))
         return;
       led = 0;
-      delay(500);
+      vTaskDelay(pdMS_TO_TICKS(500));
       ma.enable(MoveAction::TaskActionPositionRecovery);
       ma.waitForEndAction();
       ma.disable();
       ma.emergency_release();
     }
   }
-  static void encoder_test() {
+  void encoder_test() {
     int value = ui.waitForSelect(16);
     led = 15;
     if (!ui.waitForCover())
       return;
-    delay(400);
+    vTaskDelay(pdMS_TO_TICKS(500));
     float pwm = 0.05 * value;
     mt.drive(pwm, pwm);
     ui.waitForCover(true);
     mt.free();
   }
-  static void wall_attach_test() {
+  void wall_attach_test() {
     if (!ui.waitForCover())
       return;
-    delay(400);
+    vTaskDelay(pdMS_TO_TICKS(500));
     sc.enable();
     //
     led = 6;

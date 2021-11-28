@@ -14,6 +14,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <peripheral/adc.h>
 
 class UserInterface {
 public:
@@ -31,7 +32,19 @@ public:
   static constexpr float thr_fix_gyro =
       0.01f * M_PI; /**< 静止待機の角速度の閾値 */
 
+private:
+  Buzzer &bz;
+  LED &led;
+  Button &btn;
+  IMU &imu;
+  Encoder &enc;
+  Reflector &ref;
+  ToF &tof;
+
 public:
+  UserInterface(Buzzer &bz, LED &led, Button &btn, IMU &imu, Encoder &enc,
+                Reflector &ref, ToF &tof)
+      : bz(bz), led(led), btn(btn), imu(imu), enc(enc), ref(ref), tof(tof) {}
   /**
    * @brief ユーザーに番号を選択させる
    *
@@ -39,7 +52,7 @@ public:
    * @return int 0 ~ range-1: 選択された番号
    * @return int -1: キャンセルされた
    */
-  static int waitForSelect(const int range = 16, const uint8_t init_value = 0) {
+  int waitForSelect(const int range = 16, const uint8_t init_value = 0) {
     float prev_enc = enc.get_position(0) + enc.get_position(1);
     uint8_t value = init_value;
     led = value;
@@ -108,7 +121,7 @@ public:
    * @return true 遮られた
    * @return false キャンセルされた
    */
-  static bool waitForCover(bool side = false) {
+  bool waitForCover(bool side = false) {
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */
@@ -137,7 +150,7 @@ public:
   /**
    * @brief マシン回収まで待つ関数
    */
-  static bool waitForPickup(const int wait_ms = 2000) {
+  bool waitForPickup(const int wait_ms = 2000) {
     led = 0xf;
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
@@ -156,7 +169,7 @@ public:
    * @return true 静止状態になった
    * @return false キャンセルされた
    */
-  static bool waitForFix() {
+  bool waitForFix() {
     int fix_count = 0;
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
@@ -189,13 +202,15 @@ public:
    * @return float voltage [V]
    */
   static float getBatteryVoltage() {
-    return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    // return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    return 2 * peripheral::ADC::read_milli_voltage(BAT_VOL_ADC1_CHANNEL, 10) /
+           1e3f;
   }
   /**
    * @brief バッテリー電圧をLEDで表示
    * @param voltage [V]
    */
-  static void batteryLedIndicate(const float voltage) {
+  void batteryLedIndicate(const float voltage) {
     led = 0;
     if (voltage < 4.0f)
       led = 0x01;
@@ -206,7 +221,7 @@ public:
     else
       led = 0x0F;
   }
-  static void batteryCheck() {
+  void batteryCheck() {
     const float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
     app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
@@ -214,7 +229,7 @@ public:
       app_logw << "Battery Low!" << std::endl;
       bz.play(Buzzer::SHUTDOWN);
       while (!btn.pressed)
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
       btn.flags = 0;
       led = 0;
     }

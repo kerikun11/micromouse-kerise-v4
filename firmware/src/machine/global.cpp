@@ -20,20 +20,18 @@ Fan fan(FAN_PIN);
 Button btn(BUTTON_PIN);
 IMU imu;
 Encoder enc(model::GearRatio *model::WheelDiameter *M_PI);
-Reflector ref(PR_TX_PINS, PR_RX_PINS);
+Reflector ref(REFLECTOR_TX_PINS, REFLECTOR_RX_CHANNELS);
 ToF tof(I2C_PORT_NUM_TOF, model::tof_dist_offset);
 
 /* Software */
 Logger lgr;
 
 /* Supporter */
-WallDetector wd;
-SpeedController sc(model::SpeedControllerModel, model::SpeedControllerGain);
-UserInterface ui;
+WallDetector wd(ref, tof);
+SpeedController sc(model::SpeedControllerModel, model::SpeedControllerGain, mt,
+                   imu, enc, fan);
+UserInterface ui(bz, led, btn, imu, enc, ref, tof);
 
 /* Conductor */
 MoveAction ma(model::TrajectoryTrackerGain);
 MazeRobot mr;
-
-/* Other */
-ExternalController ec;
