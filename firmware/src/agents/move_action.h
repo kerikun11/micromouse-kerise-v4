@@ -10,14 +10,13 @@
 #include "config/slalom_shapes.h"
 #include "machine/global.h"
 
-#include <RobotBase.h>
-#include <utils/concurrent_queue.hpp>
-#include <utils/math_utils.hpp>
-
+#include <MazeLib/RobotBase.h> //< for RobotBase::SearchAction
 #include <ctrl/accel_designer.h>
 #include <ctrl/slalom.h>
 #include <ctrl/straight.h>
 #include <ctrl/trajectory_tracker.h>
+#include <utils/concurrent_queue.hpp>
+#include <utils/math_utils.hpp>
 
 #include <cmath>
 

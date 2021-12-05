@@ -9,8 +9,7 @@
 #include "config/model.h"
 #include "machine/global.h"
 
-#include "Maze.h"
-#include "RobotBase.h"
+#include <MazeLib/RobotBase.h>
 
 using namespace MazeLib;
 
