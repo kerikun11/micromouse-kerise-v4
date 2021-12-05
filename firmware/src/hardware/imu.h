@@ -40,8 +40,9 @@ public:
         app_loge << "IMU " << i << " begin failed :(" << std::endl;
         return false;
       }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "IMU", 4096, this, 6, NULL);
+    xTaskCreatePinnedToCore(
+        [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "IMU",
+        4096, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
   void calibration(const bool wait_for_end = true) {

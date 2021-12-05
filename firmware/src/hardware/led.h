@@ -24,11 +24,8 @@ public:
   }
   bool init() {
     writeReg(0x00, 0b10000001);
-    xTaskCreate(/* pvTaskCode = */
-                [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                /* pcName = */ "LED", /* usStackDepth = */ 2048,
-                /* pvParameters = */ this, /* uxPriority = */ 1,
-                /* pvCreatedTask = */ NULL);
+    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+                "LED", 2048, this, 1, NULL);
     return true;
   }
   uint8_t set(uint8_t new_value) {

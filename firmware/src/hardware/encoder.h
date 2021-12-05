@@ -7,31 +7,30 @@
 #pragma once
 
 #include "app_log.h"
-#include "config/model.h" //< for KERISE_SELECT
+#include "config/io_mapping.h" //< for KERISE_SELECT
+#include "config/model.h"      //< for ENCODER_NUM
 
 #include <drivers/as5048a/as5048a.h>
 #include <drivers/ma730/ma730.h>
+#include <freertospp/mutex.h>
 #include <freertospp/semphr.h>
 
 #include <cmath>
 #include <iomanip>
 
 namespace hardware {
+
 class Encoder {
 public:
   Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
+  bool init(spi_host_device_t spi_host,
+            std::array<gpio_num_t, ENCODER_NUM> pins_cs) {
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
-  bool init(spi_host_device_t spi_host, int8_t pin_cs) {
-    if (!as.init(spi_host, pin_cs)) {
+    if (!as.init(spi_host, pins_cs[0])) {
       app_loge << "AS5048A init failed :(" << std::endl;
       return false;
     }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
-    return true;
-  }
 #elif KERISE_SELECT == 5
-  bool init(spi_host_device_t spi_host, std::array<gpio_num_t, 2> pins_cs) {
     if (!ma[0].init(spi_host, pins_cs[0])) {
       app_loge << "Encoder L init failed :(" << std::endl;
       return false;
@@ -40,11 +39,12 @@ public:
       app_loge << "Encoder R init failed :(" << std::endl;
       return false;
     }
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Encoder", configMINIMAL_STACK_SIZE, this, Priority, NULL);
+#endif
+    xTaskCreatePinnedToCore(
+        [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "Encoder",
+        configMINIMAL_STACK_SIZE, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
-#endif
   int get_raw(uint8_t ch) const { return pulses_raw[ch]; }
   float get_position(uint8_t ch) const {
     /* the reason the type of pulses is no problem with type int */
@@ -52,7 +52,11 @@ public:
     /* int32_t 2,147,483,647 / 16384 * 1/3 * 3.1415 * 13 [mm] = 1,784,305 [mm]*/
     return positions[ch];
   }
-  void clearOffset() { pulses_ovf[0] = pulses_ovf[1] = 0; }
+  void clearOffset() {
+    mutex.take();
+    pulses_ovf[0] = pulses_ovf[1] = 0;
+    mutex.give();
+  }
   void csv() {
     // std::cout << "0," << get_position(0) << "," << get_position(1) <<
     // std::endl;
@@ -81,7 +85,6 @@ public:
   }
 
 private:
-  static constexpr int Priority = 7;
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
   AS5048A_DUAL as;
 #elif KERISE_SELECT == 5
@@ -94,6 +97,7 @@ private:
   int pulses_ovf[2];
   float positions[2];
   freertospp::Semaphore sampling_end_semaphore;
+  freertospp::Mutex mutex;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -105,6 +109,8 @@ private:
   }
 
   void update() {
+    mutex.take();
+    /* fetch data from encoder */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
     constexpr int pulses_size = AS5048A_DUAL::PULSES_SIZE;
     as.update();
@@ -127,6 +133,7 @@ private:
                      (float(pulses_raw[1]) / pulses_size - 9.9e-1f + 0.5f)) -
         (-8.23007897574619f);
 #endif
+    /* calculate physical value */
     float mm[2];
     for (int i = 0; i < 2; i++) {
       /* count overflow */
@@ -149,6 +156,7 @@ private:
     positions[0] = -mm[0];
     positions[1] = +mm[1];
 #endif
+    mutex.give();
   }
 };
 

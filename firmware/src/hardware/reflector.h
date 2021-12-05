@@ -36,9 +36,9 @@ public:
       ESP_ERROR_CHECK(gpio_reset_pin(pin));
     }
     ts.periodic(200);
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Reflector", configMINIMAL_STACK_SIZE * 2, this, Priority,
-                NULL);
+    xTaskCreatePinnedToCore(
+        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        "Reflector", 2048, this, Priority, NULL, APP_CPU_NUM);
     return true;
   }
   int16_t side(uint8_t isRight) const { return read(isRight ? 1 : 0); }
@@ -68,16 +68,17 @@ private:
   void update() {
     ts.take(); //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      ts.take();                     //< 干渉防止のウエイト
-      gpio_set_level(tx_pins[i], 1); //< 放電開始
-      int raw = peripheral::ADC::read_raw(rx_channels[i]); //< ADC取得
-      gpio_set_level(tx_pins[i], 0);                       //< 充電開始
+      ts.take(); //< 干渉防止のウエイト
+      // Sampling
+      int offset = peripheral::ADC::read_raw(rx_channels[i]); //< ADC取得
+      gpio_set_level(tx_pins[i], 1);                          //< 放電開始
+      int raw = peripheral::ADC::read_raw(rx_channels[i]);    //< ADC取得
+      gpio_set_level(tx_pins[i], 0);                          //< 充電開始
       // Calculation
-      int offset = 0;
-      int temp = raw - offset; //< オフセットとの差をとる
-      if (temp < 1)
-        temp = 1;           //< 0以下にならないように1で飽和
-      buffer[i].push(temp); //< 保存
+      int diff = raw - offset; //< オフセットとの差をとる
+      if (diff < 1)
+        diff = 1;           //< 0以下にならないように1で飽和
+      buffer[i].push(diff); //< 保存
       value[i] = buffer[i].average();
     }
   }

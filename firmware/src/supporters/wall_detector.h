@@ -67,8 +67,9 @@ public:
   bool init() {
     if (!restore())
       return false;
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "WallDetector", 4096, this, 3, NULL);
+    xTaskCreatePinnedToCore(
+        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        "WallDetector", 4096, this, 3, NULL, PRO_CPU_NUM);
     return true;
   }
   bool backup() {

@@ -137,44 +137,28 @@ public:
     readReg(0x3b, rx, 14);
     bond.h = rx[0];
     bond.l = rx[1];
-    accel.x = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.x;
+    accel.x = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
     bond.h = rx[2];
     bond.l = rx[3];
-    accel.y = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.y;
+    accel.y = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
     bond.h = rx[4];
     bond.l = rx[5];
-    accel.z = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G - accel_offset.z;
+    accel.z = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
 
     bond.h = rx[8];
     bond.l = rx[9];
-    gyro.x = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.x;
+    gyro.x = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
     bond.h = rx[10];
     bond.l = rx[11];
-    gyro.y = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.y;
+    gyro.y = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
     bond.h = rx[12];
     bond.l = rx[13];
-    gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180 - gyro_offset.z;
+    gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
   }
-  // void calibration() {
-  //   const int ave_count = 100;
-  //   for (int j = 0; j < 2; j++) {
-  //     TickType_t xLastWakeTime = xTaskGetTickCount();
-  //     MotionParameter accel_sum, gyro_sum;
-  //     for (int i = 0; i < ave_count; i++) {
-  //       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-  //       update();
-  //       accel_sum += accel;
-  //       gyro_sum += gyro;
-  //     }
-  //     accel_offset += accel_sum / ave_count;
-  //     gyro_offset += gyro_sum / ave_count;
-  //   }
-  // }
 
 private:
   static constexpr const char *TAG = "ICM-20602";
   spi_device_handle_t spi_handle = NULL;
-  MotionParameter accel_offset, gyro_offset;
 
   void writeReg(uint8_t reg, uint8_t data) {
     static spi_transaction_t tx;

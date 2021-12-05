@@ -19,9 +19,8 @@ public:
     ESP_ERROR_CHECK(gpio_set_direction(pin, GPIO_MODE_INPUT));
     ESP_ERROR_CHECK(gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY));
     flags = 0x00;
-    const UBaseType_t Task_Priority = 1;
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "Button", configMINIMAL_STACK_SIZE, this, Task_Priority, NULL);
+                "Button", configMINIMAL_STACK_SIZE, this, 1, NULL);
   }
   union {
     uint8_t flags; /**< all flags */

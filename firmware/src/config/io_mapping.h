@@ -33,6 +33,11 @@
 #define AS5048A_SPI_HOST CONFIG_SPI_HOST
 #define AS5048A_CS_PIN GPIO_NUM_4
 
+#define ENCODER_SPI_HOST AS5048A_SPI_HOST
+#define ENCODER_CS_PINS                                                        \
+  { AS5048A_CS_PIN }
+#define ENCODER_NUM 1
+
 #define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_L_CS_PIN GPIO_NUM_26
 #define ICM20602_R_CS_PIN GPIO_NUM_27
@@ -49,8 +54,11 @@
 #define MA730_SPI_HOST CONFIG_SPI_HOST
 #define MA730_L_CS_PIN GPIO_NUM_4
 #define MA730_R_CS_PIN GPIO_NUM_5
-#define MA730_CS_PINS                                                          \
+
+#define ENCODER_SPI_HOST MA730_SPI_HOST
+#define ENCODER_CS_PINS                                                        \
   { MA730_L_CS_PIN, MA730_R_CS_PIN }
+#define ENCODER_NUM 2
 
 #define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_CS_PIN GPIO_NUM_26

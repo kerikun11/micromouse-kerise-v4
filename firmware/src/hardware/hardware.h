@@ -43,14 +43,9 @@ public:
     /* IMU */
     if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz.play(Buzzer::ERROR);
-      /* Encoder */
-#if KERISE_SELECT == 4 || KERISE_SELECT == 3
-    if (!enc.init(AS5048A_SPI_HOST, AS5048A_CS_PIN))
+    /* Encoder */
+    if (!enc.init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
       bz.play(Buzzer::ERROR);
-#elif KERISE_SELECT == 5
-    if (!enc.init(MA730_SPI_HOST, MA730_CS_PINS))
-      bz.play(Buzzer::ERROR);
-#endif
     /* Reflector */
     if (!ref.init())
       bz.play(Buzzer::ERROR);

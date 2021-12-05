@@ -16,9 +16,6 @@ namespace hardware {
 
 class ToF {
 public:
-  static constexpr UBaseType_t Priority = 1;
-
-public:
   ToF(i2c_port_t i2c_port, float tof_dist_offset)
       : sensor(i2c_port), tof_dist_offset(tof_dist_offset) {}
   bool init() {
@@ -32,7 +29,7 @@ public:
     /* [max-convergence; includes readout average time] default: 49ms */
     sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "ToF", 4096, this, Priority, NULL);
+                "ToF", 4096, this, 1, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));
     if (sensor.last_status != 0) {
       ESP_LOGE(TAG, "ToF init failed :(");

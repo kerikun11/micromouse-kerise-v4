@@ -48,8 +48,9 @@ public:
     reset();
   }
   bool init() {
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
-                "SC", 4096, this, 5, NULL);
+    xTaskCreatePinnedToCore(
+        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        "SpeedCtrl", 4096, this, 5, NULL, PRO_CPU_NUM);
     return true;
   }
   void enable() {
@@ -79,11 +80,9 @@ private:
   ctrl::Pose fix;
 
   void task() {
-    // TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       // const int us_start = esp_timer_get_time();
       /* sync */
-      // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       imu.sampling_sync();
       enc.sampling_sync();
       /* sampling */
