@@ -9,13 +9,14 @@
 #include "app_log.h"
 #include "config/model.h" //< for KERISE_SELECT
 
-#include <as5048a.h>
+#include <drivers/as5048a/as5048a.h>
+#include <drivers/ma730/ma730.h>
 #include <freertospp/semphr.h>
-#include <ma730.h>
 
 #include <cmath>
 #include <iomanip>
 
+namespace hardware {
 class Encoder {
 public:
   Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
@@ -150,3 +151,5 @@ private:
 #endif
   }
 };
+
+}; // namespace hardware

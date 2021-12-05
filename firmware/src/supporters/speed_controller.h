@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include "global.h"
-#include "machine/wheel_parameter.h"
+#include "config/wheel_parameter.h"
+#include "machine/global.h"
 
 #include <freertospp/semphr.h>
 

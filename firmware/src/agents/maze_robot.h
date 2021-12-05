@@ -7,7 +7,7 @@
 #pragma once
 
 #include "config/model.h"
-#include "global.h"
+#include "machine/global.h"
 
 #include "Maze.h"
 #include "RobotBase.h"

@@ -11,6 +11,8 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
+namespace hardware {
+
 class Buzzer {
 public:
   enum Music : uint8_t {
@@ -236,3 +238,5 @@ private:
     }
   }
 };
+
+}; // namespace hardware

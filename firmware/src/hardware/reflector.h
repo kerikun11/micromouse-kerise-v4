@@ -6,10 +6,12 @@
  */
 #pragma once
 
-#include <TimerSemaphore.h>
 #include <array>
 #include <ctrl/accumulator.h>
 #include <peripheral/adc.h>
+#include <peripheral/timer_semaphore.h>
+
+namespace hardware {
 
 class Reflector {
 public:
@@ -87,3 +89,5 @@ private:
     }
   }
 };
+
+}; // namespace hardware

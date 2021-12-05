@@ -9,10 +9,13 @@
 #include "app_log.h"
 #include "config/model.h" //< for KERISE_SELECT
 
+#include <drivers/icm20602/icm20602.h>
 #include <freertospp/semphr.h>
-#include <icm20602.h>
 
+#include <array>
 #include <atomic>
+
+namespace hardware {
 
 class IMU {
 public:
@@ -158,3 +161,5 @@ private:
 #endif
   }
 };
+
+}; // namespace hardware

@@ -6,11 +6,13 @@
  */
 #pragma once
 
-#include <VL6180X.h>
 #include <cstdio>
 #include <ctrl/accumulator.h>
+#include <drivers/vl6180x/VL6180X.h>
 #include <esp_log.h>
 #include <peripheral/i2c.h>
+
+namespace hardware {
 
 class ToF {
 public:
@@ -96,3 +98,5 @@ private:
     }
   }
 };
+
+}; // namespace hardware

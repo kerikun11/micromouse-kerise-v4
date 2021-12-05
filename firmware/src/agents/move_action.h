@@ -8,17 +8,18 @@
 
 #include "config/model.h"
 #include "config/slalom_shapes.h"
-#include "global.h"
+#include "machine/global.h"
 
 #include <RobotBase.h>
-#include <cmath>
-#include <concurrent_queue.hpp>
-#include <math_utils.hpp>
+#include <utils/concurrent_queue.hpp>
+#include <utils/math_utils.hpp>
 
 #include <ctrl/accel_designer.h>
 #include <ctrl/slalom.h>
 #include <ctrl/straight.h>
 #include <ctrl/trajectory_tracker.h>
+
+#include <cmath>
 
 #if 0
 #define ma_log app_logi

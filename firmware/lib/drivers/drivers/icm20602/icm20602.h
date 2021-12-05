@@ -7,9 +7,7 @@
  */
 #pragma once
 
-#include <array>
-#include <driver/spi_master.h>
-#include <esp_err.h>
+#include <esp_log.h>
 #include <peripheral/spi.h>
 
 struct MotionParameter {

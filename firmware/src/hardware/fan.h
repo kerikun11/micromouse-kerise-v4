@@ -8,6 +8,8 @@
 
 #include "peripheral/mcpwm_kerise.h"
 
+namespace hardware {
+
 class Fan {
 public:
   Fan(gpio_num_t gpio_num, mcpwm_kerise_unit_t unit = MCPWM_UNIT_1,
@@ -41,3 +43,5 @@ private:
   mcpwm_kerise_unit_t unit;
   mcpwm_kerise_timer_t timer;
 };
+
+}; // namespace hardware

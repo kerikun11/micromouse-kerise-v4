@@ -13,7 +13,7 @@
 #include "config/io_mapping.h"
 #include "config/model.h"
 #include "freertospp/task.h"
-#include "peripheral/spiffs.h"
+#include "hardware/hardware.h"
 
 class Machine {
 public:
@@ -23,45 +23,9 @@ public:
     std::cout << std::endl;
     std::cout << "I'm KERISE v" << KERISE_SELECT << "." << std::endl;
     std::cout << "IDF Version: " << esp_get_idf_version() << std::endl;
-    /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
-    for (auto p : CONFIG_SPI_CS_PINS) {
-      gpio_set_direction(p, GPIO_MODE_INPUT);
-      gpio_pullup_en(p);
-    }
-    /* Buzzer */
-    bz.init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
-    /* I2C */
-    if (!peripheral::I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
-      bz.play(Buzzer::ERROR);
-    /* LED */
-    if (!led.init())
-      bz.play(Buzzer::ERROR);
-    /* ADC */
-    if (!peripheral::ADC::init())
-      bz.play(Buzzer::ERROR);
-    /* Battery Check */
-    ui.batteryCheck();
-    /* Normal Boot */
-    bz.play(Buzzer::BOOT);
-    if (!peripheral::SPIFFS::init())
-      bz.play(Buzzer::ERROR);
-    if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,
-                                  CONFIG_SPI_MISO_PIN, CONFIG_SPI_MOSI_PIN,
-                                  CONFIG_SPI_DMA_CHAIN))
-      bz.play(Buzzer::ERROR);
-    if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
-      bz.play(Buzzer::ERROR);
-#if KERISE_SELECT == 4 || KERISE_SELECT == 3
-    if (!enc.init(AS5048A_SPI_HOST, AS5048A_CS_PIN))
-      bz.play(Buzzer::ERROR);
-#elif KERISE_SELECT == 5
-    if (!enc.init(MA730_SPI_HOST, MA730_CS_PINS))
-      bz.play(Buzzer::ERROR);
-#endif
-    if (!ref.init())
-      bz.play(Buzzer::ERROR);
-    if (!tof.init())
-      bz.play(Buzzer::ERROR);
+    /* Hardware */
+    Hardware::init();
+    /* Supporters */
     if (!wd.init())
       bz.play(Buzzer::ERROR);
     if (!sc.init())

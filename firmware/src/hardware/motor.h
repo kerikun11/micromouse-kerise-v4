@@ -11,6 +11,8 @@
 #include <iostream>
 #include <peripheral/mcpwm_kerise.h>
 
+namespace hardware {
+
 class OneMotor {
 public:
   OneMotor(mcpwm_kerise_unit_t unit, mcpwm_kerise_timer_t timer,
@@ -98,3 +100,5 @@ private:
   OneMotor mt_L;
   OneMotor mt_R;
 };
+
+}; // namespace hardware

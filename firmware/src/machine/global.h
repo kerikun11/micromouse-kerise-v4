@@ -4,6 +4,10 @@
  */
 #pragma once
 
+/* tmp */
+namespace hardware {};
+using namespace hardware;
+
 /* Driver */
 #include "hardware/buzzer.h"
 extern Buzzer bz;
@@ -27,19 +31,19 @@ extern Reflector ref;
 extern ToF tof;
 
 /* Logger */
-#include "logger.h"
+#include "supporters/logger.h"
 extern Logger lgr;
 
 /* Supporter */
-#include "wall_detector.h"
+#include "supporters/wall_detector.h"
 extern WallDetector wd;
-#include "speed_controller.h"
+#include "supporters/speed_controller.h"
 extern SpeedController sc;
-#include "user_interface.h"
+#include "supporters/user_interface.h"
 extern UserInterface ui;
 
 /* Conductor */
-#include "move_action.h"
+#include "agents/move_action.h"
 extern MoveAction ma;
-#include "maze_robot.h"
+#include "agents/maze_robot.h"
 extern MazeRobot mr;

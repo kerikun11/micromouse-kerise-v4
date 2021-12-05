@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include "global.h"
+#include "machine/global.h"
 
 #include <cmath>
 #include <fstream>

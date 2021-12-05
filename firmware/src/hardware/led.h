@@ -12,6 +12,8 @@
 
 #include <peripheral/i2c.h>
 
+namespace hardware {
+
 class LED {
 private:
   static constexpr uint8_t PCA9632_DEV_ID = 0x62; //< 全体制御用のI2Cアドレス
@@ -60,3 +62,5 @@ private:
     return peripheral::I2C::writeReg8(i2c_port, PCA9632_DEV_ID, reg, &data, 1);
   }
 };
+
+}; // namespace hardware

@@ -10,6 +10,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+namespace hardware {
+
 class Button {
 public:
   Button(const gpio_num_t pin) : pin(pin) {
@@ -79,3 +81,5 @@ private:
     }
   }
 };
+
+}; // namespace hardware

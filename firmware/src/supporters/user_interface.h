@@ -10,7 +10,7 @@
 #include "app_log.h"
 #include "config/io_mapping.h"
 #include "config/model.h"
-#include "global.h"
+#include "machine/global.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -228,8 +228,10 @@ public:
     if (voltage < thr_battery) {
       app_logw << "Battery Low!" << std::endl;
       bz.play(Buzzer::SHUTDOWN);
+      led = 0;
+      /* wait for button pressed */
       while (!btn.pressed)
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(10));
       btn.flags = 0;
       led = 0;
     }
