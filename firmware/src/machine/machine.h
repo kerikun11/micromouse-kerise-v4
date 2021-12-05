@@ -66,10 +66,12 @@ public:
       bz.play(Buzzer::ERROR);
     if (!sc.init())
       bz.play(Buzzer::ERROR);
+    return true;
+  }
+  void start() {
     /* start task */
     task_drive.start(this, &Machine::task, "Drive", 4096, 1, tskNO_AFFINITY);
     task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
-    return true;
   }
 
 private:
@@ -200,7 +202,7 @@ private:
     if (!ui.waitForCover())
       return;
     led = 9;
-    vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
+    // vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
     mr.autoRun(forceSearch);
   }
   void selectParamPreset() {

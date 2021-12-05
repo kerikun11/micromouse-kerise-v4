@@ -20,12 +20,12 @@ public:
     return true;
   }
   static int read_raw(adc1_channel_t channel) {
-    adc1_config_channel_atten(channel, atten);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(adc1_config_channel_atten(channel, atten));
     return adc1_get_raw(channel);
   }
   static int read_milli_voltage(adc1_channel_t channel,
                                 int num_average_samples = 1) {
-    adc1_config_channel_atten(channel, atten);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(adc1_config_channel_atten(channel, atten));
     uint32_t adc_reading = 0;
     for (int i = 0; i < num_average_samples; i++)
       adc_reading += adc1_get_raw(channel);

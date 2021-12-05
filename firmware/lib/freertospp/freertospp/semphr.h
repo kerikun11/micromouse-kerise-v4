@@ -21,7 +21,7 @@ public:
   Semaphore() {
     xSemaphore = xSemaphoreCreateBinary();
     if (xSemaphore == NULL) {
-      ESP_LOGE(tag, "xSemaphoreCreateBinary() failed");
+      ESP_LOGE(TAG, "xSemaphoreCreateBinary() failed");
     }
   }
   ~Semaphore() { vSemaphoreDelete(xSemaphore); }
@@ -34,7 +34,7 @@ public:
   }
 
 private:
-  const char *tag = "Semaphore";
+  static constexpr const char *TAG = "Semaphore";
   SemaphoreHandle_t xSemaphore = NULL;
 };
 

@@ -119,9 +119,10 @@ public:
     return whoami();
   }
   bool whoami() {
-    uint8_t v = readReg(117); /*< Who am I */
-    if (v != 0x12) {
-      ESP_LOGE(tag, "whoami failed:( 0x%X", v);
+    uint8_t whoami = readReg(117); /*< Who am I */
+    uint8_t whoami_expected = 0x12;
+    if (whoami != whoami_expected) {
+      ESP_LOGE(TAG, "whoami failed:( 0x%X != 0x%X", whoami, whoami_expected);
       return false;
     }
     return true;
@@ -173,7 +174,7 @@ public:
   // }
 
 private:
-  const char *tag = "ICM-20602";
+  static constexpr const char *TAG = "ICM-20602";
   spi_device_handle_t spi_handle = NULL;
   MotionParameter accel_offset, gyro_offset;
 

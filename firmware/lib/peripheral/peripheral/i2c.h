@@ -8,28 +8,32 @@
 #pragma once
 
 #include <driver/i2c.h>
-#include <esp_err.h>
-#include <iostream>
 
 namespace peripheral {
 
 class I2C {
 public:
   static bool install(i2c_port_t port, gpio_num_t sda, gpio_num_t scl,
-                      uint32_t clk_speed = 400000) {
-    static i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = (gpio_num_t)sda;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = (gpio_num_t)scl;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = clk_speed;
-    i2c_param_config(port, &conf);
+                      uint32_t clk_speed = 400'000) {
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = sda,
+        .scl_io_num = scl,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master =
+            {
+                .clk_speed = clk_speed,
+            },
+        .clk_flags = 0,
+    };
+    ESP_ERROR_CHECK(i2c_param_config(port, &conf));
     esp_err_t ret = i2c_driver_install(port, conf.mode, 0, 0, 0);
-    if (ret != ESP_OK)
-      std::cerr << "[E][" __FILE__ ":" << __LINE__ << "] "
-                << esp_err_to_name(ret) << std::endl;
-    return ret == ESP_OK;
+    if (ret != ESP_OK) {
+      ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+      return false;
+    }
+    return true;
   }
 
   /* specific functions */
@@ -73,25 +77,31 @@ public:
                            uint8_t *rx_data, int rx_len,
                            TickType_t ticks_to_wait, bool ack_en) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_start(cmd));
     if (reg_len > 0 || tx_len > 0)
-      i2c_master_write_byte(cmd, (addr7 << 1) | I2C_MASTER_WRITE, ack_en);
+      ESP_ERROR_CHECK_WITHOUT_ABORT(
+          i2c_master_write_byte(cmd, (addr7 << 1) | I2C_MASTER_WRITE, ack_en));
     if (reg_len > 0)
-      i2c_master_write(cmd, (uint8_t *)reg_data, reg_len, ack_en);
+      ESP_ERROR_CHECK_WITHOUT_ABORT(
+          i2c_master_write(cmd, (uint8_t *)reg_data, reg_len, ack_en));
     if (tx_len > 0)
-      i2c_master_write(cmd, (uint8_t *)tx_data, tx_len, ack_en);
+      ESP_ERROR_CHECK_WITHOUT_ABORT(
+          i2c_master_write(cmd, (uint8_t *)tx_data, tx_len, ack_en));
     if (rx_len > 0) {
-      i2c_master_start(cmd);
-      i2c_master_write_byte(cmd, (addr7 << 1) | I2C_MASTER_READ, ack_en);
-      i2c_master_read(cmd, rx_data, rx_len, I2C_MASTER_LAST_NACK);
+      ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_start(cmd));
+      ESP_ERROR_CHECK_WITHOUT_ABORT(
+          i2c_master_write_byte(cmd, (addr7 << 1) | I2C_MASTER_READ, ack_en));
+      ESP_ERROR_CHECK_WITHOUT_ABORT(
+          i2c_master_read(cmd, rx_data, rx_len, I2C_MASTER_LAST_NACK));
     }
-    i2c_master_stop(cmd);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_stop(cmd));
     esp_err_t ret = i2c_master_cmd_begin(port, cmd, ticks_to_wait);
     i2c_cmd_link_delete(cmd);
-    if (ret != ESP_OK)
-      std::cerr << "[E][" __FILE__ ":" << __LINE__ << "] "
-                << esp_err_to_name(ret) << std::endl;
-    return ret == ESP_OK;
+    if (ret != ESP_OK) {
+      ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+      return false;
+    }
+    return true;
   }
 };
 

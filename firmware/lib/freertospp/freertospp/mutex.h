@@ -20,7 +20,7 @@ public:
   Mutex() {
     xSemaphore = xSemaphoreCreateMutex();
     if (xSemaphore == NULL) {
-      ESP_LOGE(tag, "xSemaphoreCreateMutex() failed");
+      ESP_LOGE(TAG, "xSemaphoreCreateMutex() failed");
     }
   }
   ~Mutex() { vSemaphoreDelete(xSemaphore); }
@@ -33,7 +33,7 @@ public:
   }
 
 private:
-  const char *tag = "Mutex";
+  static constexpr const char *TAG = "Mutex";
   SemaphoreHandle_t xSemaphore = NULL;
 };
 

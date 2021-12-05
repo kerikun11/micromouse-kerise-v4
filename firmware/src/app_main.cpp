@@ -12,5 +12,6 @@ extern "C" void app_main() {
   // Serial.begin(2000000);
   Machine machine;
   machine.init();
+  machine.start();
   vTaskDelay(portMAX_DELAY);
 }

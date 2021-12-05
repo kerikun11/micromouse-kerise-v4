@@ -42,14 +42,14 @@ public:
                   const uint16_t usStackDepth = configMINIMAL_STACK_SIZE,
                   const BaseType_t xCoreID = tskNO_AFFINITY) {
     if (pxCreatedTask != NULL) {
-      ESP_LOGW(tag, "task \"%s\" is already created", pcName);
+      ESP_LOGW(TAG, "task \"%s\" is already created", pcName);
       return false;
     }
     BaseType_t res =
         xTaskCreatePinnedToCore(pxTaskCode, pcName, usStackDepth, this,
                                 uxPriority, &pxCreatedTask, xCoreID);
     if (res != pdPASS) {
-      ESP_LOGW(tag, "couldn't create the task \"%s\"", pcName);
+      ESP_LOGW(TAG, "couldn't create the task \"%s\"", pcName);
       return false;
     }
     return true;
@@ -59,7 +59,7 @@ public:
    */
   void deleteTask() {
     if (pxCreatedTask == NULL) {
-      ESP_LOGW(tag, "task is not created");
+      ESP_LOGW(TAG, "task is not created");
       return;
     }
     vTaskDelete(pxCreatedTask);
@@ -67,7 +67,7 @@ public:
   }
 
 protected:
-  const char *tag = "TaskBase";
+  static constexpr const char *TAG = "TaskBase";
   TaskHandle_t pxCreatedTask; //< タスクのハンドル
 
   /**

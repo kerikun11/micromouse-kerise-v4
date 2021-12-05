@@ -33,7 +33,7 @@ public:
                 "ToF", 4096, this, Priority, NULL);
     vTaskDelay(pdMS_TO_TICKS(40));
     if (sensor.last_status != 0) {
-      ESP_LOGE(tag, "ToF init failed :(");
+      ESP_LOGE(TAG, "ToF init failed :(");
       return false;
     }
     return true;
@@ -45,7 +45,7 @@ public:
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const {
-    ESP_LOGI(tag, "ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
+    ESP_LOGI(TAG, "ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
              getDistance(), dur, passedTimeMs());
   }
   void csv() const {
@@ -53,7 +53,7 @@ public:
   }
 
 private:
-  const char *tag = "ToF";
+  static constexpr const char *TAG = "ToF";
   VL6180X sensor;
   float tof_dist_offset;
   volatile bool enabled = true;

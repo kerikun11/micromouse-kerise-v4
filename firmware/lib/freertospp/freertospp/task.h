@@ -51,7 +51,7 @@ public:
     this->obj = obj;
     this->func = func;
     if (pxCreatedTask != NULL) {
-      ESP_LOGW(tag, "task %s is already created", pcName);
+      ESP_LOGW(TAG, "task %s is already created", pcName);
       return false;
     }
     BaseType_t result =
@@ -70,7 +70,7 @@ public:
   }
 
 private:
-  const char *tag = "Task";
+  static constexpr const char *TAG = "Task";
   TaskHandle_t pxCreatedTask = NULL; //< タスクのハンドル
   T *obj = NULL;                     //< thisポインタ
   void (T::*func)() = NULL;          //< メンバ関数ポインタ

@@ -173,7 +173,7 @@ void VL6180X::writeReg(uint16_t reg, uint8_t value)
   i2c_master_write_byte(cmd, reg & 0xff, true);
   i2c_master_write_byte(cmd, value, true);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
 }
@@ -189,7 +189,7 @@ void VL6180X::writeReg16Bit(uint16_t reg, uint16_t value)
   i2c_master_write_byte(cmd, (value >> 8) & 0xff, true);
   i2c_master_write_byte(cmd, value & 0xff, true);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
 }
@@ -207,7 +207,7 @@ void VL6180X::writeReg32Bit(uint16_t reg, uint32_t value)
   i2c_master_write_byte(cmd, (value >> 8) & 0xff, true);
   i2c_master_write_byte(cmd, value & 0xff, true);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
 }
@@ -225,7 +225,7 @@ uint8_t VL6180X::readReg(uint16_t reg)
   i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
   i2c_master_read_byte(cmd, &value, I2C_MASTER_NACK);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
   return value;
@@ -244,7 +244,7 @@ uint16_t VL6180X::readReg16Bit(uint16_t reg)
   i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
   i2c_master_read(cmd, value, 2, I2C_MASTER_LAST_NACK);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
   return ((uint16_t)value[0] << 8) | value[1];
@@ -263,7 +263,7 @@ uint32_t VL6180X::readReg32Bit(uint16_t reg)
   i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, true);
   i2c_master_read(cmd, value, 4, I2C_MASTER_LAST_NACK);
   i2c_master_stop(cmd);
-  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(1));
+  esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, pdMS_TO_TICKS(2));
   i2c_cmd_link_delete(cmd);
   last_status = (ret == ESP_OK) ? 0 : -1;
   return ((uint32_t)value[0] << 24) | ((uint32_t)value[1] << 16) | ((uint32_t)value[2] << 8) | value[3];
