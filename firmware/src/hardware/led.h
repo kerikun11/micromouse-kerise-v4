@@ -19,10 +19,9 @@ private:
   static constexpr uint8_t PCA9632_DEV_ID = 0x62; //< 全体制御用のI2Cアドレス
 
 public:
-  LED(i2c_port_t i2c_port) : i2c_port(i2c_port) {
-    playList = xQueueCreate(/* uxQueueLength = */ 5, sizeof(uint8_t));
-  }
-  bool init() {
+  LED() { playList = xQueueCreate(/* uxQueueLength = */ 5, sizeof(uint8_t)); }
+  bool init(i2c_port_t i2c_port) {
+    this->i2c_port = i2c_port;
     writeReg(0x00, 0b10000001);
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "LED", 2048, this, 1, NULL);
@@ -37,7 +36,7 @@ public:
   uint8_t operator=(uint8_t new_value) { return set(new_value); }
 
 private:
-  const i2c_port_t i2c_port;
+  i2c_port_t i2c_port;
   QueueHandle_t playList;
   uint8_t value;
 

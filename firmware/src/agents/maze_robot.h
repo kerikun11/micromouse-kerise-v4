@@ -6,10 +6,13 @@
  */
 #pragma once
 
+#include "agents/move_action.h"
 #include "config/model.h"
-#include "machine/global.h"
+#include "hardware/hardware.h"
+#include "supporters/supporters.h"
 
 #include <MazeLib/RobotBase.h>
+#include <esp_timer.h>
 
 using namespace MazeLib;
 
@@ -101,8 +104,16 @@ public:
     }
   };
 
+private:
+  hardware::Hardware *hw;
+  supporters::Supporters *sp;
+  MoveAction *ma;
+
 public:
-  MazeRobot() { replaceGoals(MAZE_GOAL); }
+  MazeRobot(hardware::Hardware *hw, supporters::Supporters *sp, MoveAction *ma)
+      : hw(hw), sp(sp), ma(ma) {
+    replaceGoals(MAZE_GOAL);
+  }
   void reset() {
     RobotBase::reset();
     maze.backupWallRecordsToFile(MAZE_SAVE_PATH, true);
@@ -119,7 +130,7 @@ public:
   }
   bool autoRun(const bool isForceSearch = false) {
     // app_logi << "auto run; force:" << isForceSearch << std::endl;
-    ma.emergency_release();
+    ma->emergency_release();
     /* 迷路のチェック */
     auto_maze_check();
     /* 探索走行: スタート -> ゴール -> スタート */
@@ -132,25 +143,25 @@ public:
       // if (state.try_count > 5)
       // break;
       /* 回収待ち */
-      if (ui.waitForPickup())
+      if (sp->ui->waitForPickup())
         return false;
       state.newRun(); //< 1 -> 2
       if (!auto_fast_run()) {
-        if (!mt.is_emergency()) {
-          bz.play(Buzzer::ERROR);
+        if (!hw->mt->is_emergency()) {
+          hw->bz->play(hardware::Buzzer::ERROR);
           return false;
         }
         /* クラッシュ後 */
-        ma.emergency_release();
+        ma->emergency_release();
         /* 自動復帰 */
-        if (ui.waitForPickup())
+        if (sp->ui->waitForPickup())
           return false;
         auto_pi_run();
       }
-      bz.play(Buzzer::SUCCESSFUL);
+      hw->bz->play(hardware::Buzzer::SUCCESSFUL);
     }
     /* 5走終了 */
-    bz.play(Buzzer::COMPLETE);
+    hw->bz->play(hardware::Buzzer::COMPLETE);
     return true;
   }
   void print() const {
@@ -170,22 +181,22 @@ private:
 protected:
   void waitForEndAction() override {
     // vTaskDelay(pdMS_TO_TICKS(300)); //< 計算処理に時間がかかる場合を模擬
-    ma.waitForEndAction();
-    if (mt.is_emergency())
+    ma->waitForEndAction();
+    if (hw->mt->is_emergency())
       setBreakFlag();
   }
   void queueAction(const RobotBase::SearchAction action) override {
-    return ma.enqueue_action(action);
+    return ma->enqueue_action(action);
   }
   void senseWalls(bool &left, bool &front, bool &right) override {
-    left = ma.getSensedWalls()[0];
-    right = ma.getSensedWalls()[1];
-    front = ma.getSensedWalls()[2];
+    left = ma->getSensedWalls()[0];
+    right = ma->getSensedWalls()[1];
+    front = ma->getSensedWalls()[2];
   }
   void backupMazeToFlash() override { backup(); }
-  void stopDequeue() override { ma.disable(); }
-  void startDequeue() override { ma.enable(MoveAction::TaskActionSearchRun); }
-  void calibration() override { ma.calibration(); }
+  void stopDequeue() override { ma->disable(); }
+  void startDequeue() override { ma->enable(MoveAction::TaskActionSearchRun); }
+  void calibration() override { ma->calibration(); }
   void calcNextDirectionsPreCallback() override {
     /* ゴール判定用フラグ */
     prevIsForceGoingToGoal = isForceGoingToGoal;
@@ -194,47 +205,49 @@ protected:
                              (5 - state.try_count) * expected_fast_run_time_s;
     if (!isForceBackToStart && state.getTimeSecond() > time_limit_s) {
       setForceBackToStart();
-      bz.play(Buzzer::TIMEOUT);
+      hw->bz->play(hardware::Buzzer::TIMEOUT);
     }
   }
   void
   calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
                                  SearchAlgorithm::State newState) override {
     /* 未知区間加速の設定 */
-    ma.continue_straight_if_no_front_wall = getUnknownAccelFlag();
+    ma->continue_straight_if_no_front_wall = getUnknownAccelFlag();
     /* ゴール判定 */
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
       state.has_reached_goal = true;
-      bz.play(Buzzer::CONFIRM);
+      hw->bz->play(hardware::Buzzer::CONFIRM);
     }
     /* 探索情報のお知らせ */
     if (newState == prevState)
       return;
     if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
-      bz.play(Buzzer::SUCCESSFUL);
+      hw->bz->play(hardware::Buzzer::SUCCESSFUL);
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION &&
         newState != SearchAlgorithm::IMPOSSIBLE)
-      bz.play(Buzzer::COMPLETE);
+      hw->bz->play(hardware::Buzzer::COMPLETE);
     if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
         newState != SearchAlgorithm::IMPOSSIBLE && !isForceBackToStart)
-      bz.play(Buzzer::COMPLETE);
+      hw->bz->play(hardware::Buzzer::COMPLETE);
   }
-  void discrepancyWithKnownWall() override { bz.play(Buzzer::ERROR); }
+  void discrepancyWithKnownWall() override {
+    hw->bz->play(hardware::Buzzer::ERROR);
+  }
 
 private:
   bool auto_maze_check() {
     /* 探索中 */
     if (!getMaze().getWallRecords().empty() && !isComplete()) {
-      bz.play(Buzzer::MAZE_BACKUP);
+      hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
       maze.resetLastWalls(3);
     }
     /* 異常検出 */
     if (!isSolvable())
-      bz.play(Buzzer::ERROR);
+      hw->bz->play(hardware::Buzzer::ERROR);
     while (!isSolvable()) {
       maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
       if (getMaze().getWallRecords().empty())
-        reset(), bz.play(Buzzer::ERROR);
+        reset(), hw->bz->play(hardware::Buzzer::ERROR);
     }
     return true;
   }
@@ -243,28 +256,28 @@ private:
     auto_maze_check();
     // app_logi << "auto pi run" << std::endl;
     /* 既知区間斜めを無効化 */
-    ma.rp_search.diag_enabled = false;
+    ma->rp_search.diag_enabled = false;
     /* 自動復帰: 任意 -> ゴール -> スタート */
     while (1) {
       /* 姿勢復帰ループ */
       while (1) {
         /* 回収待ち */
-        if (ui.waitForPickup())
+        if (sp->ui->waitForPickup())
           return false;
         /* 姿勢復帰走行 */
-        ma.enable(MoveAction::TaskActionPositionRecovery);
-        ma.waitForEndAction();
-        ma.disable();
+        ma->enable(MoveAction::TaskActionPositionRecovery);
+        ma->waitForEndAction();
+        ma->disable();
         /* 失敗したらもう一度 */
-        if (mt.is_emergency()) {
-          ma.emergency_release();
+        if (hw->mt->is_emergency()) {
+          ma->emergency_release();
           continue;
         }
         /* 成功 */
         break;
       }
       /* 回収待ち */
-      if (ui.waitForPickup())
+      if (sp->ui->waitForPickup())
         return false;
       /* ゴール区画の訪問を指定 */
       setForceGoingToGoal(!state.has_reached_goal);
@@ -272,13 +285,13 @@ private:
       if (positionIdentifyRun())
         break;
       /* エラー処理 */
-      if (mt.is_emergency())
-        ma.emergency_release();
+      if (hw->mt->is_emergency())
+        ma->emergency_release();
       else
-        bz.play(Buzzer::ERROR);
+        hw->bz->play(hardware::Buzzer::ERROR);
     }
     /* スタート位置に戻ってきた */
-    bz.play(Buzzer::COMPLETE);
+    hw->bz->play(hardware::Buzzer::COMPLETE);
     return true;
   }
   bool auto_search_run() {
@@ -286,18 +299,18 @@ private:
     /* 探索走行: スタート -> ゴール -> スタート */
     state.newRun(); //< 0 -> 1
     if (searchRun()) {
-      bz.play(Buzzer::COMPLETE);
+      hw->bz->play(hardware::Buzzer::COMPLETE);
       return true;
     }
     /* エラー処理 */
     if (!isSolvable()) {
       /* 探索失敗 */
-      bz.play(Buzzer::ERROR);
+      hw->bz->play(hardware::Buzzer::ERROR);
       /* ToDo: 迷路を編集して探索を再開 */
       /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
       return false;
     }
-    ma.emergency_release();
+    ma->emergency_release();
     /* 自動復帰 */
     return auto_pi_run();
   }
@@ -307,27 +320,27 @@ private:
     if (state.is_fast_run) {
       /* クラッシュ後の場合 */
       if (state.max_parameter < 0) { /*< 最短未成功の状態 */
-        ma.rp_fast.diag_enabled = !ma.rp_fast.diag_enabled; //< 斜めを交互に
-        ma.rp_fast.down(state.running_parameter), state.running_parameter = 0;
+        ma->rp_fast.diag_enabled = !ma.rp_fast.diag_enabled; //< 斜めを交互に
+        ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
       }
     } else {
       /* 初回 or 完走した場合 */
       if (state.try_count == 2) //< 最短初回だけ特別にパラメータを上げる
-        ma.rp_fast.up(2), state.running_parameter += 2;
+        ma->rp_fast.up(2), state.running_parameter += 2;
       if (ma.rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
-        ma.rp_fast.up(2), state.running_parameter += 2;
+        ma->rp_fast.up(2), state.running_parameter += 2;
       else //< 斜めなし -> 斜めあり
-        ma.rp_fast.diag_enabled = true;
-      ma.rp_search.diag_enabled = true;
+        ma->rp_fast.diag_enabled = true;
+      ma->rp_search.diag_enabled = true;
     }
     /* 残り時間が足りない場合 */
     const int remaining_time_s =
         competition_limit_time_s - state.getTimeSecond();
     if (remaining_time_s < expected_fast_run_time_s * (5 - state.try_count)) {
-      ma.rp_fast.down(state.running_parameter), state.running_parameter = 0;
-      ma.rp_search.diag_enabled = false;
-      ma.rp_fast.diag_enabled = false;
-      bz.play(Buzzer::TIMEOUT);
+      ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
+      ma->rp_search.diag_enabled = false;
+      ma->rp_fast.diag_enabled = false;
+      hw->bz->play(hardware::Buzzer::TIMEOUT);
     }
     /* 保存 */
     state.is_fast_run = true, state.save();
@@ -335,40 +348,40 @@ private:
     /* 走行パラメータ選択 */
     if (state.is_fast_run) {
       /* クラッシュ後の場合 */
-      ma.rp_fast.down(1), state.running_parameter -= 1;
+      ma->rp_fast.down(1), state.running_parameter -= 1;
     } else {
       /* 初回 or 完走した場合 */
-      ma.rp_search.diag_enabled = true; //< 帰りの斜め有効化
-      if (ma.rp_fast.diag_enabled) {
+      ma->rp_search.diag_enabled = true; //< 帰りの斜め有効化
+      if (ma->rp_fast.diag_enabled) {
         // 最短斜めあり -> パラメータを上げる
-        ma.rp_fast.up(2), state.running_parameter += 2;
+        ma->rp_fast.up(2), state.running_parameter += 2;
       } else {
         // 最短斜めなし -> 斜めあり
-        ma.rp_fast.diag_enabled = true;
+        ma->rp_fast.diag_enabled = true;
       }
     }
     /* 保存 */
     state.is_fast_run = true, state.save();
 #endif
     /* 最短経路の作成 */
-    if (!calcShortestDirections(ma.rp_fast.diag_enabled))
+    if (!calcShortestDirections(ma->rp_fast.diag_enabled))
       return false;
     const auto search_path = convertDirectionsToSearch(getShortestDirections());
     // app_logi << search_path.size() << std::endl;
     //> FastRun Start
-    ma.set_fast_path(search_path);
-    ma.enable(MoveAction::TaskActionFastRun);
-    ma.waitForEndAction();
-    ma.disable();
+    ma->set_fast_path(search_path);
+    ma->enable(MoveAction::TaskActionFastRun);
+    ma->waitForEndAction();
+    ma->disable();
     //< FastRun End
-    if (mt.is_emergency())
+    if (hw->mt->is_emergency())
       return false;
     /* 最短成功 */
     state.is_fast_run = false;
     state.max_parameter = state.running_parameter;
     state.save();
     /* ゴールで回収されるか待つ */
-    if (ui.waitForPickup())
+    if (sp->ui->waitForPickup())
       return false;
     /* 帰る */
     return endFastRunBackingToStartRun();

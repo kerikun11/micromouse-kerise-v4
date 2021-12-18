@@ -7,14 +7,13 @@
 #pragma once
 
 #include "config/wheel_parameter.h"
-#include "machine/global.h"
-
-#include <freertospp/semphr.h>
 
 #include <ctrl/accumulator.h>
 #include <ctrl/feedback_controller.h>
 #include <ctrl/polar.h>
 #include <ctrl/pose.h>
+#include <freertospp/semphr.h>
+#include "hardware/hardware.h"
 
 #include <atomic>
 
@@ -35,16 +34,13 @@ public:
   ctrl::Accumulator<ctrl::Polar, acc_num> accel;
 
 private:
-  Motor &mt;
-  IMU &imu;
-  Encoder &enc;
-  Fan &fan;
+  hardware::Hardware *hw;
 
 public:
   SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
                   const ctrl::FeedbackController<ctrl::Polar>::Gain &G,
-                  Motor &mt, IMU &imu, Encoder &enc, Fan &fan)
-      : fbc(M, G), mt(mt), imu(imu), enc(enc), fan(fan) {
+                  hardware::Hardware *hw)
+      : fbc(M, G), hw(hw) {
     reset();
   }
   bool init() {
@@ -63,8 +59,8 @@ public:
     drive_enabled = false;
     sampling_sync();
     sampling_sync();
-    mt.free();
-    fan.drive(0);
+    hw->mt->free();
+    hw->fan->drive(0);
   }
   void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
     ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
@@ -83,8 +79,8 @@ private:
     while (1) {
       // const int us_start = esp_timer_get_time();
       /* sync */
-      imu.sampling_sync();
-      enc.sampling_sync();
+      hw->imu->sampling_sync();
+      hw->enc->sampling_sync();
       /* sampling */
       update_samples();
       update_estimator();
@@ -98,7 +94,7 @@ private:
       // const int us_end = esp_timer_get_time();
       /* debug */
       // if (us_end - us_start > 1500 && drive_enabled) {
-      //   bz.play(Buzzer::SHORT9);
+      //   hw->bz->play(hardware::Buzzer::SHORT9);
       //   app_logw << "sampling overtime: " << int(us_end - us_start)
       //            << std::endl;
       // }
@@ -112,16 +108,16 @@ private:
     est_a.clear();
     enc_v.clear();
     for (int i = 0; i < 2; i++)
-      wheel_position[i].clear(enc.get_position(i));
-    accel.clear(ctrl::Polar(imu.accel.y, imu.angular_accel));
+      wheel_position[i].clear(hw->enc->get_position(i));
+    accel.clear(ctrl::Polar(hw->imu->accel.y, hw->imu->angular_accel));
     fix.clear();
     fbc.reset();
   }
   void update_samples() {
     /* add new samples */
     for (int i = 0; i < 2; i++)
-      wheel_position[i].push(enc.get_position(i));
-    accel.push(ctrl::Polar(imu.accel.y, imu.angular_accel));
+      wheel_position[i].push(hw->enc->get_position(i));
+    accel.push(ctrl::Polar(hw->imu->accel.y, hw->imu->angular_accel));
   }
   void update_estimator() {
     /* calculate differential of encoder value */
@@ -129,7 +125,7 @@ private:
       enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
     enc_v.wheel2pole();
     /* calculate estimated velocity value with complementary filter */
-    const ctrl::Polar v_low = ctrl::Polar(enc_v.tra, imu.gyro.z);
+    const ctrl::Polar v_low = ctrl::Polar(enc_v.tra, hw->imu->gyro.z);
     const ctrl::Polar v_high = est_v + accel[0] * float(Ts);
     const ctrl::Polar alpha = model::alpha;
     est_v = alpha * v_low + (ctrl::Polar(1, 1) - alpha) * v_high;
@@ -142,7 +138,7 @@ private:
     const float k = 0.0f;
     const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
     /* calculate odometry value */
-    est_p.th += imu.gyro.z * Ts;
+    est_p.th += hw->imu->gyro.z * Ts;
     est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
     est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
   }
@@ -170,6 +166,6 @@ private:
     const float pwm_value_L = pwm_value.tra - pwm_value.rot / 2;
     const float pwm_value_R = pwm_value.tra + pwm_value.rot / 2;
     /* drive the motors */
-    mt.drive(pwm_value_L, pwm_value_R);
+    hw->mt->drive(pwm_value_L, pwm_value_R);
   }
 };

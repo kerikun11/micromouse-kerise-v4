@@ -1,13 +1,40 @@
 #pragma once
 
-#include "machine/global.h"
+/* Peripheral */
 #include "peripheral/spiffs.h"
+/* Driver */
+#include "hardware/buzzer.h"
+#include "hardware/fan.h"
+#include "hardware/led.h"
+#include "hardware/motor.h"
+/* Sensor */
+#include "hardware/button.h"
+#include "hardware/encoder.h"
+#include "hardware/imu.h"
+#include "hardware/reflector.h"
+#include "hardware/tof.h"
 
 namespace hardware {
 
 class Hardware {
 public:
-  static bool init() {
+  /* Driver */
+  Buzzer *bz;
+  LED *led;
+  Motor *mt;
+  Fan *fan;
+  /* Sensor */
+  Button *btn;
+  IMU *imu;
+  Encoder *enc;
+  Reflector *ref;
+  ToF *tof;
+
+public:
+  static constexpr float thr_battery = 3.8f;
+
+public:
+  bool init() {
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS) {
       gpio_set_direction(p, GPIO_MODE_INPUT);
@@ -15,45 +42,100 @@ public:
     }
 
     /* Buzzer (initialize first to notify errors by sound) */
-    bz.init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
-    /* I2C for LED, ToF */
+    bz = new Buzzer();
+    bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
+    /* Button */
+    btn = new Button();
+    btn->init(BUTTON_PIN);
+    /* I2C for *led, ToF */
     if (!peripheral::I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
-      bz.play(Buzzer::ERROR);
-    /* LED */
-    if (!led.init())
-      bz.play(Buzzer::ERROR);
+      bz->play(hardware::Buzzer::ERROR);
+    /* *led */
+    led = new LED();
+    if (!led->init(I2C_PORT_NUM_LED))
+      bz->play(hardware::Buzzer::ERROR);
     /* ADC for Battery, Reflector */
     if (!peripheral::ADC::init())
-      bz.play(Buzzer::ERROR);
+      bz->play(hardware::Buzzer::ERROR);
 
     /* Battery Check */
-    ui.batteryCheck();
+    batteryCheck();
 
     /* Normal Boot */
-    bz.play(Buzzer::BOOT);
+    bz->play(hardware::Buzzer::BOOT);
 
     /* SPIFFS for MazeRobot, WallDetector */
     if (!peripheral::SPIFFS::init())
-      bz.play(Buzzer::ERROR);
+      bz->play(hardware::Buzzer::ERROR);
     /* SPI for IMU, Encoder */
     if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,
                                   CONFIG_SPI_MISO_PIN, CONFIG_SPI_MOSI_PIN,
                                   CONFIG_SPI_DMA_CHAIN))
-      bz.play(Buzzer::ERROR);
+      bz->play(hardware::Buzzer::ERROR);
     /* IMU */
-    if (!imu.init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
-      bz.play(Buzzer::ERROR);
+    imu = new IMU();
+    if (!imu->init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
+      bz->play(hardware::Buzzer::ERROR);
     /* Encoder */
-    if (!enc.init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
-      bz.play(Buzzer::ERROR);
+    enc = new Encoder(model::GearRatio * model::WheelDiameter * M_PI);
+    if (!enc->init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
+      bz->play(hardware::Buzzer::ERROR);
     /* Reflector */
-    if (!ref.init())
-      bz.play(Buzzer::ERROR);
+    ref = new Reflector(REFLECTOR_TX_PINS, REFLECTOR_RX_CHANNELS);
+    if (!ref->init())
+      bz->play(hardware::Buzzer::ERROR);
     /* ToF */
-    if (!tof.init())
-      bz.play(Buzzer::ERROR);
+    tof = new ToF(I2C_PORT_NUM_TOF, model::tof_dist_offset);
+    if (!tof->init())
+      bz->play(hardware::Buzzer::ERROR);
+    /* Motor */
+    mt = new Motor(MOTOR_L_CTRL1_PIN, MOTOR_L_CTRL2_PIN, MOTOR_R_CTRL1_PIN,
+                   MOTOR_R_CTRL2_PIN);
+    /* Fan */
+    fan = new Fan(FAN_PIN);
 
+    /* Ending */
     return true;
+  }
+
+  /**
+   * @brief Sample the Battery Voltage
+   * @return float voltage [V]
+   */
+  static float getBatteryVoltage() {
+    // return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
+    return 2 * peripheral::ADC::read_milli_voltage(BAT_VOL_ADC1_CHANNEL, 10) /
+           1e3f;
+  }
+  /**
+   * @brief バッテリー電圧をLEDで表示
+   * @param voltage [V]
+   */
+  void batteryLedIndicate(const float voltage) {
+    led->set(0);
+    if (voltage < 4.0f)
+      led->set(0x01);
+    else if (voltage < 4.1f)
+      led->set(0x03);
+    else if (voltage < 4.2f)
+      led->set(0x07);
+    else
+      led->set(0x0F);
+  }
+  void batteryCheck() {
+    const float voltage = getBatteryVoltage();
+    batteryLedIndicate(voltage);
+    app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
+    if (voltage < thr_battery) {
+      app_logw << "Battery Low!" << std::endl;
+      bz->play(hardware::Buzzer::SHUTDOWN);
+      led->set(0);
+      /* wait for button pressed */
+      while (!btn->pressed)
+        vTaskDelay(pdMS_TO_TICKS(10));
+      btn->flags = 0;
+      led->set(0);
+    }
   }
 };
 

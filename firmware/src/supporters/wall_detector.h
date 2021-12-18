@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include "machine/global.h"
+#include "hardware/hardware.h"
 
 #include <cmath>
 #include <fstream>
@@ -59,11 +59,10 @@ public:
   std::array<bool, 3> is_wall;
 
 private:
-  Reflector &ref;
-  ToF &tof;
+  hardware::Hardware *hw;
 
 public:
-  WallDetector(Reflector &ref, ToF &tof) : ref(ref), tof(tof) {}
+  WallDetector(hardware::Hardware *hw) : hw(hw) {}
   bool init() {
     if (!restore())
       return false;
@@ -100,34 +99,34 @@ public:
     return true;
   }
   void calibration_side() {
-    tof.disable();
+    hw->tof->disable();
     float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
-        sum[i] += ref2dist(ref.side(i));
+        sum[i] += ref2dist(hw->ref->side(i));
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
       wall_ref.side[i] = sum[i] / ave_count;
     app_logi << "Wall Calibration Side: " << wall_ref.side[0] << "\t"
              << wall_ref.side[1] << std::endl;
-    tof.enable();
+    hw->tof->enable();
   }
   void calibration_front() {
-    tof.disable();
+    hw->tof->disable();
     float sum[2] = {0.0f, 0.0f};
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
-        sum[i] += ref2dist(ref.front(i));
+        sum[i] += ref2dist(hw->ref->front(i));
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
       wall_ref.front[i] = sum[i] / ave_count;
     app_logi << "Wall Calibration Front: " << wall_ref.front[0] << "\t"
              << wall_ref.front[1] << std::endl;
-    tof.enable();
+    hw->tof->enable();
   }
   void print() {
     app_logi                                                       //
@@ -164,19 +163,19 @@ private:
   void update() {
     // データの更新
     for (int i = 0; i < 2; i++) {
-      distance.side[i] = ref2dist(ref.side(i)) - wall_ref.side[i];
-      distance.front[i] = ref2dist(ref.front(i)) - wall_ref.front[i];
+      distance.side[i] = ref2dist(hw->ref->side(i)) - wall_ref.side[i];
+      distance.front[i] = ref2dist(hw->ref->front(i)) - wall_ref.front[i];
     }
     buffer.push(distance);
 
     // 前壁の更新
-    // int front_mm = tof.getLog().average(2);
-    int front_mm = tof.getDistance();
+    // int front_mm = hw->tof->getLog().average(2);
+    int front_mm = hw->tof->getDistance();
     if (front_mm < wall_threshold_front * 0.95f)
       is_wall[2] = true;
     else if (front_mm > wall_threshold_front * 1.05f)
       is_wall[2] = false;
-    if (tof.passedTimeMs() > 50)
+    if (hw->tof->passedTimeMs() > 50)
       is_wall[2] = false;
 
     // 横壁の更新

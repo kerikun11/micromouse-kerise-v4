@@ -10,7 +10,7 @@
 #include "app_log.h"
 #include "config/io_mapping.h"
 #include "config/model.h"
-#include "machine/global.h"
+#include "hardware/hardware.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -33,18 +33,10 @@ public:
       0.01f * M_PI; /**< 静止待機の角速度の閾値 */
 
 private:
-  Buzzer &bz;
-  LED &led;
-  Button &btn;
-  IMU &imu;
-  Encoder &enc;
-  Reflector &ref;
-  ToF &tof;
+  hardware::Hardware *hw;
 
 public:
-  UserInterface(Buzzer &bz, LED &led, Button &btn, IMU &imu, Encoder &enc,
-                Reflector &ref, ToF &tof)
-      : bz(bz), led(led), btn(btn), imu(imu), enc(enc), ref(ref), tof(tof) {}
+  UserInterface(hardware::Hardware *hw) : hw(hw) {}
   /**
    * @brief ユーザーに番号を選択させる
    *
@@ -53,61 +45,61 @@ public:
    * @return int -1: キャンセルされた
    */
   int waitForSelect(const int range = 16, const uint8_t init_value = 0) {
-    float prev_enc = enc.get_position(0) + enc.get_position(1);
+    float prev_enc = hw->enc->get_position(0) + hw->enc->get_position(1);
     uint8_t value = init_value;
-    led = value;
+    hw->led->set(value);
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
-      float now_enc = enc.get_position(0) + enc.get_position(1);
+      float now_enc = hw->enc->get_position(0) + hw->enc->get_position(1);
       /* SELECT */
-      if (imu.gyro.y > thr_gyro) {
+      if (hw->imu->gyro.y > thr_gyro) {
         value += range - 1;
         value %= range;
-        led = value;
-        bz.play(Buzzer::SELECT);
+        hw->led->set(value);
+        hw->bz->play(hardware::Buzzer::SELECT);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
       }
-      if (imu.gyro.y < -thr_gyro) {
+      if (hw->imu->gyro.y < -thr_gyro) {
         value += 1;
         value %= range;
-        led = value;
-        bz.play(Buzzer::SELECT);
+        hw->led->set(value);
+        hw->bz->play(hardware::Buzzer::SELECT);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
       }
       if (now_enc > prev_enc + enc_interval_mm) {
         prev_enc += enc_interval_mm;
         value += 1;
         value %= range;
-        led = value;
-        bz.play(Buzzer::SELECT);
+        hw->led->set(value);
+        hw->bz->play(hardware::Buzzer::SELECT);
       }
       if (now_enc < prev_enc - enc_interval_mm) {
         prev_enc -= enc_interval_mm;
         value += range - 1;
         value %= range;
-        led = value;
-        bz.play(Buzzer::SELECT);
+        hw->led->set(value);
+        hw->bz->play(hardware::Buzzer::SELECT);
       }
       /* CONFIRM */
-      if (std::abs(imu.accel.z) > thr_accel) {
-        bz.play(Buzzer::CONFIRM);
+      if (std::abs(hw->imu->accel.z) > thr_accel) {
+        hw->bz->play(hardware::Buzzer::CONFIRM);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return value;
       }
-      if (btn.pressed) {
-        btn.flags = 0;
-        bz.play(Buzzer::CONFIRM);
+      if (hw->btn->pressed) {
+        hw->btn->flags = 0;
+        hw->bz->play(hardware::Buzzer::CONFIRM);
         return value;
       }
       /* CANCEL */
-      if (std::abs(imu.accel.x) > thr_accel) {
-        bz.play(Buzzer::CANCEL);
+      if (std::abs(hw->imu->accel.x) > thr_accel) {
+        hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return -1;
       }
-      if (btn.long_pressed_1) {
-        btn.flags = 0;
-        bz.play(Buzzer::CANCEL);
+      if (hw->btn->long_pressed_1) {
+        hw->btn->flags = 0;
+        hw->bz->play(hardware::Buzzer::CANCEL);
         return -1;
       }
     }
@@ -125,24 +117,25 @@ public:
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */
-      if (!side && ref.front(0) > thr_ref_front &&
-          ref.front(1) > thr_ref_front) {
-        bz.play(Buzzer::CONFIRM);
+      if (!side && hw->ref->front(0) > thr_ref_front &&
+          hw->ref->front(1) > thr_ref_front) {
+        hw->bz->play(hardware::Buzzer::CONFIRM);
         return true;
       }
-      if (side && ref.side(0) > thr_ref_side && ref.side(1) > thr_ref_side) {
-        bz.play(Buzzer::CONFIRM);
+      if (side && hw->ref->side(0) > thr_ref_side &&
+          hw->ref->side(1) > thr_ref_side) {
+        hw->bz->play(hardware::Buzzer::CONFIRM);
         return true;
       }
       /* CANCEL */
-      if (std::abs(imu.accel.x) > thr_accel) {
-        bz.play(Buzzer::CANCEL);
+      if (std::abs(hw->imu->accel.x) > thr_accel) {
+        hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;
       }
-      if (btn.long_pressed_1) {
-        btn.flags = 0;
-        bz.play(Buzzer::CANCEL);
+      if (hw->btn->long_pressed_1) {
+        hw->btn->flags = 0;
+        hw->bz->play(hardware::Buzzer::CANCEL);
         return false;
       }
     }
@@ -151,16 +144,16 @@ public:
    * @brief マシン回収まで待つ関数
    */
   bool waitForPickup(const int wait_ms = 2000) {
-    led = 0xf;
+    hw->led->set(0xf);
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
-      if (std::abs(imu.gyro.y) > M_PI) {
-        bz.play(Buzzer::CANCEL);
-        led = 0x0;
+      if (std::abs(hw->imu->gyro.y) > M_PI) {
+        hw->bz->play(hardware::Buzzer::CANCEL);
+        hw->led->set(0x0);
         return true;
       }
     }
-    led = 0x0;
+    hw->led->set(0x0);
     return false;
   }
   /**
@@ -174,24 +167,24 @@ public:
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* FIX */
-      if (std::abs(imu.gyro.x) < thr_fix_gyro &&
-          std::abs(imu.gyro.y) < thr_fix_gyro &&
-          std::abs(imu.gyro.z) < thr_fix_gyro) {
+      if (std::abs(hw->imu->gyro.x) < thr_fix_gyro &&
+          std::abs(hw->imu->gyro.y) < thr_fix_gyro &&
+          std::abs(hw->imu->gyro.z) < thr_fix_gyro) {
         if (fix_count++ > wait_fix_ms) {
-          bz.play(Buzzer::CONFIRM);
+          hw->bz->play(hardware::Buzzer::CONFIRM);
           return true;
         }
       } else {
         fix_count = 0;
       }
       /* CANCEL */
-      if (btn.pressed) {
-        btn.flags = 0;
-        bz.play(Buzzer::CANCEL);
+      if (hw->btn->pressed) {
+        hw->btn->flags = 0;
+        hw->bz->play(hardware::Buzzer::CANCEL);
         return false;
       }
-      if (std::abs(imu.accel.x) > thr_accel) {
-        bz.play(Buzzer::CANCEL);
+      if (std::abs(hw->imu->accel.x) > thr_accel) {
+        hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;
       }
@@ -211,15 +204,15 @@ public:
    * @param voltage [V]
    */
   void batteryLedIndicate(const float voltage) {
-    led = 0;
+    hw->led->set(0);
     if (voltage < 4.0f)
-      led = 0x01;
+      hw->led->set(0x01);
     else if (voltage < 4.1f)
-      led = 0x03;
+      hw->led->set(0x03);
     else if (voltage < 4.2f)
-      led = 0x07;
+      hw->led->set(0x07);
     else
-      led = 0x0F;
+      hw->led->set(0x0F);
   }
   void batteryCheck() {
     const float voltage = getBatteryVoltage();
@@ -227,13 +220,13 @@ public:
     app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
     if (voltage < thr_battery) {
       app_logw << "Battery Low!" << std::endl;
-      bz.play(Buzzer::SHUTDOWN);
-      led = 0;
+      hw->bz->play(hardware::Buzzer::SHUTDOWN);
+      hw->led->set(0);
       /* wait for button pressed */
-      while (!btn.pressed)
+      while (!hw->btn->pressed)
         vTaskDelay(pdMS_TO_TICKS(10));
-      btn.flags = 0;
-      led = 0;
+      hw->btn->flags = 0;
+      hw->led->set(0);
     }
   }
 };

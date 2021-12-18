@@ -1,5 +1,5 @@
 /**
- * @file imu.h
+ * @file hw->imu->h
  * @brief IMU Driver
  * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
