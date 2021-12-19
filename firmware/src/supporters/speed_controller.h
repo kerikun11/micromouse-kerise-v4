@@ -8,12 +8,12 @@
 
 #include "config/wheel_parameter.h"
 
+#include "hardware/hardware.h"
 #include <ctrl/accumulator.h>
 #include <ctrl/feedback_controller.h>
 #include <ctrl/polar.h>
 #include <ctrl/pose.h>
 #include <freertospp/semphr.h>
-#include "hardware/hardware.h"
 
 #include <atomic>
 

@@ -30,7 +30,7 @@ public:
 
 public:
   MotionParameter gyro, accel;
-  float angle, angular_accel;
+  float angle = 0, angular_accel = 0;
 
 public:
   IMU() {}

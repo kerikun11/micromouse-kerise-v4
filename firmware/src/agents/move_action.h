@@ -23,20 +23,16 @@
 
 #include <cmath>
 
-#if 0
-#define ma_log app_logi
-#else
-#define ma_log std::ostream(0)
-#endif
-
 class MoveAction {
 public:
+  enum TaskAction : char {
+    TaskActionSearchRun = 'S',
+    TaskActionFastRun = 'F',
+    TaskActionPositionRecovery = 'P',
+  };
+  /* Run Parameters */
   static constexpr float v_unknown_accel = 600;
   static constexpr float v_search = 330;
-  supporters::Supporters *sp;
-  hardware::Hardware *hw;
-
-public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
@@ -79,14 +75,21 @@ public:
       }
     }
   };
-  enum TaskAction : char {
-    TaskActionSearchRun = 'S',
-    TaskActionFastRun = 'F',
-    TaskActionPositionRecovery = 'P',
-  };
 
 public:
-  MoveAction(const ctrl::TrajectoryTracker::Gain &gain) : tt_gain(gain) {
+  RunParameter rp_search;
+  RunParameter rp_fast;
+
+private:
+  hardware::Hardware *hw;
+  supporters::Supporters *sp;
+  ctrl::TrajectoryTracker::Gain tt_gain;
+
+public:
+  MoveAction(hardware::Hardware *hw, supporters::Supporters *sp,
+             const ctrl::TrajectoryTracker::Gain &gain)
+      : hw(hw), sp(sp), tt_gain(gain) {
+    /* set default parameters */
     for (auto &vs : rp_search.v_slalom)
       vs = v_search;
     // rp_fast.v_slalom[field::ShapeIndex::FS90] = v_search;
@@ -97,7 +100,6 @@ public:
                 "MoveAction", 8192, this, 4, NULL);
   }
   void enable(const TaskAction ta) {
-    ma_log << "enable: " << (char)ta << std::endl;
     sp->sc->disable();
     task_action = ta;
     in_action = true;
@@ -105,7 +107,6 @@ public:
     enabled = true;
   }
   void disable() {
-    ma_log << "disable" << std::endl;
     break_requested = true;
     while (enabled)
       vTaskDelay(pdMS_TO_TICKS(1));
@@ -116,18 +117,14 @@ public:
     break_requested = false;
   }
   void waitForEndAction() const {
-    ma_log << "wait for end action" << std::endl;
     while (in_action)
       vTaskDelay(pdMS_TO_TICKS(1));
   }
   void enqueue_action(const MazeLib::RobotBase::SearchAction action) {
-    ma_log << "queue action: " << (char)action << std::endl;
     sa_queue.push(action);
     in_action = true;
-    ma_log << "queue size: " << sa_queue.size() << std::endl;
   }
   void set_fast_path(const std::string &fast_path) {
-    ma_log << fast_path << std::endl;
     this->fast_path = fast_path;
     in_action = true;
   }
@@ -148,6 +145,20 @@ public:
     hw->imu->calibration();
     hw->enc->clearOffset();
   }
+  void set_unknown_accel_flag(bool flag) {
+    continue_straight_if_no_front_wall = flag;
+  }
+
+private:
+  TaskAction task_action = TaskActionSearchRun;
+  std::atomic_bool enabled{false};
+  std::atomic_bool in_action{false};
+  std::atomic_bool break_requested{false};
+  lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
+  ctrl::Pose offset;
+  std::array<bool, 3> is_wall;
+  bool prev_wall[2];
+  bool continue_straight_if_no_front_wall = false;
 
   void task() {
     while (1) {
@@ -167,6 +178,7 @@ public:
       default:
         break;
       }
+      // cleaning
       while (!sa_queue.empty())
         sa_queue.pop();
       enabled = false;
@@ -174,30 +186,12 @@ public:
       break_requested = false;
     }
   }
-
-public:
-  RunParameter rp_search;
-  RunParameter rp_fast;
-  ctrl::TrajectoryTracker::Gain tt_gain;
-  bool continue_straight_if_no_front_wall = false;
-
-private:
-  TaskAction task_action = TaskActionSearchRun;
-  std::atomic_bool enabled{false};
-  std::atomic_bool in_action{false};
-  std::atomic_bool break_requested{false};
-  lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
-  ctrl::Pose offset;
-  std::array<bool, 3> is_wall;
-  bool prev_wall[2];
-
   bool isAlong() { return int(std::abs(offset.th) * 180 / M_PI + 1) % 90 < 2; }
   bool isDiag() {
     return int(std::abs(offset.th) * 180 / M_PI + 45 + 1) % 90 < 2;
   }
 
   void wall_attach(bool force = false) {
-    ma_log << "wall_attach" << std::endl;
 #if 1
     if (break_requested || hw->mt->is_emergency())
       return;
@@ -441,7 +435,6 @@ private:
   }
   void straight_x(const float distance, float v_max, float v_end,
                   const RunParameter &rp, bool unknown_accel = false) {
-    ma_log << "straight_x" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     v_end = unknown_accel ? v_unknown_accel : v_end;
@@ -503,7 +496,6 @@ private:
     offset += ctrl::Pose(distance, 0, 0).rotate(offset.th);
   }
   void turn(const float angle) {
-    ma_log << "turn" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     const float dddth_max = 2400 * M_PI;
@@ -541,7 +533,6 @@ private:
     offset += net.rotate(offset.th);
   }
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
-    ma_log << "trace" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     const float Ts = 1e-3f;
@@ -633,7 +624,6 @@ private:
     }
   }
   void wall_stop_aebs() {
-    ma_log << "wall_stop_aebs" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     hw->bz->play(hardware::Buzzer::AEBS);
@@ -649,7 +639,6 @@ private:
     break_requested = true;
   }
   void start_step(const RunParameter &rp) {
-    ma_log << "start step" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     sp->sc->disable();
@@ -664,7 +653,6 @@ private:
     straight_x(field::SegWidthFull, v_search, v_search, rp);
   }
   void start_init() {
-    ma_log << "start init" << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     wall_attach();
@@ -698,7 +686,6 @@ private:
 
 private:
   void search_run_task() {
-    ma_log << "search_run_task" << std::endl;
     const auto &rp = rp_search;
     /* スタート */
     sp->sc->enable();
@@ -710,7 +697,6 @@ private:
         break;
       /* 壁を確認 */
       is_wall = sp->wd->is_wall;
-      ma_log << "get wall" << std::endl;
       /* 探索器に終了を通知 */
       if (sa_queue.empty())
         in_action = false;
@@ -729,7 +715,6 @@ private:
     sp->sc->disable();
   }
   void search_run_queue_wait_decel(const RunParameter &rp) {
-    ma_log << "wait decel" << std::endl;
     /* Actionがキューされるまで減速しながら待つ */
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
@@ -752,7 +737,6 @@ private:
     /* 注意: 現在位置はやや前に進んだ状態 */
   }
   void search_run_known(const RunParameter &rp) {
-    ma_log << "search run known" << std::endl;
     /* path の作成 */
     std::string path;
     while (1) {
@@ -769,7 +753,6 @@ private:
         break;
       }
     }
-    ma_log << "known path: " << path << std::endl;
     /* 既知区間走行 */
     if (path.size()) {
       /* 既知区間パターンに変換 */
@@ -791,7 +774,6 @@ private:
   }
   void search_run_switch(const MazeLib::RobotBase::SearchAction action,
                          const RunParameter &rp) {
-    ma_log << "search run switch: " << (char)action << std::endl;
     if (break_requested || hw->mt->is_emergency())
       return;
     const bool no_front_front_wall =
@@ -870,7 +852,6 @@ private:
   std::string fast_path;
 
   bool fast_run(const std::string &search_actions) {
-    ma_log << "fast_run" << std::endl;
     /* 走行パラメータを取得 */
     const auto &rp = rp_fast;
     /* 最短走行用にパターンを置換 */

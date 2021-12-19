@@ -22,7 +22,8 @@ namespace hardware {
 
 class Encoder {
 public:
-  Encoder(const float encoder_factor) : encoder_factor(encoder_factor) {}
+  Encoder(const float SCALE_PULSES_TO_MM)
+      : SCALE_PULSES_TO_MM(SCALE_PULSES_TO_MM) {}
   bool init(spi_host_device_t spi_host,
             std::array<gpio_num_t, ENCODER_NUM> pins_cs) {
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -90,12 +91,12 @@ private:
 #elif KERISE_SELECT == 5
   MA730 ma[2];
 #endif
-  const float encoder_factor;
-  int pulses[2];
-  int pulses_raw[2];
-  int pulses_prev[2];
-  int pulses_ovf[2];
-  float positions[2];
+  const float SCALE_PULSES_TO_MM;
+  int pulses[2] = {};
+  int pulses_raw[2] = {};
+  int pulses_prev[2] = {};
+  int pulses_ovf[2] = {};
+  float positions[2] = {};
   freertospp::Semaphore sampling_end_semaphore;
   freertospp::Mutex mutex;
 
@@ -145,8 +146,8 @@ private:
       pulses_prev[i] = pulses_raw[i];
       /* calculate position */
       pulses[i] = pulses_ovf[i] * pulses_size + pulses_raw[i];
-      mm[i] =
-          (pulses_ovf[i] + float(pulses_raw[i]) / pulses_size) * encoder_factor;
+      mm[i] = (pulses_ovf[i] + float(pulses_raw[i]) / pulses_size) *
+              SCALE_PULSES_TO_MM;
     }
     /* fix rotation direction */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4

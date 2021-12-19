@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include "app_log.h"
 #include <driver/ledc.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -38,7 +39,7 @@ public:
 
 public:
   Buzzer() {
-    playList = xQueueCreate(/* uxQueueLength = */ 20, sizeof(enum Music));
+    playList = xQueueCreate(/* uxQueueLength = */ 10, sizeof(enum Music));
   }
   bool init(gpio_num_t pin, ledc_channel_t channel, ledc_timer_t timer) {
     this->channel = channel;
@@ -93,6 +94,7 @@ private:
         // C    C#     D    Eb     E     F    F#     G    G#     A    Bb     B
         4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902};
     if (octave > 8 || note >= NOTE_MAX) {
+      app_loge << "out of range" << std::endl;
       return;
     }
     uint32_t freq = noteFrequencyBase[note] / (1 << (8 - octave));

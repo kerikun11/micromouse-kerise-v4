@@ -40,10 +40,13 @@ public:
     hw = new hardware::Hardware();
     hw->init();
     /* Supporters */
-    if (!sp->wd->init())
-      hw->bz->play(hardware::Buzzer::ERROR);
-    if (!sp->sc->init())
-      hw->bz->play(hardware::Buzzer::ERROR);
+    sp = new supporters::Supporters(hw);
+    sp->init();
+    /* Agents */
+    ma = new MoveAction(hw, sp, model::TrajectoryTrackerGain);
+    mr = new MazeRobot(hw, sp, ma);
+    /* Others */
+    lgr = new Logger();
     return true;
   }
   void start() {
@@ -57,91 +60,80 @@ private:
   freertospp::Task<Machine> task_print;
 
   void task() {
-    // Machine::driveAutomatically();
+    // driveAutomatically();
     while (1) {
-      int mode = sp->ui->waitForSelect(16);
-      switch (mode) {
-      case 0: /* 迷路走行 */
-        Machine::driveNormally();
-        break;
-      case 1: /* パラメータの相対設定 */
-        Machine::selectParamManually();
-        break;
-      case 2: /* パラメータの絶対設定 */
-        Machine::selectParamPreset();
-        break;
-      case 3: /* 斜め走行などの設定 */
-        Machine::selectRunConfig();
-        break;
-      case 4: /* ファンの設定 */
-        Machine::selectFanGain();
-        break;
-      case 5: /* 迷路データの復元 */
-        Machine::restore();
-        break;
-      case 6: /* データ消去 */
-        Machine::reset();
-        break;
-      case 7: /* 宴会芸 */
-        Machine::partyStunt();
-        break;
-      case 8: /* 壁センサキャリブレーション */
-        Machine::wallCalibration();
-        break;
-      case 9: /* プチコン */
-        Machine::petitcon();
-        break;
-      case 10: /* 迷路の表示 */
-        mr->print();
-        break;
-      case 11: /* ゴール区画の設定 */
-        Machine::setGoalPositions();
-        break;
-      case 12:
-        Machine::position_recovery();
-        // Machine::sysid();
-        break;
-      case 13:
-        // Machine::pidTuner();
-        // Machine::encoder_test();
-        // Machine::accel_test();
-        Machine::wall_attach_test();
-        break;
-      case 14: /* テスト */
-        Machine::slalom_test();
-        break;
-      case 15: /* ログの表示 */
-        lgr->print();
-        break;
-      }
+      driveManually();
     }
   }
   void print() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      // vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(99));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(9));
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(90));
       // hw->tof->print();
       // hw->ref->csv();
-      // wd->print();
       // hw->enc->csv();
+      // wd->print();
     }
   }
-  void restore() {
-    if (!mr->restore())
-      hw->bz->play(hardware::Buzzer::ERROR);
-    else
-      hw->bz->play(hardware::Buzzer::MAZE_RESTORE);
-    /* ゴールが封印されていないか一応確認 */
-    if (!mr->isSolvable())
-      hw->bz->play(hardware::Buzzer::ERROR);
-  }
-  void reset() {
-    if (!sp->ui->waitForCover())
-      return;
-    hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
-    mr->reset();
+  int driveManually() {
+    int mode = sp->ui->waitForSelect(16);
+    switch (mode) {
+    case 0: /* 迷路走行 */
+      Machine::driveNormally();
+      break;
+    case 1: /* パラメータの相対設定 */
+      Machine::selectParamManually();
+      break;
+    case 2: /* パラメータの絶対設定 */
+      Machine::selectParamPreset();
+      break;
+    case 3: /* 斜め走行などの設定 */
+      Machine::selectParamManual();
+      break;
+    case 4: /* ファンの設定 */
+      Machine::selectFanGain();
+      break;
+    case 5: /* 迷路データの復元 */
+      Machine::restore();
+      break;
+    case 6: /* データ消去 */
+      Machine::reset();
+      break;
+    case 7: /* 宴会芸 */
+      Machine::partyStunt();
+      break;
+    case 8: /* 壁センサキャリブレーション */
+      Machine::wallCalibration();
+      break;
+    case 9: /* プチコン */
+      Machine::petitcon();
+      break;
+    case 10: /* 迷路の表示 */
+      mr->print();
+      break;
+    case 11: /* ゴール区画の設定 */
+      Machine::setGoalPositions();
+      break;
+    case 12:
+      Machine::position_recovery();
+      // Machine::sysid();
+      break;
+    case 13:
+      // Machine::pidTuner();
+      // Machine::encoder_test();
+      // Machine::accel_test();
+      Machine::wall_attach_test();
+      break;
+    case 14: /* テスト */
+      Machine::slalom_test();
+      break;
+    case 15: /* ログの表示 */
+      lgr->print();
+      break;
+    }
+    return 0;
   }
   void driveAutomatically() {
     restore();
@@ -183,6 +175,21 @@ private:
     // vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
     mr->autoRun(forceSearch);
   }
+  void restore() {
+    if (!mr->restore())
+      hw->bz->play(hardware::Buzzer::ERROR);
+    else
+      hw->bz->play(hardware::Buzzer::MAZE_RESTORE);
+    /* ゴールが封印されていないか一応確認 */
+    if (!mr->isSolvable())
+      hw->bz->play(hardware::Buzzer::ERROR);
+  }
+  void reset() {
+    if (!sp->ui->waitForCover())
+      return;
+    hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
+    mr->reset();
+  }
   void selectParamPreset() {
     for (int i = 0; i < 1; i++)
       hw->bz->play(hardware::Buzzer::SHORT7);
@@ -196,7 +203,7 @@ private:
       ma->rp_fast.down(16 - value);
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
-  void selectRunConfig() {
+  void selectParamManual() {
     int mode = sp->ui->waitForSelect(16);
     if (mode < 0)
       return;

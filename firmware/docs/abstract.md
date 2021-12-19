@@ -34,3 +34,21 @@
   - 吸引ファン
   - LEDインジケーター
   - スピーカー
+
+## スレッド
+
+| name         | priority | core |                    stack |
+| ------------ | -------: | ---: | -----------------------: |
+| main         |        0 |    0 |                     8192 |
+| Button       |        1 |   no | configMINIMAL_STACK_SIZE |
+| LED          |        1 |   no |                     2048 |
+| Buzzer       |        1 |   no |                     4096 |
+| ToF          |        1 |   no |                     4096 |
+| IMU          |        6 |    0 |                     4096 |
+| Encoder      |        6 |    0 | configMINIMAL_STACK_SIZE |
+| Reflector    |       20 |    1 |                     2048 |
+| SpeedCtrl    |        5 |    0 |                     4096 |
+| WallDetector |        5 |    0 |                     2048 |
+| MoveAction   |        4 |   no |                     8192 |
+| drive        |        1 |   no |                     4096 |
+| print        |        1 |   no |                     4096 |

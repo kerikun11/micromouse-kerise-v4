@@ -30,10 +30,11 @@ public:
   Reflector *ref;
   ToF *tof;
 
-public:
+private:
   static constexpr float thr_battery = 3.8f;
 
 public:
+  Hardware() {}
   bool init() {
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS) {
