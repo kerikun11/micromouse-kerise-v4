@@ -38,6 +38,7 @@ public:
   bool init() {
     /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
     for (auto p : CONFIG_SPI_CS_PINS) {
+      gpio_reset_pin(p);
       gpio_set_direction(p, GPIO_MODE_INPUT);
       gpio_pullup_en(p);
     }

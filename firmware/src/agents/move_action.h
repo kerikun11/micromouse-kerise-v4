@@ -32,14 +32,14 @@ public:
   };
   /* Run Parameters */
   static constexpr float v_unknown_accel = 600;
-  static constexpr float v_search = 330;
+  static constexpr float v_search = 360;
   struct RunParameter {
   public:
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 0;
-    bool front_wall_fix_enabled = 0;
-    bool wall_avoid_enabled = 0;
-    bool wall_theta_fix_enabled = 0;
+    bool unknown_accel_enabled = 1;
+    bool front_wall_fix_enabled = 1;
+    bool wall_avoid_enabled = 1;
+    bool wall_theta_fix_enabled = 1;
     bool wall_cut_enabled = 0;
     float v_max = 720;
     float a_max = 3600;
@@ -891,10 +891,10 @@ private:
     /* 停止処理 */
     sp->sc->set_target(0, 0);
     hw->fan->drive(0);
+    /* クラッシュでない場合は機体が完全に停止するまで待つ */
     if (!hw->mt->is_emergency())
       vTaskDelay(pdMS_TO_TICKS(200));
     sp->sc->disable();
-    /* クラッシュ時の処理 */
     if (!hw->mt->is_emergency())
       hw->bz->play(hardware::Buzzer::COMPLETE);
     return true;

@@ -21,6 +21,7 @@ public:
   auto reserve(std::size_t n) { return buf.reserve(n); }
   void print(std::ostream &os = std::cout) const {
     os << "# KERISE v" << KERISE_SELECT << std::endl;
+    int i = 0;
     for (const auto &data : buf) {
       bool first = true;
       for (const auto &value : data) {
@@ -31,7 +32,8 @@ public:
         os << value;
       }
       os << std::endl;
-      vPortYield();
+      if (i++ % 100 == 0)
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
   }
 

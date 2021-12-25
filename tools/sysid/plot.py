@@ -95,17 +95,17 @@ def process(filename):
     enc_raw = raw[0:2]
     gyro = raw[2]
     accel = raw[3:5]
-    voltage = raw[5]
-    u_pwm = raw[6:8]
+    # voltage = raw[5]
+    u_pwm = raw[5:7]
     # u_pwm = np.vstack((
     #     0.0 * np.ones(len(raw[0])),
     #     0.4 * np.ones(len(raw[0]))
     # ))
 
     # plot battery voltage
-    plt.figure()
-    plt.plot(voltage.T)
-    plt_label('Battery Voltage', 'sample', 'Voltage [V]')
+    # plt.figure()
+    # plt.plot(voltage.T)
+    # plt_label('Battery Voltage', 'sample', 'Voltage [V]')
 
     # constants
     dt = 1e-3  # [s]

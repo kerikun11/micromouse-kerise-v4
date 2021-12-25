@@ -502,24 +502,24 @@ private:
     // int mode = 0;
     if (mode < 0)
       return;
-    switch (mode) {
-    case 0:
-      break;
-    case 1: {
-      int value = sp->ui->waitForSelect(16);
-      if (value < 0)
-        return;
-      value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.zeta *= std::pow(2.0f, float(value));
-    } break;
-    case 2: {
-      int value = sp->ui->waitForSelect(16);
-      if (value < 0)
-        return;
-      value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-      gain.omega_n *= std::pow(2.0f, float(value));
-    } break;
-    }
+    // switch (mode) {
+    // case 0:
+    //   break;
+    // case 1: {
+    //   int value = sp->ui->waitForSelect(16);
+    //   if (value < 0)
+    //     return;
+    //   value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
+    //   gain.zeta *= std::pow(2.0f, float(value));
+    // } break;
+    // case 2: {
+    //   int value = sp->ui->waitForSelect(16);
+    //   if (value < 0)
+    //     return;
+    //   value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
+    //   gain.omega_n *= std::pow(2.0f, float(value));
+    // } break;
+    // }
     hw->led->set(15);
     if (!sp->ui->waitForCover())
       return;
@@ -536,21 +536,21 @@ private:
             ref_q.x, est_q.x, ref_q.y, est_q.y, ref_q.th, est_q.th,
 #else
         hw->enc->get_position(0), hw->enc->get_position(1), hw->imu->gyro.z,
-            hw->imu->accel.y, hw->imu->angular_accel,
-            sp->ui->getBatteryVoltage(), bd.u.tra, bd.u.rot,
+            hw->imu->accel.y, hw->imu->angular_accel, bd.u.tra, bd.u.rot,
 #endif
       });
     };
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
-    const float velocity = 600;
+    const bool mirror = mode;
+    const float velocity = 450;
     const float Ts = 1e-3f;
     const float j_max = 120'000;
     const float a_max = 6000;
-    const float v_max = 600;
-    const float d_1 = 6 * 45;
-    const float d_2 = ctrl::AccelCurve(j_max, a_max, velocity, 0).x_end();
+    const float v_max = velocity;
+    const float d_1 = 1 * 45;
+    const float d_2 = 1 * 45;
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
     /* start */
@@ -571,7 +571,7 @@ private:
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
-    ctrl::slalom::Trajectory st(shape);
+    ctrl::slalom::Trajectory st(shape, mirror);
     st.reset(velocity);
     ctrl::State ref_s;
     for (float t = 0; t < st.getTimeCurve(); t += Ts) {

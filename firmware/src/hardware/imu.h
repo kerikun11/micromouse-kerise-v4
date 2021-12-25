@@ -35,11 +35,12 @@ public:
 public:
   IMU() {}
   bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
-    for (int i = 0; i < IMU_NUM; ++i)
+    for (int i = 0; i < IMU_NUM; ++i) {
       if (!icm[i].init(spi_host, pins_cs[i])) {
         app_loge << "IMU " << i << " begin failed :(" << std::endl;
         return false;
       }
+    }
     xTaskCreatePinnedToCore(
         [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "IMU",
         4096, this, 6, NULL, PRO_CPU_NUM);
@@ -149,7 +150,7 @@ private:
     accel.z = icm[0].accel.z;
 #endif
 
-    /* calibration result */
+    /* apply calibration result */
     gyro -= gyro_offset;
     accel -= accel_offset;
 

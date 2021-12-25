@@ -31,6 +31,7 @@ public:
   static constexpr int wait_fix_ms = 1000; /**< 静止待機の最小静止時間 */
   static constexpr float thr_fix_gyro =
       0.01f * M_PI; /**< 静止待機の角速度の閾値 */
+  static constexpr float thr_gyro_pickup = M_PI; /**< 回収角速度の閾値 */
 
 private:
   hardware::Hardware *hw;
@@ -147,7 +148,7 @@ public:
     hw->led->set(0xf);
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
-      if (std::abs(hw->imu->gyro.y) > M_PI) {
+      if (std::abs(hw->imu->gyro.x) > thr_gyro_pickup) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         hw->led->set(0x0);
         return true;

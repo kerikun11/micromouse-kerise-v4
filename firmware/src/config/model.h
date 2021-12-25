@@ -24,7 +24,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 5
+#define KERISE_SELECT 3
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -78,7 +78,7 @@ static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
 static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Reflector */
-static constexpr float wall_attach_gain_Kp = 240.0f;
+static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
@@ -113,27 +113,23 @@ static constexpr float WheelDiameter = 12.95f;
 static constexpr float CenterShift = 6.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
-static constexpr float tof_dist_offset = 22; //< 大きいほど壁に近く
+static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
 static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
 /* Reflector */
-static constexpr float wall_attach_gain_Kp = 240.0f;
+static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
-static constexpr float wall_avoid_gain = 0.001f;
+static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        // .K1 = ctrl::Polar(5833.0f, 66.72f),
-        // .T1 = ctrl::Polar(0.12, 0.1499f),
-        .K1 = ctrl::Polar(5833, 1000),
+        .K1 = ctrl::Polar(5789, 1000),
         .T1 = ctrl::Polar(0.12, 0.48),
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        // .Kp = ctrl::Polar(1.8413e-03, 6.2920e-02),
-        // .Ki = ctrl::Polar(1.6712e-02, 9.1158e-01),
-        .Kp = ctrl::Polar(0.0006, 0.05),
-        .Ki = ctrl::Polar(0.08, 1.0),
+        .Kp = ctrl::Polar(0.0008f, 0.15f),
+        .Ki = ctrl::Polar(0.1f, 6.0f),
         .Kd = ctrl::Polar(0, 0),
 };
 static constexpr float turn_back_gain = 10.0f;
@@ -141,9 +137,9 @@ static constexpr float turn_back_gain = 10.0f;
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
-    .zeta = 0.6f,
-    .omega_n = 10.0f,
-    .low_zeta = 0.6f,
+    .zeta = 0.8f,
+    .omega_n = 18.0f,
+    .low_zeta = 1.0f,
     .low_b = 1e-3f,
 };
 
