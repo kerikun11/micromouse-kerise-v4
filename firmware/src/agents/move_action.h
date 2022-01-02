@@ -43,8 +43,8 @@ public:
     bool wall_cut_enabled = 0;
     float v_max = 720;
     float a_max = 3600;
-    float j_max = 240000;
-    float fan_duty = 0.4;
+    float j_max = 240'000;
+    float fan_duty = 0.5;
     std::array<float, field::ShapeIndexMax> v_slalom;
 
   public:

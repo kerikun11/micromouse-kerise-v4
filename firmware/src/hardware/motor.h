@@ -39,6 +39,7 @@ public:
   void drive(float duty) {
     if (!std::isfinite(duty)) {
       std::cout << __FILE__ ":" << __LINE__ << "\t" << duty << std::endl;
+      free();
       return;
     }
     // const float duty_cycle = std::clamp(duty * 100, -100, 100);

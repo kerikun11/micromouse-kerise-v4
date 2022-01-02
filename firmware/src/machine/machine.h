@@ -544,15 +544,21 @@ private:
     hw->imu->calibration();
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const bool mirror = mode;
-    const float velocity = 450;
+    const float velocity = 600;
     const float Ts = 1e-3f;
-    const float j_max = 120'000;
+    const float j_max = 240'000;
     const float a_max = 6000;
     const float v_max = velocity;
-    const float d_1 = 1 * 45;
-    const float d_2 = 1 * 45;
+    const float d_1 = 2 * 45;
+    const float d_2 = 2 * 45;
+    const float fan_duty = 0.0;
     ctrl::TrajectoryTracker tt(gain);
     ctrl::Pose offset;
+    /* fan */
+    if (fan_duty > 0) {
+      hw->fan->drive(fan_duty);
+      vTaskDelay(pdMS_TO_TICKS(400));
+    }
     /* start */
     sp->sc->enable();
     tt.reset(0);

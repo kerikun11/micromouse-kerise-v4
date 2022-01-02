@@ -9,6 +9,7 @@
 
 #include <driver/spi_master.h>
 #include <esp_err.h>
+#include <esp_log.h>
 
 class AS5048A_DUAL {
 public:
@@ -33,28 +34,42 @@ public:
     dev_cfg.pre_cb = NULL;
     dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &encoder_spi));
-    return true;
+    return update();
   }
   bool update() {
-    uint8_t rx_buf[4];
+    bool res = true;
+    /* transaction */
     static spi_transaction_t tx;
-    tx.flags = SPI_TRANS_USE_TXDATA;
-    tx.tx_data[0] = 0xFF;
-    tx.tx_data[1] = 0xFF;
-    tx.tx_data[2] = 0xFF;
-    tx.tx_data[3] = 0xFF;
-    tx.rx_buffer = rx_buf;
+    tx.flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA;
+    tx.tx_data[0] = tx.tx_data[1] = tx.tx_data[2] = tx.tx_data[3] = 0xFF;
     tx.length = 32;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
-
-    pulses[0] = (uint16_t(0x3F & rx_buf[0]) << 8) | rx_buf[1];
-    pulses[1] = (uint16_t(0x3F & rx_buf[2]) << 8) | rx_buf[3];
-
-    return true;
+    /* data parse */
+    uint16_t pkt[2];
+    pkt[0] = (tx.rx_data[0] << 8) | tx.rx_data[1];
+    pkt[1] = (tx.rx_data[2] << 8) | tx.rx_data[3];
+    for (int i = 0; i < 2; i++) {
+      if (calc_even_parity(pkt[i])) {
+        ESP_LOGW(TAG, "parity error. pkt[%d]: 0x%04X", i, (int)pkt[i]);
+        res = false;
+        continue;
+      }
+      pulses[i] = pkt[i] & 0x3FFF;
+    }
+    return res;
   }
   int get(int ch) const { return pulses[ch]; }
 
 private:
+  static constexpr const char *TAG = "AS5048A";
   spi_device_handle_t encoder_spi = NULL;
-  int pulses[2];
+  int pulses[2] = {0, 0};
+
+  static uint8_t calc_even_parity(uint16_t data) {
+    data ^= data >> 8;
+    data ^= data >> 4;
+    data ^= data >> 2;
+    data ^= data >> 1;
+    return data & 1;
+  }
 };

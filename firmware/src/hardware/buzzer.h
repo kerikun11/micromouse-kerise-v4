@@ -99,7 +99,7 @@ private:
     }
     uint32_t freq = noteFrequencyBase[note] / (1 << (8 - octave));
     ledc_set_freq(mode, timer, freq);
-    ledc_set_duty(mode, channel, 8);
+    ledc_set_duty(mode, channel, 4); //< [0, 2^duty_resolution]
     ledc_update_duty(mode, channel);
   }
   void write(uint32_t duty) {

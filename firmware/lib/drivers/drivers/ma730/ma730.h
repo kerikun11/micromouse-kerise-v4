@@ -26,7 +26,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 10'000'000;
+    dev_cfg.clock_speed_hz = 20'000'000;
     dev_cfg.input_delay_ns = 0;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
@@ -34,20 +34,18 @@ public:
     dev_cfg.pre_cb = NULL;
     dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &dev_cfg, &encoder_spi));
-    return true;
+    return update();
   }
-  void update() {
-    uint8_t rx_buf[2];
+  bool update() {
+    /* transaction */
     static spi_transaction_t tx;
-    tx.flags = SPI_TRANS_USE_TXDATA;
-    tx.user = this;
-    tx.tx_data[0] = 0x00;
-    tx.tx_data[1] = 0x00;
-    tx.rx_buffer = rx_buf;
+    tx.flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA;
+    tx.tx_data[0] = tx.tx_data[1] = 0x00;
     tx.length = 16;
     ESP_ERROR_CHECK(spi_device_transmit(encoder_spi, &tx));
-
-    pulses = uint16_t(rx_buf[0] << 6) | (rx_buf[1] >> 2);
+    /* data parse */
+    pulses = uint16_t(tx.rx_data[0] << 6) | (tx.rx_data[1] >> 2);
+    return true;
   }
   int get() const { return pulses; }
 

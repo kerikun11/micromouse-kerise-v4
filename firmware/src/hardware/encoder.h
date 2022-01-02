@@ -43,7 +43,7 @@ public:
 #endif
     xTaskCreatePinnedToCore(
         [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "Encoder",
-        configMINIMAL_STACK_SIZE, this, 6, NULL, PRO_CPU_NUM);
+        2048, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
   int get_raw(uint8_t ch) const { return pulses_raw[ch]; }

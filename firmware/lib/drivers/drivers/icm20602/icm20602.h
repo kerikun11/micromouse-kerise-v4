@@ -39,8 +39,8 @@ private:
 #ifndef M_PI
   static constexpr float M_PI = 3.1415926535897932384626433832795f;
 #endif
-  static constexpr float ICM20602_ACCEL_FACTOR = 4 * 2048.0f;
-  static constexpr float ICM20602_GYRO_FACTOR = 16.4f;
+  static constexpr float ACCEL_FACTOR = ACCEL_G / 2048.0f / 4;
+  static constexpr float GYRO_FACTOR = M_PI / 180 / 16.4f;
 
 public:
   ICM20602() {}
@@ -104,7 +104,7 @@ public:
     writeReg(27, 0x18); /*< Gyr Conf; 4:3 FS=2000[dps], 1:0 FCHOICE=8[kHz] */
     /* Acceleration */
     // writeReg(28, 0x18); /*< Acc Conf; 4:3 FS=16[g] */
-    writeReg(28, 0x08); /*< Acc Conf; 4:3 FS=2[g] */
+    writeReg(28, 0x08); /*< Acc Conf; 4:3 FS=4[g] */
     writeReg(29, 0x00); /*< Acc Conf 2; 3 F_CHOICE=1[kHz], DLPF=218.1[Hz] */
     // writeReg(17, 0xc9); /*< ??? for Accel */
     /* Power */
@@ -117,7 +117,7 @@ public:
     return whoami();
   }
   bool whoami() {
-    uint8_t whoami = readReg(117); /*< Who am I */
+    uint8_t whoami = readReg(0x75); /*< 0x75: Who am I (0x12) */
     uint8_t whoami_expected = 0x12;
     if (whoami != whoami_expected) {
       ESP_LOGE(TAG, "whoami failed:( 0x%X != 0x%X", whoami, whoami_expected);
@@ -126,34 +126,14 @@ public:
     return true;
   }
   void update() {
-    union {
-      int16_t i;
-      struct {
-        uint8_t l : 8;
-        uint8_t h : 8;
-      };
-    } bond;
     uint8_t rx[14];
     readReg(0x3b, rx, 14);
-    bond.h = rx[0];
-    bond.l = rx[1];
-    accel.x = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
-    bond.h = rx[2];
-    bond.l = rx[3];
-    accel.y = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
-    bond.h = rx[4];
-    bond.l = rx[5];
-    accel.z = bond.i / ICM20602_ACCEL_FACTOR * ACCEL_G;
-
-    bond.h = rx[8];
-    bond.l = rx[9];
-    gyro.x = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
-    bond.h = rx[10];
-    bond.l = rx[11];
-    gyro.y = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
-    bond.h = rx[12];
-    bond.l = rx[13];
-    gyro.z = bond.i / ICM20602_GYRO_FACTOR * M_PI / 180;
+    accel.x = int16_t((rx[0] << 8) | rx[1]) * ACCEL_FACTOR;
+    accel.y = int16_t((rx[2] << 8) | rx[3]) * ACCEL_FACTOR;
+    accel.z = int16_t((rx[4] << 8) | rx[5]) * ACCEL_FACTOR;
+    gyro.x = int16_t((rx[8] << 8) | rx[9]) * GYRO_FACTOR;
+    gyro.y = int16_t((rx[10] << 8) | rx[11]) * GYRO_FACTOR;
+    gyro.z = int16_t((rx[12] << 8) | rx[13]) * GYRO_FACTOR;
   }
 
 private:

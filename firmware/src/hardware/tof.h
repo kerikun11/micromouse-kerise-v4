@@ -55,7 +55,7 @@ private:
   static constexpr const char *TAG = "ToF";
   VL6180X sensor;
   float tof_dist_offset;
-  volatile bool enabled = true;
+  bool enabled = true;
   uint16_t distance;
   uint16_t dur;
   int passed_ms;

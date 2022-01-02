@@ -38,22 +38,19 @@ public:
 
   /* specific functions */
   static bool writeReg8(i2c_port_t port, uint8_t addr7, uint8_t reg8,
-                        uint8_t *data, int len,
-                        TickType_t ticks_to_wait = pdMS_TO_TICKS(1),
+                        uint8_t *data, int len, TickType_t ticks_to_wait,
                         bool ack_en = true) {
     return writeReadReg(port, addr7, &reg8, 1, data, len, nullptr, 0,
                         ticks_to_wait, ack_en);
   }
   static bool readReg8(i2c_port_t port, uint8_t addr7, uint8_t reg8,
-                       uint8_t *data, int len,
-                       TickType_t ticks_to_wait = pdMS_TO_TICKS(1),
+                       uint8_t *data, int len, TickType_t ticks_to_wait,
                        bool ack_en = true) {
     return writeReadReg(port, addr7, &reg8, 1, nullptr, 0, data, len,
                         ticks_to_wait, ack_en);
   }
   static bool writeReg16(i2c_port_t port, uint8_t addr7, uint16_t reg16,
-                         uint8_t *data, int len,
-                         TickType_t ticks_to_wait = pdMS_TO_TICKS(1),
+                         uint8_t *data, int len, TickType_t ticks_to_wait,
                          bool ack_en = true) {
     const uint8_t reg_buf[2] = {(uint8_t)((reg16 >> 8) & 0xff),
                                 (uint8_t)(reg16 & 0xff)};
@@ -61,8 +58,7 @@ public:
                         ticks_to_wait, ack_en);
   }
   static bool readReg16(i2c_port_t port, uint8_t addr7, uint16_t reg16,
-                        uint8_t *data, int len,
-                        TickType_t ticks_to_wait = pdMS_TO_TICKS(1),
+                        uint8_t *data, int len, TickType_t ticks_to_wait,
                         bool ack_en = true) {
     const uint8_t reg_buf[2] = {(uint8_t)((reg16 >> 8) & 0xff),
                                 (uint8_t)(reg16 & 0xff)};
