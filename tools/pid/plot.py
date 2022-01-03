@@ -11,7 +11,7 @@ from matplotlib.ticker import ScalarFormatter
 
 
 def serial_import(filename, serial_port, serial_baudrate):
-    with serial.Serial(serial_port, serial_baudrate, timeout=10) as ser:
+    with serial.Serial(serial_port, serial_baudrate, timeout=30) as ser:
         ser.flush()
         print(f'serial port {serial_port} ({serial_baudrate}) listening...')
         firstline = ser.readline()
@@ -124,4 +124,5 @@ if not files:
 
 # process all input data
 for filename in files:
+    print("filename: ", filename)
     process(filename)

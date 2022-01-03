@@ -9,34 +9,47 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include <functional>
 #include <iostream>
+#include <string>
 #include <vector>
 
 class Logger {
 public:
   Logger() {}
   auto clear() { return buf.clear(); }
-  auto push(const std::vector<float> &data) { return buf.push_back(data); }
-  auto size() const { return buf.size(); }
-  auto reserve(std::size_t n) { return buf.reserve(n); }
+  void init(const std::vector<std::string> &labels,
+            const std::function<std::vector<float>(void)> &func) {
+    clear();
+    this->labels = labels;
+    this->func = func;
+  }
+  void push() {
+    if (!func)
+      return;
+    const auto &data = func();
+    buf.push_back(data);
+  }
+  void push(const std::vector<float> &data) { buf.push_back(data); }
   void print(std::ostream &os = std::cout) const {
+    // header
     os << "# KERISE v" << KERISE_SELECT << std::endl;
-    int i = 0;
+    // labels
+    os << "# ";
+    for (int i = 0; i < labels.size(); ++i)
+      os << labels[i] << (i < labels.size() - 1 ? "\t" : "");
+    os << std::endl;
+    // data
     for (const auto &data : buf) {
-      bool first = true;
-      for (const auto &value : data) {
-        if (!first)
-          os << "\t";
-        if (first)
-          first = false;
-        os << value;
-      }
+      for (int i = 0; i < data.size(); ++i)
+        os << data[i] << (i < data.size() - 1 ? "\t" : "");
       os << std::endl;
-      if (i++ % 100 == 0)
-        vTaskDelay(pdMS_TO_TICKS(1));
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
   }
 
 private:
   std::vector<std::vector<float>> buf;
+  std::vector<std::string> labels;
+  std::function<std::vector<float>(void)> func;
 };
