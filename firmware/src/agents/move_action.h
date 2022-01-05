@@ -36,10 +36,10 @@ public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 1;
-    bool front_wall_fix_enabled = 1;
-    bool wall_avoid_enabled = 1;
-    bool wall_theta_fix_enabled = 1;
+    bool unknown_accel_enabled = 0;
+    bool front_wall_fix_enabled = 0;
+    bool wall_avoid_enabled = 0;
+    bool wall_theta_fix_enabled = 0;
     bool wall_cut_enabled = 0;
     float v_max = 720;
     float a_max = 3600;
@@ -143,7 +143,7 @@ public:
   void calibration() {
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
-    hw->enc->clearOffset();
+    hw->enc->clear_offset();
   }
   void set_unknown_accel_flag(bool flag) {
     continue_straight_if_no_front_wall = flag;

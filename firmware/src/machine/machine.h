@@ -410,29 +410,29 @@ private:
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(1000));
-    lgr->init(
-        {
-            "enc[0]",
-            "enc[1]",
-            "gyro.z",
-            "accel.y",
-            "angular_accel",
-            "u.tra",
-            "u.rot",
-            "battery_voltage",
-        },
-        [&]() {
-          return std::vector<float>{{
-              hw->enc->get_position(0),
-              hw->enc->get_position(1),
-              hw->imu->gyro.z,
-              hw->imu->accel.y,
-              hw->imu->angular_accel,
-              dir == 0 ? gain * 0.1f : 0.0f,
-              dir == 1 ? gain * 0.1f : 0.0f,
-              sp->ui->getBatteryVoltage(),
-          }};
-        });
+    lgr->init({
+        "enc[0]",
+        "enc[1]",
+        "gyro.z",
+        "accel.y",
+        "angular_accel",
+        "u.tra",
+        "u.rot",
+        "battery_voltage",
+    });
+    const auto push_log = [&]() {
+      const auto &bd = sp->sc->fbc.getBreakdown();
+      lgr->push({
+          hw->enc->get_position(0),
+          hw->enc->get_position(1),
+          hw->imu->gyro.z,
+          hw->imu->accel.y,
+          hw->imu->angular_accel,
+          bd.u.tra,
+          bd.u.rot,
+          sp->ui->getBatteryVoltage(),
+      });
+    };
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->fan->drive(0.5);
@@ -444,7 +444,7 @@ private:
       hw->mt->drive(gain * 0.1f, gain * 0.1f); //< 並進
     for (int i = 0; i < 2000; i++) {
       sp->sc->sampling_sync();
-      lgr->push();
+      push_log();
     }
     hw->fan->drive(0);
     hw->mt->drive(0, 0);
@@ -456,46 +456,45 @@ private:
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
-    lgr->init(
-        {
-            "ref_v.tra",
-            "est_v.tra",
-            "ref_a.tra",
-            "est_a.tra",
-            "ff.tra",
-            "fbp.tra",
-            "fbi.tra",
-            "fbd.tra",
-            "ref_v.rot",
-            "est_v.rot",
-            "ref_a.rot",
-            "est_a.rot",
-            "ff.rot",
-            "fbp.rot",
-            "fbi.rot",
-            "fbd.rot",
-        },
-        [&]() {
-          const auto &bd = sp->sc->fbc.getBreakdown();
-          return std::vector<float>{{
-              sp->sc->ref_v.tra,
-              sp->sc->est_v.tra,
-              sp->sc->ref_a.tra,
-              sp->sc->est_a.tra,
-              bd.ff.tra,
-              bd.fbp.tra,
-              bd.fbi.tra,
-              bd.fbd.tra,
-              sp->sc->ref_v.rot,
-              sp->sc->est_v.rot,
-              sp->sc->ref_a.rot,
-              sp->sc->est_a.rot,
-              bd.ff.rot,
-              bd.fbp.rot,
-              bd.fbi.rot,
-              bd.fbd.rot,
-          }};
-        });
+    lgr->init({
+        "ref_v.tra",
+        "est_v.tra",
+        "ref_a.tra",
+        "est_a.tra",
+        "ff.tra",
+        "fbp.tra",
+        "fbi.tra",
+        "fbd.tra",
+        "ref_v.rot",
+        "est_v.rot",
+        "ref_a.rot",
+        "est_a.rot",
+        "ff.rot",
+        "fbp.rot",
+        "fbi.rot",
+        "fbd.rot",
+    });
+    const auto push_log = [&]() {
+      const auto &bd = sp->sc->fbc.getBreakdown();
+      lgr->push({
+          sp->sc->ref_v.tra,
+          sp->sc->est_v.tra,
+          sp->sc->ref_a.tra,
+          sp->sc->est_a.tra,
+          bd.ff.tra,
+          bd.fbp.tra,
+          bd.fbi.tra,
+          bd.fbd.tra,
+          sp->sc->ref_v.rot,
+          sp->sc->est_v.rot,
+          sp->sc->ref_a.rot,
+          sp->sc->est_a.rot,
+          bd.ff.rot,
+          bd.fbp.rot,
+          bd.fbi.rot,
+          bd.fbd.rot,
+      });
+    };
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->fan->drive(0.2);
@@ -523,7 +522,7 @@ private:
         sp->sc->set_target(0, ad.v(t), 0, ad.a(t));
       sp->sc->sampling_sync();
       if ((int)(t * 1000) % 2 == 0)
-        lgr->push();
+        push_log();
       if (hw->mt->is_emergency())
         break;
     }
@@ -542,16 +541,14 @@ private:
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
 #if 1
-    lgr->init(
-        {
-            "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
-            "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
-            "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
-            "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
-            "ref_q.th",  "est_q.th",
-        },
-        [&]() { return std::vector<float>{{}}; });
-    const auto printLog = [this](const auto ref_q, const auto est_q) {
+    lgr->init({
+        "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
+        "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
+        "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
+        "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
+        "ref_q.th",  "est_q.th",
+    });
+    const auto push_log = [this](const auto ref_q, const auto est_q) {
       const auto &bd = sp->sc->fbc.getBreakdown();
       lgr->push({
           sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
@@ -565,18 +562,16 @@ private:
       });
     };
 #else
-    lgr->init(
-        {
-            "enc[0]",
-            "enc[1]",
-            "gyro.z",
-            "accel.y",
-            "angular_accel",
-            "u.tra",
-            "u.rot",
-        },
-        [&]() { return std::vector<float>{{}}; });
-    const auto printLog = [this](const auto ref_q, const auto est_q) {
+    lgr->init({
+        "enc[0]",
+        "enc[1]",
+        "gyro.z",
+        "accel.y",
+        "angular_accel",
+        "u.tra",
+        "u.rot",
+    });
+    const auto push_log = [this](const auto ref_q, const auto est_q) {
       const auto &bd = sp->sc->fbc.getBreakdown();
       lgr->push({
           hw->enc->get_position(0),
@@ -621,7 +616,7 @@ private:
       const auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
@@ -635,7 +630,7 @@ private:
       auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     const auto &net = st.getShape().curve;
     sp->sc->est_p = (sp->sc->est_p - net).rotate(-net.th);
@@ -650,7 +645,7 @@ private:
       auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      printLog(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
     }
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);

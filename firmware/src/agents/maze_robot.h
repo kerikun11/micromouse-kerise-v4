@@ -26,26 +26,14 @@ using namespace MazeLib;
 #elif GOAL_SELECT == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
-    MazeLib::Position(4, 4), MazeLib::Position(4, 5), MazeLib::Position(5, 4), \
-        MazeLib::Position(5, 5),                                               \
+    MazeLib::Position(7, 7), MazeLib::Position(7, 8), MazeLib::Position(8, 7), \
+        MazeLib::Position(8, 8),                                               \
   }
 #elif GOAL_SELECT == 3
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
-  }
-#elif GOAL_SELECT == 4
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(7, 7), MazeLib::Position(7, 8), MazeLib::Position(8, 7), \
-        MazeLib::Position(8, 8),                                               \
-  }
-#elif GOAL_SELECT == 5
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(9, 9), MazeLib::Position(9, 10),                         \
-        MazeLib::Position(10, 9), MazeLib::Position(10, 10),                   \
   }
 #endif
 

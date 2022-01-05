@@ -18,17 +18,9 @@ class Logger {
 public:
   Logger() {}
   auto clear() { return buf.clear(); }
-  void init(const std::vector<std::string> &labels,
-            const std::function<std::vector<float>(void)> &func) {
+  void init(const std::vector<std::string> &labels) {
     clear();
     this->labels = labels;
-    this->func = func;
-  }
-  void push() {
-    if (!func)
-      return;
-    const auto &data = func();
-    buf.push_back(data);
   }
   void push(const std::vector<float> &data) { buf.push_back(data); }
   void print(std::ostream &os = std::cout) const {
@@ -51,5 +43,4 @@ public:
 private:
   std::vector<std::vector<float>> buf;
   std::vector<std::string> labels;
-  std::function<std::vector<float>(void)> func;
 };

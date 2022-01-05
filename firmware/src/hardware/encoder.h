@@ -53,7 +53,7 @@ public:
     /* int32_t 2,147,483,647 / 16384 * 1/3 * 3.1415 * 13 [mm] = 1,784,305 [mm]*/
     return positions[ch];
   }
-  void clearOffset() {
+  void clear_offset() {
     mutex.take();
     pulses_ovf[0] = pulses_ovf[1] = 0;
     mutex.give();
