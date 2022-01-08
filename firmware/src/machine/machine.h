@@ -124,7 +124,8 @@ private:
     case 13:
       // Machine::encoder_test();
       // Machine::accel_test();
-      Machine::wall_attach_test();
+      // Machine::wall_attach_test();
+      Machine::wall_test();
       break;
     case 14: /* テスト */
       Machine::slalom_test();
@@ -424,20 +425,10 @@ private:
       });
     case LOG_WALL:
       return lgr->init({
-          "ref_v.tra",
-          "est_v.tra",
-          "ref_a.tra",
-          "est_a.tra",
-          "ref_q.x",
-          "est_q.x",
-          "ref_q.y",
-          "est_q.y",
-          "ref_q.th",
-          "est_q.th",
-          "ref_0",
-          "ref_1",
-          "ref_2",
-          "ref_3",
+          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ref_q.x",
+          "est_q.x",   "ref_q.y",   "est_q.y",   "ref_q.th",  "est_q.th",
+          "ref_0",     "ref_1",     "ref_2",     "ref_3",     "wd_0",
+          "wd_1",      "wd_2",      "wd_3",      "tof",
       });
     }
   }
@@ -470,8 +461,8 @@ private:
       return lgr->push({
           sp->sc->ref_v.tra,
           sp->sc->est_v.tra,
-          sp->sc->ref_a.tra,
-          sp->sc->est_a.tra,
+          sp->sc->ref_v.rot,
+          sp->sc->est_v.rot,
           ref_q.x,
           est_q.x,
           ref_q.y,
@@ -482,6 +473,10 @@ private:
           (float)hw->ref->front(0),
           (float)hw->ref->front(1),
           (float)hw->ref->side(1),
+          (float)sp->wd->distance.side[0],
+          (float)sp->wd->distance.front[0],
+          (float)sp->wd->distance.front[1],
+          (float)sp->wd->distance.side[1],
           (float)hw->tof->getDistance(),
       });
     }
@@ -535,11 +530,48 @@ private:
     vTaskDelay(pdMS_TO_TICKS(500));
     hw->mt->free();
   }
+  void wall_test() {
+    int cells = sp->ui->waitForSelect(16);
+    if (cells < 0)
+      return;
+    if (!sp->ui->waitForCover())
+      return;
+    vTaskDelay(pdMS_TO_TICKS(500));
+    /* config */
+    const float j_max = 240'000;
+    const float a_max = 9000;
+    const float v_max = 600;
+    const float dist = 90 * cells;
+    enum LOG_SELECT log_select = LOG_WALL;
+    /* prepare */
+    log_init(log_select);
+    hw->bz->play(hardware::Buzzer::CALIBRATION);
+    hw->imu->calibration();
+    ctrl::AccelDesigner ad;
+    ad.reset(j_max, a_max, v_max, 0, 0, dist);
+    /* start */
+    sp->sc->enable();
+    for (float t = 0; t < ad.t_end() + 0.1f; t += 1e-3f) {
+      sp->sc->set_target(ad.v(t), 0, ad.a(t), 0);
+      sp->sc->sampling_sync();
+      // if ((int)(t * 1000) % 2 == 0)
+      log_push(log_select, ctrl::Pose(ad.x(t)), sp->sc->est_p);
+      if (hw->mt->is_emergency())
+        break;
+    }
+    /* end */
+    sp->sc->disable();
+    if (hw->mt->is_emergency())
+      hw->mt->emergency_release(), hw->bz->play(hardware::Buzzer::EMERGENCY);
+    hw->bz->play(hardware::Buzzer::CANCEL);
+  }
   void accel_test() {
     int cells = sp->ui->waitForSelect(2);
     if (cells < 0)
       return;
     int dir = sp->ui->waitForSelect(2);
+    if (dir < 0)
+      return;
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -573,7 +605,7 @@ private:
       sp->sc->sampling_sync();
       if ((int)(t * 1000) % 2 == 0)
         log_push(log_select,
-                 dir ? ctrl::Pose(ad.x(t)) : ctrl::Pose(0, 0, ad.x(t)),
+                 dir == 0 ? ctrl::Pose(ad.x(t)) : ctrl::Pose(0, 0, ad.x(t)),
                  sp->sc->est_p);
       if (hw->mt->is_emergency())
         break;
@@ -631,7 +663,6 @@ private:
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
-#if 1
     ctrl::slalom::Trajectory st(shape, mirror);
     st.reset(velocity);
     ctrl::State ref_s;
@@ -647,7 +678,6 @@ private:
     const auto &net = st.getShape().curve;
     sp->sc->est_p = (sp->sc->est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
-#endif
     /* decel */
     ref.reset(j_max, a_max, v_max, sp->sc->ref_v.tra, 0,
               d_2 + shape.straight_post);

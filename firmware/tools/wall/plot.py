@@ -29,37 +29,25 @@ def serial_import(filename, serial_port, serial_baudrate):
 
 
 def process(filename):
-    # load
+    # load csv
     raw = np.loadtxt(filename, delimiter='\t')
     dt = 1e-3
     t = dt * np.arange(raw.shape[0])
     v_tra = raw[:, 0:2]
-    a_tra = raw[:, 2:4]
-    u_tra = raw[:, 4:8]
-    v_rot = raw[:, 8:10]
-    a_rot = raw[:, 10:12]
-    u_rot = raw[:, 12:16]
-    x = raw[:, 16:18]
-    y = raw[:, 18:20]
-    th = raw[:, 20:22]
+    v_rot = raw[:, 2:4]
+    x = raw[:, 4:6]
+    y = raw[:, 6:8]
+    th = raw[:, 8:10]
+    ref = raw[:, 10:14]
+    wd = raw[:, 14:18]
+    tof = raw[:, 18:19]
 
-    # calculate input sum
-    u_tra = np.hstack(
-        (u_tra, np.sum(u_tra, axis=1).reshape(u_tra.shape[0], 1)))
-    u_rot = np.hstack(
-        (u_rot, np.sum(u_rot, axis=1).reshape(u_rot.shape[0], 1)))
-
-    # plot
-    fig, axs = plt.subplots(4, 1, figsize=(8, 10))
-    ylabels = ['vel. [m/s]', 'pwm input',
-               'vel. [rad/s]', 'pwm input']
-    titles = [
-        'Translational Velocity',
-        'Translational PWM Input',
-        'Rotational Velocity',
-        'Rotational PWM Input',
-    ]
-    data = [v_tra, u_tra, v_rot, u_rot]
+    # plot velocity
+    fig_v, axs = plt.subplots(2, 1, figsize=(8, 10))
+    ylabels = ['vel. [m/s]', 'vel. [rad/s]']
+    titles = ['Translational Velocity', 'Rotational Velocity']
+    legends = ['Reference', 'Estimated']
+    data = [v_tra, v_rot]
     for i in range(axs.size):
         ax = axs[i]
         ax.plot(t, data[i], lw=2)
@@ -69,16 +57,8 @@ def process(filename):
         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax.set_xlabel('Time [ms]')
-
-    legends = ['FF', 'FB p', 'FB i', 'FB d', 'FF+FB']
-    axs[int(axs.size/2)-1].legend(legends, ncol=5)
-    axs[-1].legend(legends, ncol=5)
-    legends = ['Reference', 'Estimated']
-    axs[0].legend(legends)
-    axs[int(axs.size/2)].legend(legends)
-
-    # fit
-    fig.tight_layout()
+        ax.legend(legends[i])
+    plt.tight_layout()
 
     # plot xy
     fig_xy = plt.figure(figsize=(8, 6))
@@ -96,13 +76,32 @@ def process(filename):
     plt.legend(['Reference', 'Estimated'])
     plt.tight_layout()
 
+    # plot ref
+    fig_ref, axs = plt.subplots(2, 1, figsize=(8, 10))
+    ylabels = ['reflector value', 'wall distance [mm]']
+    titles = ['Reflector Value', 'Wall Distance']
+    legends = ['SL', 'FL', 'FR', 'SR']
+    data = [ref, wd]
+    for i in range(axs.size):
+        ax = axs[i]
+        ax.plot(x[:, 0], data[i], lw=2)
+        ax.set_ylabel(ylabels[i])
+        ax.set_title(titles[i])
+        ax.grid()
+        # ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        # ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+        ax.set_xlabel('x [mm]')
+        ax.legend(legends, ncol=4)
+    plt.tight_layout()
+
     # save
     for ext in [
         # '.png',
         '.svg',
     ]:
-        fig.savefig(filename + '_v' + ext)
+        fig_v.savefig(filename + '_v' + ext)
         fig_xy.savefig(filename + '_xy' + ext)
+        fig_ref.savefig(filename + '_ref' + ext)
 
     # show
     plt.show()
