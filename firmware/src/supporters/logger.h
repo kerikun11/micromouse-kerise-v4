@@ -23,20 +23,25 @@ public:
     this->labels = labels;
   }
   void push(const std::vector<float> &data) { buf.push_back(data); }
-  void print(std::ostream &os = std::cout) const {
+  void print() const {
     // header
-    os << "# KERISE v" << KERISE_SELECT << std::endl;
+    std::printf("# KERISE v%d\n", KERISE_SELECT);
     // labels
-    os << "# ";
-    for (int i = 0; i < labels.size(); ++i)
-      os << labels[i] << (i < labels.size() - 1 ? "\t" : "");
-    os << std::endl;
+    std::printf("# ");
+    for (int i = 0; i < labels.size(); ++i) {
+      std::printf("%s", labels[i].c_str());
+      i < labels.size() - 1 && std::printf("\t");
+    }
+    std::printf("\n");
     // data
     for (const auto &data : buf) {
-      for (int i = 0; i < data.size(); ++i)
-        os << data[i] << (i < data.size() - 1 ? "\t" : "");
-      os << std::endl;
-      vTaskDelay(pdMS_TO_TICKS(1));
+      for (int i = 0; i < data.size(); ++i) {
+        std::printf("%.3e", data[i]);
+        i < data.size() - 1 && std::printf("\t");
+      }
+      std::printf("\n");
+      // vTaskDelay(pdMS_TO_TICKS(1));
+      taskYIELD();
     }
   }
 

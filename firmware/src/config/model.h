@@ -123,13 +123,13 @@ static constexpr float wall_avoid_gain = 0.003f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5789, 1000),
-        .T1 = ctrl::Polar(0.12, 0.48),
+        .K1 = ctrl::Polar(5400, 100), //< 大きく：FF定常成分小さく
+        .T1 = ctrl::Polar(0.18, 0.12), //< 大きく：FF立ち上がり成分大きく
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
-        .Kp = ctrl::Polar(0.0008f, 0.15f),
-        .Ki = ctrl::Polar(0.1f, 6.0f),
+        .Kp = ctrl::Polar(0.0004f, 0.03f),
+        .Ki = ctrl::Polar(0.1f, 3.0f),
         .Kd = ctrl::Polar(0, 0),
 };
 static constexpr float turn_back_gain = 10.0f;
@@ -137,10 +137,17 @@ static constexpr float turn_back_gain = 10.0f;
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
+#if 0
     .zeta = 0.8f,
-    .omega_n = 18.0f,
+    .omega_n = 10.0f,
     .low_zeta = 1.0f,
     .low_b = 1e-3f,
+#else
+    .zeta = 0,
+    .omega_n = 0,
+    .low_zeta = 0,
+    .low_b = 0,
+#endif
 };
 
 #endif

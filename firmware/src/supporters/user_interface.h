@@ -115,6 +115,10 @@ public:
    * @return false キャンセルされた
    */
   bool waitForCover(bool side = false) {
+    if (side)
+      hw->led->set(9);
+    else
+      hw->led->set(6);
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */

@@ -90,7 +90,7 @@ private:
       Machine::selectParamPreset();
       break;
     case 3: /* 斜め走行などの設定 */
-      Machine::selectParamManual();
+      Machine::selectRunConfig();
       break;
     case 4: /* ファンの設定 */
       Machine::selectFanGain();
@@ -117,11 +117,11 @@ private:
       Machine::setGoalPositions();
       break;
     case 12:
-      Machine::position_recovery();
+      // Machine::position_recovery();
       // Machine::sysid();
+      Machine::motor_test();
       break;
     case 13:
-      // Machine::pidTuner();
       // Machine::encoder_test();
       // Machine::accel_test();
       Machine::wall_attach_test();
@@ -175,20 +175,38 @@ private:
     // vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
     mr->autoRun(forceSearch);
   }
-  void restore() {
-    if (!mr->restore())
-      hw->bz->play(hardware::Buzzer::ERROR);
-    else
-      hw->bz->play(hardware::Buzzer::MAZE_RESTORE);
-    /* ゴールが封印されていないか一応確認 */
-    if (!mr->isSolvable())
-      hw->bz->play(hardware::Buzzer::ERROR);
-  }
-  void reset() {
-    if (!sp->ui->waitForCover())
+  void selectParamManually() {
+    int value;
+    /* ターン速度 */
+    for (int i = 0; i < 1; i++)
+      hw->bz->play(hardware::Buzzer::SHORT7);
+    value = sp->ui->waitForSelect(16);
+    if (value < 0)
       return;
-    hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
-    mr->reset();
+    if (value > 7)
+      value -= 16;
+    for (auto &vs : ma->rp_fast.v_slalom)
+      vs *= std::pow(ma->rp_fast.vs_factor, float(value));
+    /* 最大速度 */
+    for (int i = 0; i < 2; i++)
+      hw->bz->play(hardware::Buzzer::SHORT7);
+    value = sp->ui->waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    ma->rp_fast.v_max *= std::pow(ma->rp_fast.vm_factor, float(value));
+    /* 加速度 */
+    for (int i = 0; i < 3; i++)
+      hw->bz->play(hardware::Buzzer::SHORT7);
+    value = sp->ui->waitForSelect(16);
+    if (value < 0)
+      return;
+    if (value > 7)
+      value -= 16;
+    ma->rp_fast.a_max *= std::pow(ma->rp_fast.vm_factor, float(value));
+    /* 成功 */
+    hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
   void selectParamPreset() {
     for (int i = 0; i < 1; i++)
@@ -203,7 +221,7 @@ private:
       ma->rp_fast.down(16 - value);
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
-  void selectParamManual() {
+  void selectRunConfig() {
     int mode = sp->ui->waitForSelect(16);
     if (mode < 0)
       return;
@@ -238,39 +256,6 @@ private:
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
-  void selectParamManually() {
-    int value;
-    /* ターン速度 */
-    for (int i = 0; i < 1; i++)
-      hw->bz->play(hardware::Buzzer::SHORT7);
-    value = sp->ui->waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    for (auto &vs : ma->rp_fast.v_slalom)
-      vs *= std::pow(ma->rp_fast.vs_factor, float(value));
-    /* 最大速度 */
-    for (int i = 0; i < 2; i++)
-      hw->bz->play(hardware::Buzzer::SHORT7);
-    value = sp->ui->waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    ma->rp_fast.v_max *= std::pow(ma->rp_fast.vm_factor, float(value));
-    /* 加速度 */
-    for (int i = 0; i < 3; i++)
-      hw->bz->play(hardware::Buzzer::SHORT7);
-    value = sp->ui->waitForSelect(16);
-    if (value < 0)
-      return;
-    if (value > 7)
-      value -= 16;
-    ma->rp_fast.a_max *= std::pow(ma->rp_fast.vm_factor, float(value));
-    /* 成功 */
-    hw->bz->play(hardware::Buzzer::SUCCESSFUL);
-  }
   void selectFanGain() {
     hw->fan->drive(0.5f);
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -285,6 +270,38 @@ private:
     hw->fan->drive(0);
     hw->mt->drive(0, 0);
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
+  }
+  void restore() {
+    if (!mr->restore())
+      hw->bz->play(hardware::Buzzer::ERROR);
+    else
+      hw->bz->play(hardware::Buzzer::MAZE_RESTORE);
+    /* ゴールが封印されていないか一応確認 */
+    if (!mr->isSolvable())
+      hw->bz->play(hardware::Buzzer::ERROR);
+  }
+  void reset() {
+    if (!sp->ui->waitForCover())
+      return;
+    hw->bz->play(hardware::Buzzer::BOOT);
+    mr->reset();
+  }
+  void partyStunt() {
+    if (!sp->ui->waitForCover())
+      return;
+    hw->led->set(6);
+    hw->bz->play(hardware::Buzzer::CALIBRATION);
+    hw->imu->calibration();
+    hw->led->set(9);
+    sp->sc->enable();
+    sp->sc->set_target(0, 0);
+    while (!hw->mt->is_emergency())
+      vTaskDelay(pdMS_TO_TICKS(1));
+    hw->mt->drive(0, 0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    sp->sc->disable();
+    hw->mt->emergency_release();
+    hw->bz->play(hardware::Buzzer::CANCEL);
   }
   void wallCalibration() {
     int mode = sp->ui->waitForSelect(3);
@@ -325,7 +342,7 @@ private:
   void setGoalPositions() {
     for (int i = 0; i < 2; i++)
       hw->bz->play(hardware::Buzzer::SHORT7);
-    int value = sp->ui->waitForSelect(6);
+    int value = sp->ui->waitForSelect(16);
     if (value < 0)
       return;
     switch (value) {
@@ -338,7 +355,7 @@ private:
     case 1:
       mr->setGoals({MazeLib::Position(1, 0)});
       break;
-    case 2:
+    case 15:
       mr->setGoals({
           MazeLib::Position(17, 13),
           MazeLib::Position(18, 13),
@@ -351,35 +368,11 @@ private:
           MazeLib::Position(19, 15),
       });
       break;
-    case 3:
-      mr->setGoals({MazeLib::Position(3, 3), MazeLib::Position(3, 4),
-                    MazeLib::Position(4, 3), MazeLib::Position(4, 4)});
-      break;
-    case 4:
-      mr->setGoals({MazeLib::Position(8, 8)});
-      break;
-    case 5:
-      mr->setGoals({MazeLib::Position(15, 15)});
+    default:
+      mr->setGoals({MazeLib::Position(value, value)});
       break;
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
-  }
-  void partyStunt() {
-    if (!sp->ui->waitForCover())
-      return;
-    hw->led->set(6);
-    hw->bz->play(hardware::Buzzer::CALIBRATION);
-    hw->imu->calibration();
-    hw->led->set(9);
-    sp->sc->enable();
-    sp->sc->set_target(0, 0);
-    while (!hw->mt->is_emergency())
-      vTaskDelay(pdMS_TO_TICKS(1));
-    hw->mt->drive(0, 0);
-    vTaskDelay(pdMS_TO_TICKS(100));
-    sp->sc->disable();
-    hw->mt->emergency_release();
-    hw->bz->play(hardware::Buzzer::CANCEL);
   }
   void petitcon() {
     if (!sp->ui->waitForCover())
@@ -401,6 +394,97 @@ private:
     ma->waitForEndAction();
     ma->disable();
     ma->emergency_release();
+  }
+
+private:
+  enum LOG_SELECT {
+    LOG_PID,
+    LOG_SYSID,
+    LOG_WALL,
+  };
+  void log_init(enum LOG_SELECT log_select) {
+    switch (log_select) {
+    case LOG_PID:
+      return lgr->init({
+          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
+          "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
+          "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
+          "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
+          "ref_q.th",  "est_q.th",
+      });
+    case LOG_SYSID:
+      return lgr->init({
+          "enc[0]",
+          "enc[1]",
+          "gyro.z",
+          "accel.y",
+          "angular_accel",
+          "u.tra",
+          "u.rot",
+      });
+    case LOG_WALL:
+      return lgr->init({
+          "ref_v.tra",
+          "est_v.tra",
+          "ref_a.tra",
+          "est_a.tra",
+          "ref_q.x",
+          "est_q.x",
+          "ref_q.y",
+          "est_q.y",
+          "ref_q.th",
+          "est_q.th",
+          "ref_0",
+          "ref_1",
+          "ref_2",
+          "ref_3",
+      });
+    }
+  }
+  void log_push(enum LOG_SELECT log_select, const auto &ref_q = ctrl::Pose(),
+                const auto &est_q = ctrl::Pose()) {
+    const auto &bd = sp->sc->fbc.getBreakdown();
+    switch (log_select) {
+    case LOG_PID:
+      return lgr->push({
+          sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
+          sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
+          bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
+          sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
+          bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
+          bd.fbd.rot,        ref_q.x,           est_q.x,
+          ref_q.y,           est_q.y,           ref_q.th,
+          est_q.th,
+      });
+    case LOG_SYSID:
+      return lgr->push({
+          hw->enc->get_position(0),
+          hw->enc->get_position(1),
+          hw->imu->gyro.z,
+          hw->imu->accel.y,
+          hw->imu->angular_accel,
+          bd.u.tra,
+          bd.u.rot,
+      });
+    case LOG_WALL:
+      return lgr->push({
+          sp->sc->ref_v.tra,
+          sp->sc->est_v.tra,
+          sp->sc->ref_a.tra,
+          sp->sc->est_a.tra,
+          ref_q.x,
+          est_q.x,
+          ref_q.y,
+          est_q.y,
+          ref_q.th,
+          est_q.th,
+          (float)hw->ref->side(0),
+          (float)hw->ref->front(0),
+          (float)hw->ref->front(1),
+          (float)hw->ref->side(1),
+          (float)hw->tof->getDistance(),
+      });
+    }
   }
   void sysid() {
     int dir = sp->ui->waitForSelect(2);
@@ -452,49 +536,15 @@ private:
     hw->mt->free();
   }
   void accel_test() {
+    int cells = sp->ui->waitForSelect(2);
+    if (cells < 0)
+      return;
     int dir = sp->ui->waitForSelect(2);
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
-    lgr->init({
-        "ref_v.tra",
-        "est_v.tra",
-        "ref_a.tra",
-        "est_a.tra",
-        "ff.tra",
-        "fbp.tra",
-        "fbi.tra",
-        "fbd.tra",
-        "ref_v.rot",
-        "est_v.rot",
-        "ref_a.rot",
-        "est_a.rot",
-        "ff.rot",
-        "fbp.rot",
-        "fbi.rot",
-        "fbd.rot",
-    });
-    const auto push_log = [&]() {
-      const auto &bd = sp->sc->fbc.getBreakdown();
-      lgr->push({
-          sp->sc->ref_v.tra,
-          sp->sc->est_v.tra,
-          sp->sc->ref_a.tra,
-          sp->sc->est_a.tra,
-          bd.ff.tra,
-          bd.fbp.tra,
-          bd.fbi.tra,
-          bd.fbd.tra,
-          sp->sc->ref_v.rot,
-          sp->sc->est_v.rot,
-          sp->sc->ref_a.rot,
-          sp->sc->est_a.rot,
-          bd.ff.rot,
-          bd.fbp.rot,
-          bd.fbi.rot,
-          bd.fbd.rot,
-      });
-    };
+    enum LOG_SELECT log_select = LOG_PID;
+    log_init(log_select);
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->fan->drive(0.2);
@@ -522,7 +572,9 @@ private:
         sp->sc->set_target(0, ad.v(t), 0, ad.a(t));
       sp->sc->sampling_sync();
       if ((int)(t * 1000) % 2 == 0)
-        push_log();
+        log_push(log_select,
+                 dir ? ctrl::Pose(ad.x(t)) : ctrl::Pose(0, 0, ad.x(t)),
+                 sp->sc->est_p);
       if (hw->mt->is_emergency())
         break;
     }
@@ -532,60 +584,17 @@ private:
     hw->bz->play(hardware::Buzzer::CANCEL);
   }
   void slalom_test() {
-    ctrl::TrajectoryTracker::Gain gain = model::TrajectoryTrackerGain;
     int mode = sp->ui->waitForSelect(2);
     if (mode < 0)
       return;
-    hw->led->set(0xF);
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
-#if 1
-    lgr->init({
-        "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
-        "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
-        "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
-        "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
-        "ref_q.th",  "est_q.th",
-    });
-    const auto push_log = [this](const auto ref_q, const auto est_q) {
-      const auto &bd = sp->sc->fbc.getBreakdown();
-      lgr->push({
-          sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
-          sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
-          bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
-          sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
-          bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
-          bd.fbd.rot,        ref_q.x,           est_q.x,
-          ref_q.y,           est_q.y,           ref_q.th,
-          est_q.th,
-      });
-    };
-#else
-    lgr->init({
-        "enc[0]",
-        "enc[1]",
-        "gyro.z",
-        "accel.y",
-        "angular_accel",
-        "u.tra",
-        "u.rot",
-    });
-    const auto push_log = [this](const auto ref_q, const auto est_q) {
-      const auto &bd = sp->sc->fbc.getBreakdown();
-      lgr->push({
-          hw->enc->get_position(0),
-          hw->enc->get_position(1),
-          hw->imu->gyro.z,
-          hw->imu->accel.y,
-          hw->imu->angular_accel,
-          bd.u.tra,
-          bd.u.rot,
-      });
-    };
-#endif
+    enum LOG_SELECT log_select = LOG_PID;
+    log_init(log_select);
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
+    /* parameter */
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const bool mirror = mode;
     const float velocity = 600;
@@ -596,7 +605,7 @@ private:
     const float d_1 = 2 * 45;
     const float d_2 = 2 * 45;
     const float fan_duty = 0.0;
-    ctrl::TrajectoryTracker tt(gain);
+    ctrl::TrajectoryTracker tt(model::TrajectoryTrackerGain);
     ctrl::Pose offset;
     /* fan */
     if (fan_duty > 0) {
@@ -616,11 +625,13 @@ private:
       const auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      log_push(log_select, ref_s.q.homogeneous(offset),
+               est_q.homogeneous(offset));
     }
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
     /* slalom */
+#if 1
     ctrl::slalom::Trajectory st(shape, mirror);
     st.reset(velocity);
     ctrl::State ref_s;
@@ -630,11 +641,13 @@ private:
       auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      log_push(log_select, ref_s.q.homogeneous(offset),
+               est_q.homogeneous(offset));
     }
     const auto &net = st.getShape().curve;
     sp->sc->est_p = (sp->sc->est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
+#endif
     /* decel */
     ref.reset(j_max, a_max, v_max, sp->sc->ref_v.tra, 0,
               d_2 + shape.straight_post);
@@ -645,7 +658,8 @@ private:
       auto ref = tt.update(est_q, sp->sc->est_v, sp->sc->est_a, ref_s);
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
       sp->sc->sampling_sync();
-      push_log(ref_s.q.homogeneous(offset), est_q.homogeneous(offset));
+      log_push(log_select, ref_s.q.homogeneous(offset),
+               est_q.homogeneous(offset));
     }
     sp->sc->est_p.x -= ref.x_end();
     offset += ctrl::Pose(ref.x_end(), 0, 0).rotate(offset.th);
@@ -708,22 +722,6 @@ private:
     sp->sc->fbc.setGain(gain);
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
-  void SearchRun_test() {
-    if (!sp->ui->waitForCover())
-      return;
-    vTaskDelay(pdMS_TO_TICKS(500));
-    hw->bz->play(hardware::Buzzer::CALIBRATION);
-    hw->imu->calibration();
-    ma->enqueue_action(RobotBase::START_STEP);
-    ma->enqueue_action(RobotBase::TURN_R);
-    ma->enqueue_action(RobotBase::ST_FULL);
-    ma->enqueue_action(RobotBase::TURN_L);
-    ma->enqueue_action(RobotBase::ST_HALF_STOP);
-    ma->enable(MoveAction::TaskActionSearchRun);
-    ma->waitForEndAction();
-    ma->disable();
-    hw->mt->emergency_release();
-  }
   void position_recovery() {
     while (1) {
       hw->led->set(15);
@@ -736,6 +734,19 @@ private:
       ma->disable();
       ma->emergency_release();
     }
+  }
+  void motor_test() {
+    int value = sp->ui->waitForSelect(16);
+    if (value < 0)
+      return;
+    if (!sp->ui->waitForCover(true))
+      return;
+    vTaskDelay(pdMS_TO_TICKS(500));
+    float duty = (value < 8 ? value : value - 16) * 0.1;
+    hw->mt->drive(duty, duty);
+    sp->ui->waitForCover();
+    hw->mt->free();
+    hw->bz->play(hardware::Buzzer::CANCEL);
   }
   void encoder_test() {
     int value = sp->ui->waitForSelect(16);

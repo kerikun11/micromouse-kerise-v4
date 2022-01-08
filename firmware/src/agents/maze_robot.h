@@ -158,11 +158,13 @@ public:
     /* 最短走行ループ: スタート -> ゴール -> スタート */
     while (1) {
       /* 5走終了→離脱 */
-      if (state.get_try_count_remain() <= 0)
-        break;
+      // if (state.get_try_count_remain() <= 0)
+      // break;
       /* 回収待ち */
+      hw->bz->play(hardware::Buzzer::SHORT6); // for debug
       if (sp->ui->waitForPickup())
         return false;
+      hw->bz->play(hardware::Buzzer::SHORT7); // for debug
       /* 最短走行 */
       if (!auto_fast_run()) {
         if (!hw->mt->is_emergency())
@@ -170,8 +172,10 @@ public:
         /* クラッシュ後の場合、自動復帰 */
         ma->emergency_release();
         /* 回収待ち */
+        hw->bz->play(hardware::Buzzer::SHORT6); // for debug
         if (sp->ui->waitForPickup())
           return false;
+        hw->bz->play(hardware::Buzzer::SHORT7); // for debug
         /* 自動復帰 */
         auto_pi_run();
       }
@@ -369,9 +373,11 @@ private:
       return false; //< クラッシュした
     /* 最短成功 */
     state.end_fast_run(true);
+    hw->bz->play(hardware::Buzzer::SHORT6); // for debug
     /* ゴールで回収されるか待つ */
     if (sp->ui->waitForPickup())
-      return false; //< 回収された
+      return false;                         //< 回収された
+    hw->bz->play(hardware::Buzzer::SHORT7); // for debug
     /* 帰る */
     return endFastRunBackingToStartRun();
   }
