@@ -24,7 +24,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 3
+#define KERISE_SELECT 5
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */

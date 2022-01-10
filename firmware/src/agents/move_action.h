@@ -36,9 +36,9 @@ public:
   struct RunParameter {
   public:
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 0;
+    bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 0;
-    bool wall_avoid_enabled = 0;
+    bool wall_avoid_enabled = 1;
     bool wall_theta_fix_enabled = 0;
     bool wall_cut_enabled = 0;
     float v_max = 720;
@@ -228,37 +228,50 @@ private:
     }
 #endif
   }
-  void wall_avoid(const float remain, const RunParameter &rp, float &int_y) {
+  void wall_theta_fix(const RunParameter &rp) {
+    if (break_requested || hw->mt->is_emergency())
+      return;
+    /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
+    if (!rp.wall_theta_fix_enabled || sp->sc->est_v.tra < 240.0f ||
+        std::abs(sp->sc->est_p.th) > M_PI * 5 / 180) {
+      return;
+    }
+    float int_y = 0;
+    /* 90 [deg] の倍数 */
+    if (isAlong()) {
+      if (sp->wd->is_wall[0]) {
+        int_y += sp->wd->distance.side[0];
+      }
+      if (sp->wd->is_wall[1]) {
+        int_y -= sp->wd->distance.side[1];
+      }
+      /* 機体姿勢の補正 */
+      sp->sc->est_p.th += int_y * 1e-8f;
+    }
+  }
+  void wall_avoid(const float remain, const RunParameter &rp) {
     if (break_requested || hw->mt->is_emergency())
       return;
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sp->sc->est_v.tra < 180.0f ||
-        std::abs(sp->sc->est_p.th) > M_PI * 0.01f) {
+        std::abs(sp->sc->est_p.th) > M_PI * 5 / 180) {
       hw->led->set(0);
       return;
     }
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float gain = (sp->wd->is_wall[0] && sp->wd->is_wall[1])
-                             ? model::wall_avoid_gain
-                             : model::wall_avoid_gain * 2;
-      const float wall_diff_thr = 100; //< 吸い込まれ防止
-      if (sp->wd->is_wall[0] &&
-          std::abs(sp->wd->diff.side[0]) < wall_diff_thr) {
-        sp->sc->est_p.y += sp->wd->distance.side[0] * gain;
-        int_y += sp->wd->distance.side[0];
+      const float alpha = 0.1;         //< 補正割合
+      const float wall_dist_thr = -10; //< 吸い込まれ防止
+      if (sp->wd->distance.side[0] > wall_dist_thr) {
+        sp->sc->est_p.y =
+            (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[0];
         led_flags |= 8;
       }
-      if (sp->wd->is_wall[1] &&
-          std::abs(sp->wd->diff.side[1]) < wall_diff_thr) {
-        sp->sc->est_p.y -= sp->wd->distance.side[1] * gain;
-        int_y -= sp->wd->distance.side[1];
+      if (sp->wd->distance.side[1] > wall_dist_thr) {
+        sp->sc->est_p.y =
+            (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[1];
         led_flags |= 1;
-      }
-      /* 機体姿勢の補正 */
-      if (rp.wall_theta_fix_enabled) {
-        sp->sc->est_p.th += int_y * 1e-8f;
       }
 #if 0
       /* 櫛の壁制御 */
@@ -449,7 +462,6 @@ private:
                        std::max(v_end, 30.0f), distance - sp->sc->est_p.x,
                        sp->sc->est_p.x);
       tt.reset(v_start);
-      float int_y = 0; //< 角度補正用
       for (float t = 0; true; t += sp->sc->Ts) {
         if (break_requested || hw->mt->is_emergency())
           break;
@@ -476,7 +488,8 @@ private:
         /* 情報の更新 */
         sp->sc->sampling_sync();
         /* 壁制御 */
-        wall_avoid(remain, rp, int_y);
+        wall_avoid(remain, rp);
+        wall_theta_fix(rp);
         /* 壁切れ */
         wall_cut(rp);
         /* ToDo: 補正結果に応じて時刻をシフトする処理 */
@@ -552,8 +565,7 @@ private:
       /* データの更新 */
       sp->sc->sampling_sync();
       /* 補正 */
-      float int_y = 0; //< スラローム中は角度補正をしない
-      wall_avoid(0, rp, int_y);
+      wall_avoid(0, rp);
       wall_cut(rp);
       /* ターン中の前壁補正 */
       const auto &shape = trajectory.getShape();
@@ -677,10 +689,8 @@ private:
       sp->sc->set_target(-max_v, -sp->sc->est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
     }
-    hw->mt->drive(-0.1f, -0.1f);
-    vTaskDelay(pdMS_TO_TICKS(200));
-    hw->mt->drive(-0.2f, -0.2f);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    hw->mt->drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
+    vTaskDelay(pdMS_TO_TICKS(400));
     hw->mt->drive(0, 0);
   }
 
@@ -722,13 +732,11 @@ private:
     ctrl::AccelCurve ac(rp.j_max, rp.a_max, v_start, 0); //< なめらかに減速
     /* start */
     tt.reset(v_start);
-    float int_y = 0; //< 角度補正
     for (float t = 0; sa_queue.empty(); t += 1e-3f) {
       if (break_requested || hw->mt->is_emergency())
         break;
       sp->sc->sampling_sync();
-      int_y = 0; //< 角度補正はしない
-      wall_avoid(0, rp, int_y);
+      wall_avoid(0, rp);
       const auto ref = tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a,
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
                                  ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));
