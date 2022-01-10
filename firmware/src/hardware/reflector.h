@@ -17,7 +17,7 @@ class Reflector {
 public:
   static constexpr UBaseType_t Priority = 20;
   static constexpr int CH_SIZE = 4;
-  static constexpr int ave_num = 8;
+  static constexpr int ave_num = 1;
 
 public:
   Reflector(const std::array<gpio_num_t, CH_SIZE> &tx_pins,

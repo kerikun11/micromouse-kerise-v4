@@ -74,7 +74,8 @@ private:
       // hw->tof->print();
       // hw->ref->csv();
       // hw->enc->csv();
-      // wd->print();
+      // sp->wd->print();
+      // sp->wd->csv();
     }
   }
   int driveManually() {
@@ -117,9 +118,9 @@ private:
       Machine::setGoalPositions();
       break;
     case 12:
-      // Machine::position_recovery();
+      Machine::position_recovery();
       // Machine::sysid();
-      Machine::motor_test();
+      // Machine::motor_test();
       break;
     case 13:
       // Machine::encoder_test();

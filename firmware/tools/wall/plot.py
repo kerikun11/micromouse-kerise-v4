@@ -43,8 +43,8 @@ def process(filename):
     tof = raw[:, 18:19]
 
     # plot velocity
-    fig_v, axs = plt.subplots(2, 1, figsize=(8, 10))
-    ylabels = ['vel. [m/s]', 'vel. [rad/s]']
+    fig_v, axs = plt.subplots(2, 1, figsize=(8, 6))
+    ylabels = ['trans. vel. [m/s]', 'rot. vel. [rad/s]']
     titles = ['Translational Velocity', 'Rotational Velocity']
     legends = ['Reference', 'Estimated']
     data = [v_tra, v_rot]
@@ -57,7 +57,7 @@ def process(filename):
         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax.set_xlabel('Time [ms]')
-        ax.legend(legends[i])
+        ax.legend(legends)
     plt.tight_layout()
 
     # plot xy
@@ -76,11 +76,11 @@ def process(filename):
     plt.legend(['Reference', 'Estimated'])
     plt.tight_layout()
 
-    # plot ref
-    fig_ref, axs = plt.subplots(2, 1, figsize=(8, 10))
+    # plot x_vs_wd
+    fig_ref, axs = plt.subplots(2, 1, figsize=(8, 6))
+    titles = ['Reflector Raw Value', 'Wall Distance']
     ylabels = ['reflector value', 'wall distance [mm]']
-    titles = ['Reflector Value', 'Wall Distance']
-    legends = ['SL', 'FL', 'FR', 'SR']
+    legends = ['Left Side', 'Left Front', 'Right Front', 'Right Side']
     data = [ref, wd]
     for i in range(axs.size):
         ax = axs[i]
@@ -88,11 +88,19 @@ def process(filename):
         ax.set_ylabel(ylabels[i])
         ax.set_title(titles[i])
         ax.grid()
-        # ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-        # ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax.set_xlabel('x [mm]')
-        ax.legend(legends, ncol=4)
+        ax.set_xlabel('Translational Position (x) [mm]')
+        ax.legend(legends)
     plt.tight_layout()
+
+    # plot tof
+    plt.figure(figsize=(8, 6))
+    plt.plot(x[:, 0], np.hstack([wd, tof]))
+    plt.xlabel('Translational Position (x) [mm]')
+    plt.ylabel('Wall Distance [mm]')
+    legends = ['Left Side', 'Left Front', 'Right Front', 'Right Side', 'ToF']
+    plt.grid()
+    plt.tight_layout()
+    fig_tof = plt.gcf()
 
     # save
     for ext in [
@@ -102,6 +110,7 @@ def process(filename):
         fig_v.savefig(filename + '_v' + ext)
         fig_xy.savefig(filename + '_xy' + ext)
         fig_ref.savefig(filename + '_ref' + ext)
+        fig_tof.savefig(filename + '_tof' + ext)
 
     # show
     plt.show()

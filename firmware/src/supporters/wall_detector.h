@@ -143,8 +143,6 @@ public:
     std::cout << "0";
     for (int i = 0; i < 4; ++i)
       std::cout << "," << distance.value[i];
-    for (int i = 0; i < 4; ++i)
-      std::cout << "," << diff.value[i];
     std::cout << std::endl;
   }
 

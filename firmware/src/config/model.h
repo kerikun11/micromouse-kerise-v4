@@ -54,7 +54,7 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
         .Ki = ctrl::Polar(0.04, 4.0),
         .Kd = ctrl::Polar(0.0, 0.0),
 };
-static constexpr float turn_back_gain = 0.1;
+static constexpr float turn_back_gain = 10;
 /* Velocity Estimation IIR Filter gain */
 static constexpr ctrl::Polar alpha = ctrl::Polar(1.0f, 1.0f);
 /* Trajectory Tracking Gain */
