@@ -72,7 +72,7 @@ private:
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(9));
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(90));
       // hw->tof->print();
-      // hw->ref->csv();
+      // hw->rfl->csv();
       // hw->enc->csv();
       // sp->wd->print();
       // sp->wd->csv();
@@ -470,10 +470,10 @@ private:
           est_q.y,
           ref_q.th,
           est_q.th,
-          (float)hw->ref->side(0),
-          (float)hw->ref->front(0),
-          (float)hw->ref->front(1),
-          (float)hw->ref->side(1),
+          (float)hw->rfl->side(0),
+          (float)hw->rfl->front(0),
+          (float)hw->rfl->front(1),
+          (float)hw->rfl->side(1),
           (float)sp->wd->distance.side[0],
           (float)sp->wd->distance.front[0],
           (float)sp->wd->distance.front[1],
@@ -804,8 +804,8 @@ private:
         hw->bz->play(hardware::Buzzer::EMERGENCY);
         break;
       }
-      if (hw->ref->side(0) > 1.2 * UserInterface::thr_ref_side &&
-          hw->ref->side(1) > 1.2 * UserInterface::thr_ref_side) {
+      if (hw->rfl->side(0) > 1.2 * UserInterface::thr_ref_side &&
+          hw->rfl->side(1) > 1.2 * UserInterface::thr_ref_side) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         break;
       }

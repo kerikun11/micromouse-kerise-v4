@@ -27,7 +27,7 @@ public:
   Button *btn;
   IMU *imu;
   Encoder *enc;
-  Reflector *ref;
+  Reflector *rfl;
   ToF *tof;
 
 private:
@@ -83,8 +83,8 @@ public:
     if (!enc->init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
       bz->play(hardware::Buzzer::ERROR);
     /* Reflector */
-    ref = new Reflector(REFLECTOR_TX_PINS, REFLECTOR_RX_CHANNELS);
-    if (!ref->init())
+    rfl = new Reflector(REFLECTOR_TX_PINS, REFLECTOR_RX_CHANNELS);
+    if (!rfl->init())
       bz->play(hardware::Buzzer::ERROR);
     /* ToF */
     tof = new ToF(I2C_PORT_NUM_TOF, model::tof_dist_offset);

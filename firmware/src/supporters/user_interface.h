@@ -122,13 +122,13 @@ public:
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* CONFIRM */
-      if (!side && hw->ref->front(0) > thr_ref_front &&
-          hw->ref->front(1) > thr_ref_front) {
+      if (!side && hw->rfl->front(0) > thr_ref_front &&
+          hw->rfl->front(1) > thr_ref_front) {
         hw->bz->play(hardware::Buzzer::CONFIRM);
         return true;
       }
-      if (side && hw->ref->side(0) > thr_ref_side &&
-          hw->ref->side(1) > thr_ref_side) {
+      if (side && hw->rfl->side(0) > thr_ref_side &&
+          hw->rfl->side(1) > thr_ref_side) {
         hw->bz->play(hardware::Buzzer::CONFIRM);
         return true;
       }

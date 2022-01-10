@@ -104,7 +104,7 @@ public:
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
-        sum[i] += ref2dist(hw->ref->side(i));
+        sum[i] += ref2dist(hw->rfl->side(i));
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
@@ -119,7 +119,7 @@ public:
     const int ave_count = 500;
     for (int j = 0; j < ave_count; j++) {
       for (int i = 0; i < 2; i++)
-        sum[i] += ref2dist(hw->ref->front(i));
+        sum[i] += ref2dist(hw->rfl->front(i));
       vTaskDelay(pdMS_TO_TICKS(1));
     }
     for (int i = 0; i < 2; i++)
@@ -161,8 +161,8 @@ private:
   void update() {
     // データの更新
     for (int i = 0; i < 2; i++) {
-      distance.side[i] = ref2dist(hw->ref->side(i)) - wall_ref.side[i];
-      distance.front[i] = ref2dist(hw->ref->front(i)) - wall_ref.front[i];
+      distance.side[i] = ref2dist(hw->rfl->side(i)) - wall_ref.side[i];
+      distance.front[i] = ref2dist(hw->rfl->front(i)) - wall_ref.front[i];
     }
     buffer.push(distance);
 
