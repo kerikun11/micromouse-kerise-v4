@@ -55,7 +55,7 @@ public:
 
 public:
   WallValue distance;
-  WallValue diff;
+  // WallValue diff;
   std::array<bool, 3> is_wall;
 
 private:
@@ -187,12 +187,12 @@ private:
 
     // 変化量の更新
     // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
-    WallValue tmp;
-    for (int i = 0; i < ave_num / 2; ++i)
-      tmp += buffer[i];
-    for (int i = 0; i < ave_num / 2; ++i)
-      tmp -= buffer[ave_num / 2 + i];
-    diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
+    // WallValue tmp;
+    // for (int i = 0; i < ave_num / 2; ++i)
+    //   tmp += buffer[i];
+    // for (int i = 0; i < ave_num / 2; ++i)
+    //   tmp -= buffer[ave_num / 2 + i];
+    // diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
   }
 
   float ref2dist(const int16_t value) const {

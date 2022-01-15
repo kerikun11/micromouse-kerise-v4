@@ -37,8 +37,8 @@ public:
   public:
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 1;
-    bool front_wall_fix_enabled = 0;
-    bool wall_avoid_enabled = 1;
+    bool front_wall_fix_enabled = 1;
+    bool wall_avoid_enabled = 0;
     bool wall_theta_fix_enabled = 0;
     bool wall_cut_enabled = 0;
     float v_max = 720;
@@ -261,7 +261,7 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float alpha = 0.1;         //< 補正割合
+      const float alpha = 0.1;         //< 補正割合 (0: 補正なし)
       const float wall_dist_thr = -10; //< 吸い込まれ防止
       if (sp->wd->distance.side[0] > wall_dist_thr) {
         sp->sc->est_p.y =
@@ -369,34 +369,34 @@ private:
   void front_wall_fix(const RunParameter &rp, const float dist_to_wall_ref) {
     if (!rp.front_wall_fix_enabled)
       return;
-    if (!hw->tof->isValid() || std::abs(sp->sc->est_p.th) > M_PI * 0.05f)
+    if (!hw->tof->isValid() || std::abs(sp->sc->est_p.th) > M_PI * 5 / 180)
       return;
     const float wall_fix_offset = model::wall_fix_offset; /*< 大: 壁から遠く */
-    const float dist_to_wall =
-        dist_to_wall_ref - sp->sc->est_p.x + wall_fix_offset;
-    const float fixed_x_now =
-        dist_to_wall - hw->tof->getLog()[0] +
-        (hw->tof->passedTimeMs() + 0) * 1e-3f * sp->sc->ref_v.tra;
-    const float fixed_x_pre =
-        dist_to_wall - hw->tof->getLog()[1] +
-        (hw->tof->passedTimeMs() + 10) * 1e-3f * sp->sc->ref_v.tra;
-    /* 誤差の小さい方を選ぶ */
-    const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
-                             ? fixed_x_now
-                             : fixed_x_pre;
-    const auto fixed_x_abs = std::abs(fixed_x);
-    if (fixed_x_abs < 3.0f) {
-      sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
+    /* 壁との距離 */
+    const float dist_to_wall_tof =
+        wall_fix_offset + hw->tof->getDistance() -
+        hw->tof->passedTimeMs() * 1e-3f * sp->sc->ref_v.tra;
+    /* 前壁から算出した並進位置 */
+    const float x_tof = dist_to_wall_ref - dist_to_wall_tof;
+    /* 壁の有無の判断 */
+    if (std::abs(x_tof - sp->sc->est_p.x) > 30)
+      return;
+    /* 修正 */
+    const float alpha = 0.5f; //< 補正割合 (0: 補正なし)
+    const float x_fixed = alpha * x_tof + (1 - alpha) * sp->sc->est_p.x;
+    const float x_diff = x_fixed - sp->sc->est_p.x;
+    sp->sc->fix_pose(ctrl::Pose(x_diff, 0, 0));
+    /* 結果通知 */
+    const float x_diff_abs = std::abs(x_diff);
+    if (x_diff_abs < 4.0f) {
       hw->bz->play(hardware::Buzzer::SHORT8);
-    } else if (fixed_x_abs < 10.0f) {
-      sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
+    } else if (x_diff_abs < 8.0f) {
       hw->bz->play(hardware::Buzzer::SHORT7);
-    } else if (fixed_x_abs < 20.0f) {
-      sp->sc->fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
+    } else if (x_diff_abs < 16.0f) {
       hw->bz->play(hardware::Buzzer::SHORT6);
-    } else if (std::abs(fixed_x_pre) < 30.0f && std::abs(fixed_x_now) < 30.0f) {
-      sp->sc->fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
-      hw->bz->play(hardware::Buzzer::CANCEL);
+    } else {
+      hw->bz->play(hardware::Buzzer::SHORT6);
+      hw->bz->play(hardware::Buzzer::SHORT6);
     }
   }
   bool front_wall_fix_in_trace(const RunParameter &rp,
@@ -421,10 +421,10 @@ private:
     const float dist_to_wall = dist_to_wall_ref - pos_x + wall_fix_offset;
     const float fixed_x_now =
         dist_to_wall - hw->tof->getLog()[0] +
-        (hw->tof->passedTimeMs() + 0) * 1e-3f * sp->sc->ref_v.tra;
+        (hw->tof->passedTimeMs() + 0) * sp->sc->Ts * sp->sc->ref_v.tra;
     const float fixed_x_pre =
         dist_to_wall - hw->tof->getLog()[1] +
-        (hw->tof->passedTimeMs() + 10) * 1e-3f * sp->sc->ref_v.tra;
+        (hw->tof->passedTimeMs() + 10) * sp->sc->Ts * sp->sc->ref_v.tra;
     /* 誤差の小さい方を選ぶ */
     const auto fixed_x = std::abs(fixed_x_now) < std::abs(fixed_x_pre)
                              ? fixed_x_now
@@ -472,7 +472,7 @@ private:
         /* 前壁制御 */
         if (isAlong() && hw->tof->isValid()) {
           const float tof_mm = hw->tof->getLog().average(2);
-          /* 衝突被害軽減ブレーキ(AEBS) */
+          /* 衝突被害軽減ブレーキ (AEBS) */
           if (remain > field::SegWidthFull && tof_mm < field::SegWidthFull)
             wall_stop_aebs();
           if (v_end > 1 && tof_mm < field::SegWidthFull / 2)
@@ -516,7 +516,7 @@ private:
     const float dth_max = 4 * M_PI;
     constexpr float back_gain = model::turn_back_gain;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
-    for (float t = 0; t < ad.t_end(); t += 1e-3f) {
+    for (float t = 0; t < ad.t_end(); t += sp->sc->Ts) {
       if (break_requested || hw->mt->is_emergency())
         break;
       sp->sc->sampling_sync();
@@ -535,7 +535,7 @@ private:
       const float Kp = 10.0f;
       const float Ki = 10.0f;
       const float error = angle - sp->sc->est_p.th;
-      int_error += error * 0.001f;
+      int_error += error * sp->sc->Ts;
       sp->sc->set_target(-delta * back_gain, Kp * error + Ki * int_error);
       if (std::abs(Kp * error) + std::abs(Ki * int_error) < 0.1f * M_PI)
         break;
@@ -548,7 +548,7 @@ private:
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
     if (break_requested || hw->mt->is_emergency())
       return;
-    const float Ts = 1e-3f;
+    const float Ts = sp->sc->Ts;
     const float velocity = sp->sc->ref_v.tra;
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State s;
@@ -603,7 +603,7 @@ private:
       straight_x(straight, rp.v_max, velocity, rp);
       straight = 0;
     }
-    /* 直線前壁補正 */
+    /* ターン前の前壁補正 */
     if (isAlong()) {
       if (rp.diag_enabled && reverse == false) {
         front_wall_fix(rp, field::SegWidthFull * 3 / 2 - straight_prev);
@@ -732,7 +732,7 @@ private:
     ctrl::AccelCurve ac(rp.j_max, rp.a_max, v_start, 0); //< なめらかに減速
     /* start */
     tt.reset(v_start);
-    for (float t = 0; sa_queue.empty(); t += 1e-3f) {
+    for (float t = 0; sa_queue.empty(); t += sp->sc->Ts) {
       if (break_requested || hw->mt->is_emergency())
         break;
       sp->sc->sampling_sync();
@@ -988,7 +988,7 @@ private:
     /* start */
     sp->sc->enable();
     int index = 0;
-    for (float t = 0; t < ad.t_end(); t += 1e-3f) {
+    for (float t = 0; t < ad.t_end(); t += sp->sc->Ts) {
       if (break_requested || hw->mt->is_emergency())
         break;
       sp->sc->sampling_sync();
