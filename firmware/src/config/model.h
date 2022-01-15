@@ -37,7 +37,7 @@ static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
 static constexpr float tof_dist_offset = 16;
 static constexpr float tof_dist_factor = 1.06f;
-static constexpr float wall_fix_offset = 0; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁から遠く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;

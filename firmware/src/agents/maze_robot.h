@@ -215,7 +215,10 @@ protected:
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma->disable(); }
-  void startDequeue() override { ma->enable(MoveAction::TaskActionSearchRun); }
+  void startDequeue() override {
+    ma->enable(MoveAction::TaskActionSearchRun);
+    hw->led->set(1); //< for debug
+  }
   void calibration() override { ma->calibration(); }
   void calcNextDirectionsPreCallback() override {
     /* ゴール判定用フラグ */
@@ -373,11 +376,9 @@ private:
       return false; //< クラッシュした
     /* 最短成功 */
     state.end_fast_run(true);
-    hw->bz->play(hardware::Buzzer::SHORT6); // for debug
     /* ゴールで回収されるか待つ */
     if (sp->ui->waitForPickup())
-      return false;                         //< 回収された
-    hw->bz->play(hardware::Buzzer::SHORT7); // for debug
+      return false; //< 回収された
     /* 帰る */
     return endFastRunBackingToStartRun();
   }
