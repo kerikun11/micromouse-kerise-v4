@@ -31,7 +31,7 @@ namespace model {
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.65f;
+static constexpr float WheelDiameter = 12.61;
 static constexpr float CenterShift = 0.0f;
 static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */

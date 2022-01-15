@@ -812,7 +812,7 @@ private:
       sp->sc->sampling_sync();
       WheelParameter wp;
       for (int j = 0; j < 2; ++j)
-        wp.wheel[j] = -sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
+        wp.wheel[j] = sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
       const float end = model::wall_attach_end;
       if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
         hw->led->set(0);

@@ -17,7 +17,7 @@ class WallDetector {
 public:
   static constexpr float Ts = 1e-3f;
   static constexpr int wall_threshold_front = 135;
-  static constexpr int wall_threshold_side = -25;
+  static constexpr int wall_threshold_side = 25;
   static constexpr auto WALL_DETECTOR_BACKUP_PATH = "/spiffs/WallDetector.bin";
 
   union WallValue {
@@ -179,9 +179,9 @@ private:
     // 横壁の更新
     for (int i = 0; i < 2; i++) {
       const float value = distance.side[i];
-      if (value > wall_threshold_side * 0.95f)
+      if (value < wall_threshold_side * 0.97f)
         is_wall[i] = true;
-      else if (value < wall_threshold_side * 1.05f)
+      else if (value > wall_threshold_side * 1.03f)
         is_wall[i] = false;
     }
 
@@ -196,6 +196,6 @@ private:
   }
 
   float ref2dist(const int16_t value) const {
-    return 12.9035f * std::log(float(value)) - 86.7561f;
+    return -12.9035f * std::log(float(value)) + 86.7561f;
   }
 };

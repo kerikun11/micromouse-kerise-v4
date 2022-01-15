@@ -205,7 +205,7 @@ private:
       return;
     if ((force && hw->tof->getDistance() < field::SegWidthFull * 5 / 4) ||
         hw->tof->getDistance() < 90 ||
-        (sp->wd->distance.front[0] > 0 && sp->wd->distance.front[1] > 0)) {
+        (sp->wd->distance.front[0] < 0 && sp->wd->distance.front[1] < 0)) {
       hw->led->set(6);
       hw->tof->disable();
       vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
@@ -216,7 +216,7 @@ private:
         sp->sc->sampling_sync();
         WheelParameter wp;
         for (int j = 0; j < 2; ++j)
-          wp.wheel[j] = -sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
+          wp.wheel[j] = sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
         const float end = model::wall_attach_end;
         if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
           break;
@@ -248,10 +248,10 @@ private:
     /* 90 [deg] の倍数 */
     if (isAlong()) {
       if (sp->wd->is_wall[0]) {
-        int_y += sp->wd->distance.side[0];
+        int_y -= sp->wd->distance.side[0];
       }
       if (sp->wd->is_wall[1]) {
-        int_y -= sp->wd->distance.side[1];
+        int_y += sp->wd->distance.side[1];
       }
       /* 機体姿勢の補正 */
       sp->sc->est_p.th += int_y * 1e-8f;
@@ -269,29 +269,29 @@ private:
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float alpha = 0.1;         //< 補正割合 (0: 補正なし)
-      const float wall_dist_thr = -10; //< 吸い込まれ防止
-      if (sp->wd->distance.side[0] > wall_dist_thr) {
+      const float alpha = 0.1;        //< 補正割合 (0: 補正なし)
+      const float wall_dist_thr = 10; //< 吸い込まれ防止
+      if (sp->wd->distance.side[0] < wall_dist_thr) {
         sp->sc->est_p.y =
-            (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[0];
+            (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[0];
         led_flags |= 8;
       }
-      if (sp->wd->distance.side[1] > wall_dist_thr) {
+      if (sp->wd->distance.side[1] < wall_dist_thr) {
         sp->sc->est_p.y =
-            (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[1];
+            (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[1];
         led_flags |= 1;
       }
 #if 0
       /* 櫛の壁制御 */
       if (hw->tof->getDistance() > field::SegWidthFull * 3 / 2) {
-        const float comb_threashold = -54.0f;
+        const float comb_threashold = 54.0f;
         const float comb_shift = 0.1f;
-        if (sp->wd->distance.front[0] > comb_threashold) {
+        if (sp->wd->distance.front[0] < comb_threashold) {
           sp->sc->est_p.y += comb_shift;
           led_flags |= 4;
           hw->bz->play(hardware::Buzzer::SHORT7);
         }
-        if (sp->wd->distance.front[1] > comb_threashold) {
+        if (sp->wd->distance.front[1] < comb_threashold) {
           sp->sc->est_p.y -= comb_shift;
           led_flags |= 2;
           hw->bz->play(hardware::Buzzer::SHORT7);
@@ -299,19 +299,21 @@ private:
       }
 #endif
     }
+#if 0
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
       const float shift = 0.06f;
-      const float threashold = -50;
-      if (sp->wd->distance.front[0] > threashold) {
+      const float threashold = 50;
+      if (sp->wd->distance.front[0] < threashold) {
         sp->sc->est_p.y += shift;
         led_flags |= 4;
       }
-      if (sp->wd->distance.front[1] > threashold) {
+      if (sp->wd->distance.front[1] < threashold) {
         sp->sc->est_p.y -= shift;
         led_flags |= 2;
       }
     }
+#endif
     hw->led->set(led_flags);
   }
   void wall_cut(const RunParameter &rp) {
@@ -577,7 +579,7 @@ private:
   void u_turn() {
     if (break_requested || hw->mt->is_emergency())
       return;
-    if (sp->wd->distance.side[0] < sp->wd->distance.side[1]) {
+    if (sp->wd->distance.side[0] > sp->wd->distance.side[1]) {
       wall_attach();
       turn(-M_PI / 2);
       wall_attach();
@@ -626,7 +628,6 @@ private:
     wall_attach();
     turn(M_PI / 2);
     put_back();
-    hw->mt->free();
     sp->sc->disable();
     break_requested = true;
   }
@@ -643,6 +644,7 @@ private:
       sp->sc->set_target(-max_v, -sp->sc->est_p.th * th_gain);
       vTaskDelay(pdMS_TO_TICKS(1));
     }
+    sp->sc->disable();
     hw->mt->drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
     vTaskDelay(pdMS_TO_TICKS(400));
     hw->mt->drive(0, 0);
@@ -984,7 +986,8 @@ private:
                  rp_search);
     /* 前壁補正 */
     wall_attach(true);
-    turn(sp->wd->distance.side[0] > sp->wd->distance.side[1] ? M_PI / 2
+    /* 前壁補正のため、壁がありそうな方に回転 */
+    turn(sp->wd->distance.side[0] < sp->wd->distance.side[1] ? M_PI / 2
                                                              : -M_PI / 2);
     /* 壁のない方向を向く */
     while (!hw->mt->is_emergency()) {
