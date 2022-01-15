@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ============================================================================ #
+from numpy.core.fromnumeric import size
 import serial  # pip install pyserial
 import datetime
 import os
@@ -65,27 +66,56 @@ def process(filename, show):
     ax.set_yticks(ax.get_xticks())
     ax.set_yticks(ax.get_xticks(minor=True), minor=True)
     plt.axis('equal')
+    plt.title('x-y shape')
     plt.xlabel('x [mm]')
     plt.ylabel('y [mm]')
-    plt.title('x-y shape')
     plt.legend(['Reference', 'Estimated'])
     save_fig('xy')
     # return plt.show()
 
-    # plot wd and tof
+    # plot ref
     plt.figure(tight_layout=True)
-    plt.plot(x[:, 0], np.hstack([wd, tof]))
+    plt.plot(x[:, 0], ref)
+    plt.title('Reflector Raw Value')
+    plt.xlabel('Translational Position [mm]')
+    plt.ylabel('Reflector Raw Value')
+    plt.legend(['Left Side', 'Left Front', 'Right Front', 'Right Side'])
+    plt.grid()
+    save_fig('ref')
+    # return plt.show()
+
+    # plot wd
+    plt.figure(tight_layout=True)
+    plt.plot(x[:, 0], wd)
     plt.title('Wall Distance [mm]')
     plt.xlabel('Translational Position [mm]')
     plt.ylabel('Wall Distance [mm]')
-    plt.legend(['Left Side', 'Left Front', 'Right Front', 'Right Side', 'ToF'])
+    plt.legend(['Left Side', 'Left Front', 'Right Front', 'Right Side'])
     plt.grid()
     save_fig('wd')
     # return plt.show()
 
+    # plot ref and tof
+    fig, axs = plt.subplots(2, 1, tight_layout=True, sharex=True)
+    plt.suptitle("Reflector Raw Value and ToF Distance")
+    titles = ['Reflector Raw Value', 'Front Wall Distance [mm]']
+    ylabels = ['reflector value', 'wall distance [mm]']
+    legends = ['L Side', 'L Front', 'R Front', 'R Side']
+    data = [ref, tof]
+    for i, ax in enumerate(axs):
+        ax.plot(x[:, 0], data[i])
+        ax.set_title(titles[i])
+        ax.set_ylabel(ylabels[i])
+        ax.grid()
+        ax.legend(legends)
+    ax.legend(['ToF'])
+    plt.xlabel('Translational Position [mm]')
+    save_fig('ref_tof')
+    # return plt.show()
+
     # plot ref and wd
     fig, axs = plt.subplots(2, 1, tight_layout=True, sharex=True)
-    plt.suptitle("Reflector raw and distance")
+    plt.suptitle("Reflector Raw Value and Wall Distance")
     titles = ['Reflector Raw Value', 'Wall Distance [mm]']
     ylabels = ['reflector value', 'wall distance [mm]']
     legends = ['L Side', 'L Front', 'R Front', 'R Side']
@@ -96,13 +126,14 @@ def process(filename, show):
         ax.set_ylabel(ylabels[i])
         ax.grid()
         ax.legend(legends)
+    plt.xlabel('Translational Position [mm]')
     save_fig('ref_wd')
     # return plt.show()
 
-    # plot side wall
+    # plot side wd
     plt.figure(tight_layout=True)
     plt.plot(x[:, 0], wd[:, [0, 3]])
-    plt.title('Wall Distance [mm]')
+    plt.title('Side Wall Distance [mm]')
     plt.xlabel('Translational Position [mm]')
     plt.ylabel('Wall Distance [mm]')
     plt.legend(['L', 'R'])
