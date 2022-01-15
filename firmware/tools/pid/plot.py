@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ============================================================================ #
-import serial
+import serial  # pip install pyserial
 import datetime
 import os
 import numpy as np
@@ -28,7 +28,7 @@ def serial_import(filename, serial_port, serial_baudrate):
                 f.write(line.decode())
 
 
-def process(filename):
+def process(filename, show=1):
     # load
     raw = np.loadtxt(filename, delimiter='\t')
     dt = 1e-3
@@ -49,8 +49,8 @@ def process(filename):
     u_rot = np.hstack(
         (u_rot, np.sum(u_rot, axis=1).reshape(u_rot.shape[0], 1)))
 
-    # plot
-    fig, axs = plt.subplots(4, 1, figsize=(8, 10))
+    # plot velocity
+    fig, axs = plt.subplots(4, 1, figsize=(8, 10), tight_layout=True)
     ylabels = ['vel. [m/s]', 'pwm input',
                'vel. [rad/s]', 'pwm input']
     titles = [
@@ -60,8 +60,7 @@ def process(filename):
         'Rotational PWM Input',
     ]
     data = [v_tra, u_tra, v_rot, u_rot]
-    for i in range(axs.size):
-        ax = axs[i]
+    for i, ax in enumerate(axs):
         ax.plot(t, data[i], lw=2)
         ax.set_ylabel(ylabels[i])
         ax.set_title(titles[i])
@@ -69,43 +68,44 @@ def process(filename):
         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax.set_xlabel('Time [ms]')
-
     legends = ['FF', 'FB p', 'FB i', 'FB d', 'FF+FB']
     axs[int(axs.size/2)-1].legend(legends, ncol=5)
     axs[-1].legend(legends, ncol=5)
     legends = ['Reference', 'Estimated']
     axs[0].legend(legends)
     axs[int(axs.size/2)].legend(legends)
-
-    # fit
-    fig.tight_layout()
+    save_fig('v')
 
     # plot xy
-    fig_xy = plt.figure(figsize=(8, 6))
-    plt.plot(x, y)
-    ax = plt.gca()
+    fig, ax = plt.subplots(tight_layout=True)
+    ax.plot(x, y)
     ax.grid(which='major', linestyle='-')
     ax.grid(which='minor', linestyle=':')
-    ax.set_xticks(np.arange(-360, 360, 15))
-    ax.set_xticks(np.arange(-360, 360, 5), minor=True)
+    ax.set_xticks(np.arange(-90*32, 90*32, 15))
+    ax.set_xticks(np.arange(-90*32, 90*32, 5), minor=True)
     ax.set_yticks(ax.get_xticks())
     ax.set_yticks(ax.get_xticks(minor=True), minor=True)
     plt.axis('equal')
     plt.xlabel('x [mm]')
     plt.ylabel('y [mm]')
+    plt.title('x-y shape')
     plt.legend(['Reference', 'Estimated'])
-    plt.tight_layout()
+    save_fig('xy')
+    # return plt.show()
 
+    # show
+    plt.show()
+
+
+def save_fig(suffix, fig=None):
+    if not fig:
+        fig = plt.gcf()
     # save
     for ext in [
         # '.png',
         '.svg',
     ]:
-        fig.savefig(filename + '_v' + ext)
-        fig_xy.savefig(filename + '_xy' + ext)
-
-    # show
-    plt.show()
+        fig.savefig(os.path.splitext(filename)[0] + '_' + suffix + ext)
 
 
 # parse args
@@ -113,6 +113,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('files', help="csv data file list", nargs='*')
 parser.add_argument("--port", "-p", help="serial port", default='/dev/ttyUSB0')
 parser.add_argument("--baud", "-b", help="serial baudrate", default=2_000_000)
+parser.add_argument("--show", "-s", help="show figure", type=int, default=1)
 args = parser.parse_args()
 
 # get files from argument
@@ -128,4 +129,4 @@ if not files:
 # process all input data
 for filename in files:
     print("filename: ", filename)
-    process(filename)
+    process(filename, args.show)

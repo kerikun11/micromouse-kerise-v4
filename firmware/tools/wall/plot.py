@@ -46,13 +46,13 @@ def process(filename, show):
     ylabels = ['trans. vel. [mm/s]', 'rot. vel. [rad/s]']
     fig, axs = plt.subplots(len(data), 1, tight_layout=True, sharex=True)
     for i, ax in enumerate(axs):
-        ax.plot(t, data[i], lw=2)
+        ax.plot(t, data[i])
         ax.set_ylabel(ylabels[i])
         ax.grid()
         ax.legend(['Reference', 'Estimated'])
     axs[-1].set_xlabel('Time [s]')
     plt.suptitle("Translational and Rotational Velocity")
-    save_fig(plt.gcf(), 'v')
+    save_fig('v')
     # return plt.show()
 
     # plot xy
@@ -69,7 +69,7 @@ def process(filename, show):
     plt.ylabel('y [mm]')
     plt.title('x-y shape')
     plt.legend(['Reference', 'Estimated'])
-    save_fig(plt.gcf(), 'xy')
+    save_fig('xy')
     # return plt.show()
 
     # plot wd and tof
@@ -80,7 +80,7 @@ def process(filename, show):
     plt.ylabel('Wall Distance [mm]')
     plt.legend(['Left Side', 'Left Front', 'Right Front', 'Right Side', 'ToF'])
     plt.grid()
-    save_fig(plt.gcf(), 'wd')
+    save_fig('wd')
     # return plt.show()
 
     # plot ref and wd
@@ -91,12 +91,12 @@ def process(filename, show):
     legends = ['L Side', 'L Front', 'R Front', 'R Side']
     data = [ref, wd]
     for i, ax in enumerate(axs):
-        ax.plot(x[:, 0], data[i], lw=2)
+        ax.plot(x[:, 0], data[i])
         ax.set_title(titles[i])
         ax.set_ylabel(ylabels[i])
         ax.grid()
         ax.legend(legends)
-    save_fig(plt.gcf(), 'ref_wd')
+    save_fig('ref_wd')
     # return plt.show()
 
     # plot side wall
@@ -107,7 +107,7 @@ def process(filename, show):
     plt.ylabel('Wall Distance [mm]')
     plt.legend(['L', 'R'])
     plt.grid()
-    save_fig(plt.gcf(), 'side_wd')
+    save_fig('side_wd')
     # return plt.show()
 
     # show
@@ -115,7 +115,9 @@ def process(filename, show):
         plt.show()
 
 
-def save_fig(fig, suffix):
+def save_fig(suffix, fig=None):
+    if not fig:
+        fig = plt.gcf()
     # save
     for ext in [
         # '.png',
