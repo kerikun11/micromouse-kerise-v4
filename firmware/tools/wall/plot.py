@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ============================================================================ #
-import serial
+import serial  # pip install pyserial
 import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-from matplotlib.ticker import ScalarFormatter
 
 
 def serial_import(filename, serial_port, serial_baudrate):
@@ -28,7 +27,7 @@ def serial_import(filename, serial_port, serial_baudrate):
                 f.write(line.decode())
 
 
-def process(filename):
+def process(filename, show):
     # load csv
     raw = np.loadtxt(filename, delimiter='\t')
     dt = 1e-3
@@ -42,78 +41,87 @@ def process(filename):
     wd = raw[:, 14:18]
     tof = raw[:, 18:19]
 
-    # plot velocity
-    fig_v, axs = plt.subplots(2, 1, figsize=(8, 6))
-    ylabels = ['trans. vel. [m/s]', 'rot. vel. [rad/s]']
-    titles = ['Translational Velocity', 'Rotational Velocity']
-    legends = ['Reference', 'Estimated']
+    # plot [v_tra, v_rot]
     data = [v_tra, v_rot]
-    for i in range(axs.size):
-        ax = axs[i]
+    ylabels = ['trans. vel. [mm/s]', 'rot. vel. [rad/s]']
+    fig, axs = plt.subplots(len(data), 1, tight_layout=True, sharex=True)
+    for i, ax in enumerate(axs):
         ax.plot(t, data[i], lw=2)
         ax.set_ylabel(ylabels[i])
-        ax.set_title(titles[i])
         ax.grid()
-        ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-        ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        ax.set_xlabel('Time [ms]')
-        ax.legend(legends)
-    plt.tight_layout()
+        ax.legend(['Reference', 'Estimated'])
+    axs[-1].set_xlabel('Time [s]')
+    plt.suptitle("Translational and Rotational Velocity")
+    save_fig(plt.gcf(), 'v')
+    # return plt.show()
 
     # plot xy
-    fig_xy = plt.figure(figsize=(8, 6))
-    plt.plot(x, y)
-    ax = plt.gca()
+    fig, ax = plt.subplots(tight_layout=True)
+    ax.plot(x, y)
     ax.grid(which='major', linestyle='-')
     ax.grid(which='minor', linestyle=':')
-    ax.set_xticks(np.arange(-360, 360, 15))
-    ax.set_xticks(np.arange(-360, 360, 5), minor=True)
+    ax.set_xticks(np.arange(-90*32, 90*32, 15))
+    ax.set_xticks(np.arange(-90*32, 90*32, 5), minor=True)
     ax.set_yticks(ax.get_xticks())
     ax.set_yticks(ax.get_xticks(minor=True), minor=True)
     plt.axis('equal')
     plt.xlabel('x [mm]')
     plt.ylabel('y [mm]')
+    plt.title('x-y shape')
     plt.legend(['Reference', 'Estimated'])
-    plt.tight_layout()
+    save_fig(plt.gcf(), 'xy')
+    # return plt.show()
 
-    # plot x_vs_wd
-    fig_ref, axs = plt.subplots(2, 1, figsize=(8, 6))
-    titles = ['Reflector Raw Value', 'Wall Distance']
-    ylabels = ['reflector value', 'wall distance [mm]']
-    legends = ['Left Side', 'Left Front', 'Right Front', 'Right Side']
-    data = [ref, wd]
-    for i in range(axs.size):
-        ax = axs[i]
-        ax.plot(x[:, 0], data[i], lw=2)
-        ax.set_ylabel(ylabels[i])
-        ax.set_title(titles[i])
-        ax.grid()
-        ax.set_xlabel('Translational Position (x) [mm]')
-        ax.legend(legends)
-    plt.tight_layout()
-
-    # plot tof
-    plt.figure(figsize=(8, 6))
+    # plot wd and tof
+    plt.figure(tight_layout=True)
     plt.plot(x[:, 0], np.hstack([wd, tof]))
-    plt.xlabel('Translational Position (x) [mm]')
+    plt.title('Wall Distance [mm]')
+    plt.xlabel('Translational Position [mm]')
     plt.ylabel('Wall Distance [mm]')
-    legends = ['Left Side', 'Left Front', 'Right Front', 'Right Side', 'ToF']
+    plt.legend(['Left Side', 'Left Front', 'Right Front', 'Right Side', 'ToF'])
     plt.grid()
-    plt.tight_layout()
-    fig_tof = plt.gcf()
+    save_fig(plt.gcf(), 'wd')
+    # return plt.show()
 
+    # plot ref and wd
+    fig, axs = plt.subplots(2, 1, tight_layout=True, sharex=True)
+    plt.suptitle("Reflector raw and distance")
+    titles = ['Reflector Raw Value', 'Wall Distance [mm]']
+    ylabels = ['reflector value', 'wall distance [mm]']
+    legends = ['L Side', 'L Front', 'R Front', 'R Side']
+    data = [ref, wd]
+    for i, ax in enumerate(axs):
+        ax.plot(x[:, 0], data[i], lw=2)
+        ax.set_title(titles[i])
+        ax.set_ylabel(ylabels[i])
+        ax.grid()
+        ax.legend(legends)
+    save_fig(plt.gcf(), 'ref_wd')
+    # return plt.show()
+
+    # plot side wall
+    plt.figure(tight_layout=True)
+    plt.plot(x[:, 0], wd[:, [0, 3]])
+    plt.title('Wall Distance [mm]')
+    plt.xlabel('Translational Position [mm]')
+    plt.ylabel('Wall Distance [mm]')
+    plt.legend(['L', 'R'])
+    plt.grid()
+    save_fig(plt.gcf(), 'side_wd')
+    # return plt.show()
+
+    # show
+    if show:
+        plt.show()
+
+
+def save_fig(fig, suffix):
     # save
     for ext in [
         # '.png',
         '.svg',
     ]:
-        fig_v.savefig(filename + '_v' + ext)
-        fig_xy.savefig(filename + '_xy' + ext)
-        fig_ref.savefig(filename + '_ref' + ext)
-        fig_tof.savefig(filename + '_tof' + ext)
-
-    # show
-    plt.show()
+        fig.savefig(os.path.splitext(filename)[0] + '_' + suffix + ext)
 
 
 # parse args
@@ -121,6 +129,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('files', help="csv data file list", nargs='*')
 parser.add_argument("--port", "-p", help="serial port", default='/dev/ttyUSB0')
 parser.add_argument("--baud", "-b", help="serial baudrate", default=2_000_000)
+parser.add_argument("--show", "-s", help="show figure", type=int, default=1)
 args = parser.parse_args()
 
 # get files from argument
@@ -136,4 +145,4 @@ if not files:
 # process all input data
 for filename in files:
     print("filename: ", filename)
-    process(filename)
+    process(filename, args.show)
