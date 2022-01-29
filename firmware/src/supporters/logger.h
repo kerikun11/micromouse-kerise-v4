@@ -9,15 +9,14 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include <functional>
-#include <iostream>
+#include <cstdio>
 #include <string>
 #include <vector>
 
 class Logger {
 public:
   Logger() {}
-  auto clear() { return buf.clear(); }
+  void clear() { buf.clear(); }
   void init(const std::vector<std::string> &labels) {
     clear();
     this->labels = labels;
@@ -36,7 +35,7 @@ public:
     // data
     for (const auto &data : buf) {
       for (int i = 0; i < data.size(); ++i) {
-        std::printf("%.3e", data[i]);
+        std::printf("%.3e", (double)data[i]); //< printf supports only double
         i < data.size() - 1 && std::printf("\t");
       }
       std::printf("\n");

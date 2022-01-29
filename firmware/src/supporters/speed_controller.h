@@ -50,12 +50,10 @@ public:
     return true;
   }
   void enable() {
-    // app_logi << "enable" << std::endl;
     reset();
     drive_enabled = true;
   }
   void disable() {
-    // app_logi << "disable" << std::endl;
     drive_enabled = false;
     sampling_sync();
     sampling_sync();
@@ -65,7 +63,14 @@ public:
   void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
     ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
   }
-  void fix_pose(const ctrl::Pose &fix) { this->fix += fix; }
+  void fix_pose(ctrl::Pose fix, bool saturate = true) {
+    if (saturate) {
+      const float max_fix = 1.0f; //< 補正量の飽和 [mm]
+      fix.x = std::max(std::min(fix.x, max_fix), -max_fix);
+      fix.y = std::max(std::min(fix.y, max_fix), -max_fix);
+    }
+    this->fix += fix;
+  }
   void sampling_sync() const { //
     data_ready_semaphore.take();
   }
@@ -144,7 +149,7 @@ private:
   }
   void update_fix() {
     /* Fix Pose */
-    const float delta = 1;
+    const float delta = 100;
     if (fix.x > delta) {
       est_p.x += delta;
       fix.x -= delta;

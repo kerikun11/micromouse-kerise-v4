@@ -22,7 +22,7 @@ public:
   static constexpr float thr_battery = 3.8f;
   /* UI パラメータ */
   static constexpr float thr_accel = 3 * 9807; /**< 加速度の閾値 */
-  static constexpr float thr_gyro = 4 * M_PI;  /**< 角速度の閾値 */
+  static constexpr float thr_gyro = 4 * PI;    /**< 角速度の閾値 */
   static constexpr float wait_ms = 200; /**< チャタリング防止時間 */
   static constexpr int thr_ref_front = 2400; /**< 前壁センサの閾値 */
   static constexpr int thr_ref_side = 2400;  /**< 横壁センサの閾値 */
@@ -30,8 +30,8 @@ public:
       10.0f; /**< エンコーダのカウント間隔 */
   static constexpr int wait_fix_ms = 1000; /**< 静止待機の最小静止時間 */
   static constexpr float thr_fix_gyro =
-      0.01f * M_PI; /**< 静止待機の角速度の閾値 */
-  static constexpr float thr_gyro_pickup = M_PI; /**< 回収角速度の閾値 */
+      0.01f * PI; /**< 静止待機の角速度の閾値 */
+  static constexpr float thr_gyro_pickup = PI; /**< 回収角速度の閾値 */
 
 private:
   hardware::Hardware *hw;

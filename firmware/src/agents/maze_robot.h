@@ -349,7 +349,7 @@ private:
         ma->rp_fast.up(2), state.running_parameter += 2;
       else //< 斜めなし -> 斜めあり
         ma->rp_fast.diag_enabled = true;
-      ma->rp_search.diag_enabled = true;
+      // ma->rp_search.diag_enabled = true; //< 既知区間斜めを有効化
     }
     /* 残り時間が足りない場合 */
     if (state.no_more_time()) {

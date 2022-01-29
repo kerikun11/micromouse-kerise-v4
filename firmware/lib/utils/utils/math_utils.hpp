@@ -10,12 +10,14 @@
 
 namespace math_utils {
 
-static auto round2(auto value, auto div) {
+static float round2(float value, float div) {
   return std::floor((value + div / 2) / div) * div;
 }
-static auto saturate(auto src, auto sat) {
+static float saturate(float src, float sat) {
   return std::max(std::min(src, sat), -sat);
 }
-static auto sum_of_square(auto v1, auto v2) { return v1 * v1 + v2 * v2; }
+static float sum_of_square(float v1, float v2) { //
+  return v1 * v1 + v2 * v2;
+}
 
 } // namespace math_utils

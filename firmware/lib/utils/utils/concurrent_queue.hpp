@@ -38,7 +38,7 @@ namespace lime62 {
         }
 
         void interrupt() {
-            interrupted_ = true;
+            // interrupted_ = true;
             condition_variable_.notify_one();
         }
 
@@ -114,15 +114,15 @@ namespace lime62 {
         std::queue<T, Container> queue_;
         std::mutex mutex_;
         std::condition_variable condition_variable_;
-        std::atomic_bool interrupted_;
+        // std::atomic_bool interrupted_;
 
     private:
         void wait(std::unique_lock<std::mutex>& lock) {
-            interrupted_ = false;
+            // interrupted_ = false;
             while (queue_.empty()) {
                 condition_variable_.wait(lock);
-                if (interrupted_)
-                    throw std::runtime_error("Interrupted");
+                // if (interrupted_)
+                //     throw std::runtime_error("Interrupted");
             }
         }
     };

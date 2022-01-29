@@ -79,7 +79,7 @@ public:
     if (!imu->init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz->play(hardware::Buzzer::ERROR);
     /* Encoder */
-    enc = new Encoder(model::GearRatio * model::WheelDiameter * M_PI);
+    enc = new Encoder(model::GearRatio * model::WheelDiameter * PI);
     if (!enc->init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
       bz->play(hardware::Buzzer::ERROR);
     /* Reflector */
@@ -87,7 +87,7 @@ public:
     if (!rfl->init())
       bz->play(hardware::Buzzer::ERROR);
     /* ToF */
-    tof = new ToF(I2C_PORT_NUM_TOF, model::tof_dist_offset);
+    tof = new ToF(I2C_PORT_NUM_TOF);
     if (!tof->init())
       bz->play(hardware::Buzzer::ERROR);
     /* Motor */

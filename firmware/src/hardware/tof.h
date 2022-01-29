@@ -16,8 +16,7 @@ namespace hardware {
 
 class ToF {
 public:
-  ToF(i2c_port_t i2c_port, float tof_dist_offset)
-      : sensor(i2c_port), tof_dist_offset(tof_dist_offset) {}
+  ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
   bool init() {
     sensor.setTimeout(20);
     sensor.init();
@@ -44,8 +43,8 @@ public:
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
   void print() const {
-    ESP_LOGI(TAG, "ToF: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
-             getDistance(), dur, passedTimeMs());
+    ESP_LOGI(TAG, "range: %3d [mm] D: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
+             range, distance, dur, passed_ms);
   }
   void csv() const {
     std::printf("0,45,90,135,180,%d,%d\n", getDistance(), passedTimeMs());
@@ -54,9 +53,9 @@ public:
 private:
   static constexpr const char *TAG = "ToF";
   VL6180X sensor;
-  float tof_dist_offset;
   bool enabled = true;
   uint16_t distance;
+  uint16_t range;
   uint16_t dur;
   int passed_ms;
   ctrl::Accumulator<uint16_t, 10> log;
@@ -84,11 +83,13 @@ private:
         }
         dur = millis() - startAt;
       }
-      // uint8_t range_status = sensor.readReg(VL6180X::RESULT__RANGE_STATUS) >>
-      // 4;
       /* get data from sensor */
-      uint16_t range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
-      distance = (range + tof_dist_offset - 90) * model::tof_dist_factor + 90;
+      range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
+      const auto r90 = model::tof_raw_range_90;
+      const auto r180 = model::tof_raw_range_180;
+      /* line equation: y-y1 = (y2-y1) / (x2-x1) * (x-x1) */
+      /* 2 point: (x1, y1) = (r90, 90), (x2, y2) = (r180, 180) */
+      distance = (180.0f - 90.0f) / (r180 - r90) * (range - r90) + 90;
       log.push(distance);
       if (range != 255)
         passed_ms = 0;

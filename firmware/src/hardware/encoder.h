@@ -125,12 +125,12 @@ private:
     }
     pulses_raw[0] +=
         9.5e-3f * pulses_size *
-            std::sin(2 * M_PI *
+            std::sin(2 * PI *
                      (float(pulses_raw[0]) / pulses_size - 0.1e-1f + 0.5f)) -
         (9.7732187836986f);
     pulses_raw[1] +=
         8.0e-3f * pulses_size *
-            std::sin(2 * M_PI *
+            std::sin(2 * PI *
                      (float(pulses_raw[1]) / pulses_size - 9.9e-1f + 0.5f)) -
         (-8.23007897574619f);
 #endif

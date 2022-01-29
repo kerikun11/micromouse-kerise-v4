@@ -50,8 +50,8 @@ public:
     return true;
   }
   void start() {
-    /* start task */
-    task_drive.start(this, &Machine::task, "Drive", 4096, 1, tskNO_AFFINITY);
+    /* start tasks */
+    task_drive.start(this, &Machine::drive, "Drive", 4096, 1, tskNO_AFFINITY);
     task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
   }
 
@@ -59,7 +59,7 @@ private:
   freertospp::Task<Machine> task_drive;
   freertospp::Task<Machine> task_print;
 
-  void task() {
+  void drive() {
     // driveAutomatically();
     while (1) {
       driveManually();
@@ -78,10 +78,16 @@ private:
       // sp->wd->csv();
     }
   }
+  void driveAutomatically() {
+    Machine::restore();
+    if (sp->ui->waitForPickup())
+      return;
+    mr->autoRun();
+  }
   int driveManually() {
     int mode = sp->ui->waitForSelect(16);
     switch (mode) {
-    case 0: /* 迷路走行 */
+    case 0: /* 探索・最短を含む通常の自律走行 */
       Machine::driveNormally();
       break;
     case 1: /* パラメータの相対設定 */
@@ -90,17 +96,17 @@ private:
     case 2: /* パラメータの絶対設定 */
       Machine::selectParamPreset();
       break;
-    case 3: /* 斜め走行などの設定 */
+    case 3: /* 斜め走行・壁制御などの設定 */
       Machine::selectRunConfig();
       break;
     case 4: /* ファンの設定 */
       Machine::selectFanGain();
       break;
-    case 5: /* 迷路データの復元 */
-      Machine::restore();
+    case 5: /* 迷路データ・探索状態の復元・削除 */
+      Machine::selectBackupData();
       break;
-    case 6: /* データ消去 */
-      Machine::reset();
+    case 6: /* ゴール区画の設定 */
+      Machine::setGoalPositions();
       break;
     case 7: /* 宴会芸 */
       Machine::partyStunt();
@@ -113,9 +119,6 @@ private:
       break;
     case 10: /* 迷路の表示 */
       mr->print();
-      break;
-    case 11: /* ゴール区画の設定 */
-      Machine::setGoalPositions();
       break;
     case 12:
       Machine::position_recovery();
@@ -136,12 +139,6 @@ private:
       break;
     }
     return 0;
-  }
-  void driveAutomatically() {
-    restore();
-    if (sp->ui->waitForPickup())
-      return;
-    mr->autoRun();
   }
   void driveNormally() {
     /* 探索状態のお知らせ */
@@ -211,8 +208,6 @@ private:
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
   void selectParamPreset() {
-    for (int i = 0; i < 1; i++)
-      hw->bz->play(hardware::Buzzer::SHORT7);
     int value = sp->ui->waitForSelect(16);
     if (value < 0)
       return;
@@ -239,39 +234,71 @@ private:
       ma->rp_search.unknown_accel_enabled = value & 0x01;
       ma->rp_fast.unknown_accel_enabled = value & 0x02;
       break;
-    case 2: /* 前壁修正 */
+    case 2: /* 前壁補正 */
       ma->rp_search.front_wall_fix_enabled = value & 1;
       ma->rp_fast.front_wall_fix_enabled = value & 2;
       break;
     case 3: /* 横壁補正 */
-      ma->rp_search.wall_avoid_enabled = value & 1;
-      ma->rp_fast.wall_avoid_enabled = value & 2;
+      ma->rp_search.side_wall_avoid_enabled = value & 1;
+      ma->rp_fast.side_wall_avoid_enabled = value & 2;
       break;
     case 4: /* 横壁姿勢補正 */
-      ma->rp_search.wall_theta_fix_enabled = value & 1;
-      ma->rp_fast.wall_theta_fix_enabled = value & 2;
+      ma->rp_search.side_wall_fix_theta_enabled = value & 1;
+      ma->rp_fast.side_wall_fix_theta_enabled = value & 2;
       break;
     case 5: /* 壁切れ */
       ma->rp_search.wall_cut_enabled = value & 1;
       ma->rp_fast.wall_cut_enabled = value & 2;
       break;
+    case 6: /* 探索速度 */
+      if (value == 0)
+        ma->rp_search.v_search = ma->rp_fast.v_search = 300;
+      else if (value == 1)
+        ma->rp_search.v_search = ma->rp_fast.v_search = 330;
+      else if (value == 2)
+        ma->rp_search.v_search = ma->rp_fast.v_search = 360;
+      else if (value == 3)
+        ma->rp_search.v_search = ma->rp_fast.v_search = 390;
+      break;
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
   void selectFanGain() {
+    /* 吸引ファンの設定であることをお知らせ */
     hw->fan->drive(0.5f);
     vTaskDelay(pdMS_TO_TICKS(100));
     hw->fan->drive(0);
+    /* 設定値の取得 */
     int value = sp->ui->waitForSelect(11);
     if (value < 0)
       return;
-    ma->rp_fast.fan_duty = 0.1f * value;
-    hw->fan->drive(ma->rp_fast.fan_duty);
-    // hw->mt->drive(ma->fan_duty, ma->fan_duty);
-    sp->ui->waitForSelect(1);
+    /* 吸引ファンの駆動テスト */
+    const float fan_duty = 0.1f * value;
+    hw->fan->drive(fan_duty);
+    bool res = sp->ui->waitForCover();
     hw->fan->drive(0);
-    hw->mt->drive(0, 0);
+    if (!res)
+      return;
+    /* 設定の反映 */
+    ma->rp_fast.fan_duty = fan_duty;
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
+  }
+  void selectBackupData() {
+    int mode = sp->ui->waitForSelect(2);
+    if (mode < 0)
+      return;
+    /* wait for confirm */
+    if (!sp->ui->waitForCover())
+      return;
+    /* apply */
+    switch (mode) {
+    case 0: /* restore */
+      restore();
+      break;
+    case 1: /* reset */
+      reset();
+      break;
+    }
   }
   void restore() {
     if (!mr->restore())
@@ -433,8 +460,9 @@ private:
       });
     }
   }
-  void log_push(enum LOG_SELECT log_select, const auto &ref_q = ctrl::Pose(),
-                const auto &est_q = ctrl::Pose()) {
+  void log_push(enum LOG_SELECT log_select,
+                const ctrl::Pose &ref_q = ctrl::Pose(),
+                const ctrl::Pose &est_q = ctrl::Pose()) {
     const auto &bd = sp->sc->fbc.getBreakdown();
     switch (log_select) {
     case LOG_PID:
@@ -590,10 +618,10 @@ private:
       const float dist = 90 * 4;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     } else {
-      const float j_max = 1200 * M_PI;
-      const float a_max = 48 * M_PI;
-      const float v_max = 6 * M_PI;
-      const float dist = 4 * M_PI;
+      const float j_max = 1200 * PI;
+      const float a_max = 48 * PI;
+      const float v_max = 6 * PI;
+      const float dist = 4 * PI;
       ad.reset(j_max, a_max, v_max, 0, 0, dist);
     }
     /* start */
@@ -819,8 +847,8 @@ private:
       else
         hw->led->set(6);
       wp.wheel2pole();
-      const float sat_tra = 180.0f;   //< [mm/s]
-      const float sat_rot = 1 * M_PI; //< [rad/s]
+      const float sat_tra = 180.0f; //< [mm/s]
+      const float sat_rot = 1 * PI; //< [rad/s]
       sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                          math_utils::saturate(wp.rot, sat_rot));
     }

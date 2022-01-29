@@ -9,9 +9,8 @@
 #include "ctrl/feedback_controller.h"
 #include "ctrl/trajectory_tracker.h"
 
-#ifndef M_PI
-static constexpr float M_PI = 3.14159265358979323846f;
-#endif
+/* Math Constants */
+static constexpr float PI = 3.14159265358979323846f;
 
 namespace field {
 
@@ -31,17 +30,18 @@ namespace model {
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.61;
-static constexpr float CenterShift = 0.0f;
-static constexpr float TailLength = 13.0f + CenterShift;
+static constexpr float WheelDiameter = 12.38; //< 径を大きく：進行距離を短く
+static constexpr float CenterOffsetY = 0.0f;
+static constexpr float TailLength = 13.0f;
 /* ToF */
-static constexpr float tof_dist_offset = 16;
-static constexpr float tof_dist_factor = 1.06f;
+static constexpr float tof_raw_range_90 = 75;
+static constexpr float tof_raw_range_180 = 160;
 static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
-static constexpr float wall_avoid_gain = 1e-3f;
+static constexpr float wall_avoid_gain = 1e-4f;
+static constexpr float wall_fix_theta_gain = 1e-9f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -70,17 +70,18 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.67f;
-static constexpr float CenterShift = 6.0f;
+static constexpr float WheelDiameter = 12.67f; //< 径を大きく：進行距離を短く
+static constexpr float CenterOffsetY = 6.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
-static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
-static constexpr float tof_dist_factor = 1.07f;
+static constexpr float tof_raw_range_90 = 69;
+static constexpr float tof_raw_range_180 = 154;
 static constexpr float wall_fix_offset = -15; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
+static constexpr float wall_fix_theta_gain = 1e-9f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -109,17 +110,18 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.95f;
-static constexpr float CenterShift = 6.0f;
+static constexpr float WheelDiameter = 12.92f; //< 径を大きく：進行距離を短く
+static constexpr float CenterOffsetY = 6.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
-static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
-static constexpr float tof_dist_factor = 1.07f;
+static constexpr float tof_raw_range_90 = 69;
+static constexpr float tof_raw_range_180 = 154;
 static constexpr float wall_fix_offset = -15; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
+static constexpr float wall_fix_theta_gain = 1e-9f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -138,9 +140,9 @@ static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 #if 1
-    .zeta = 0.2f,
-    .omega_n = 5.0f,
-    .low_zeta = 1.0f,
+    .zeta = 0.6f,
+    .omega_n = 6.0f,
+    .low_zeta = 0.5f,
     .low_b = 1e-3f,
 #else
     .zeta = 0,
