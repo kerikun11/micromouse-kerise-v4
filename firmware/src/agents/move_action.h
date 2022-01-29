@@ -31,8 +31,8 @@ public:
     TaskActionPositionRecovery = 'P',
   };
   /* Run Parameters */
-  static constexpr float v_unknown_accel = 600;
-  static constexpr float v_search = 390;
+  static constexpr float v_unknown_accel = 720;
+  static constexpr float v_search = 380;
   struct RunParameter {
   public:
     bool diag_enabled = 1;
@@ -44,7 +44,7 @@ public:
     float v_max = 720;
     float a_max = 3600;
     float j_max = 240'000;
-    float fan_duty = 0.5;
+    float fan_duty = 0.4;
     std::array<float, field::ShapeIndexMax> v_slalom;
 
   public:
@@ -254,7 +254,7 @@ private:
         int_y += sp->wd->distance.side[1];
       }
       /* 機体姿勢の補正 */
-      sp->sc->est_p.th += int_y * 1e-8f;
+      sp->sc->est_p.th += int_y * 1e-9f;
     }
   }
   void wall_avoid(const float remain, const RunParameter &rp) {
@@ -262,14 +262,14 @@ private:
       return;
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     if (!rp.wall_avoid_enabled || sp->sc->est_v.tra < 210.0f ||
-        std::abs(sp->sc->est_p.th) > M_PI * 5 / 180) {
+        std::abs(sp->sc->est_p.th) > M_PI * 3 / 180) {
       hw->led->set(0);
       return;
     }
     uint8_t led_flags = 0;
     /* 90 [deg] の倍数 */
     if (isAlong()) {
-      const float alpha = 0.1;        //< 補正割合 (0: 補正なし)
+      const float alpha = 0.05;       //< 補正割合 (0: 補正なし)
       const float wall_dist_thr = 10; //< 吸い込まれ防止
       if (sp->wd->distance.side[0] < wall_dist_thr) {
         sp->sc->est_p.y =
@@ -299,18 +299,20 @@ private:
       }
 #endif
     }
-#if 0
+#if 1
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
-      const float shift = 0.06f;
-      const float threashold = 50;
-      if (sp->wd->distance.front[0] < threashold) {
-        sp->sc->est_p.y += shift;
-        led_flags |= 4;
+      const float alpha = 0.01;        //< 補正割合 (0: 補正なし)
+      const float wall_dist_ref = -12; //< 斜めの壁の基準値
+      if (sp->wd->distance.side[0] < wall_dist_ref) {
+        sp->sc->fix_pose(
+            ctrl::Pose(0, +alpha * (wall_dist_ref - sp->wd->distance.side[0])));
+        led_flags |= 8;
       }
-      if (sp->wd->distance.front[1] < threashold) {
-        sp->sc->est_p.y -= shift;
-        led_flags |= 2;
+      if (sp->wd->distance.side[1] < wall_dist_ref) {
+        sp->sc->fix_pose(
+            ctrl::Pose(0, -alpha * (wall_dist_ref - sp->wd->distance.side[1])));
+        led_flags |= 1;
       }
     }
 #endif
@@ -450,8 +452,8 @@ private:
             wall_stop_aebs();
           if (v_end > 1 && tof_mm < field::SegWidthFull / 2)
             wall_stop_aebs();
-          /* 未知区間加速 */
-          if (unknown_accel && tof_mm < 2.1f * field::SegWidthFull) {
+          /* 未知区間加速のキャンセル */
+          if (unknown_accel && tof_mm < 1.8f * field::SegWidthFull) {
             unknown_accel = false;
             trajectory.reset(rp.j_max, rp.a_max, v_search, sp->sc->ref_v.tra,
                              v_search, remain, sp->sc->est_p.x, t);
@@ -464,9 +466,7 @@ private:
         wall_avoid(remain, rp);
         wall_theta_fix(rp);
         front_wall_fix(rp);
-        /* 壁切れ */
         wall_cut(rp);
-        /* ToDo: 補正結果に応じて時刻をシフトする処理 */
         /* 軌道追従 */
         trajectory.update(ref_s, t);
         const auto ref =
@@ -541,7 +541,6 @@ private:
       wall_avoid(0, rp);
       wall_cut(rp);
       front_wall_fix(rp);
-      /* ToDo: 補正結果によって t をシフト*/
       /* 軌道を更新 */
       trajectory.update(s, t, Ts);
       const auto ref =

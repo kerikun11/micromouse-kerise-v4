@@ -144,7 +144,7 @@ private:
   }
   void update_fix() {
     /* Fix Pose */
-    const float delta = 0.2;
+    const float delta = 1;
     if (fix.x > delta) {
       est_p.x += delta;
       fix.x -= delta;

@@ -24,7 +24,7 @@ static constexpr float WallThickness = 6.0f;
 
 namespace model {
 
-#define KERISE_SELECT 5
+#define KERISE_SELECT 3
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
@@ -37,7 +37,7 @@ static constexpr float TailLength = 13.0f + CenterShift;
 /* ToF */
 static constexpr float tof_dist_offset = 16;
 static constexpr float tof_dist_factor = 1.06f;
-static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
@@ -76,7 +76,7 @@ static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
-static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -15; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
@@ -115,7 +115,7 @@ static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_dist_offset = 21; //< 大きいほど壁に近く
 static constexpr float tof_dist_factor = 1.07f;
-static constexpr float wall_fix_offset = 8; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -15; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
@@ -137,9 +137,9 @@ static constexpr float turn_back_gain = 10.0f;
 static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
-#if 0
-    .zeta = 0.8f,
-    .omega_n = 10.0f,
+#if 1
+    .zeta = 0.2f,
+    .omega_n = 5.0f,
     .low_zeta = 1.0f,
     .low_b = 1e-3f,
 #else
