@@ -1,7 +1,7 @@
 /**
  * @file app_main.cpp
  * @author Ryotaro Onuki (kerikun11+github@gmail.com)
- * @brief MicroMouse KERISE
+ * @brief MicroMouse KERISE firmware
  * @date 2019-04-02
  */
 #include "machine/machine.h"
