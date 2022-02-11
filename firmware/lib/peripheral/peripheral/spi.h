@@ -21,6 +21,12 @@ public:
         .sclk_io_num = pin_sclk,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
+        // .data2_io_num = -1,
+        // .data3_io_num = -1,
+        // .data4_io_num = -1,
+        // .data5_io_num = -1,
+        // .data6_io_num = -1,
+        // .data7_io_num = -1,
         .max_transfer_sz = 0,
         .flags = 0,
         .intr_flags = 0,
@@ -32,5 +38,6 @@ public:
     }
     return true;
   }
-}; // namespace peripheral
+};
+
 }; // namespace peripheral

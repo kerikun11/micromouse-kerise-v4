@@ -13,7 +13,8 @@
 #include <freertospp/semphr.h>
 
 #include <array>
-#include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 namespace hardware {
 
@@ -46,11 +47,10 @@ public:
         4096, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
-  void calibration(const bool wait_for_end = true) {
-    calibration_requested = true;
-    // calibration will be conducted in background task()
-    while (wait_for_end && calibration_requested)
-      vTaskDelay(pdMS_TO_TICKS(1));
+  void calibration() {
+    calib_req = true;
+    std::unique_lock<std::mutex> unique_lock(calib_mutex);
+    calib_cv.wait(unique_lock, [&] { return !calib_req; });
   }
   void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
     sampling_end_semaphore.take(xBlockTime);
@@ -74,9 +74,12 @@ public:
 
 private:
   ICM20602 icm[IMU_NUM];
-  std::atomic_bool calibration_requested{false};
   freertospp::Semaphore sampling_end_semaphore;
   MotionParameter gyro_offset, accel_offset;
+
+  bool calib_req = false;
+  std::mutex calib_mutex;
+  std::condition_variable calib_cv;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -85,16 +88,17 @@ private:
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
       /* fetch */
       update();
-      /* give */
+      /* notify */
       sampling_end_semaphore.give();
       /* calibration */
-      if (calibration_requested) {
+      if (calib_req) {
         task_calibration(xLastWakeTime);
-        calibration_requested = false;
+        std::lock_guard<std::mutex> lock_guard(calib_mutex);
+        calib_req = false;
+        calib_cv.notify_all();
       }
     }
   }
-
   void task_calibration(TickType_t &xLastWakeTime) {
     const int ave_count = 200;
     for (int j = 0; j < 2; j++) {

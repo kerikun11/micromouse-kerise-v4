@@ -39,16 +39,21 @@
 
 | name         | priority | core |                    stack |
 | ------------ | -------: | ---: | -----------------------: |
-| main         |        0 |    0 |                     8192 |
-| Button       |        1 |   no | configMINIMAL_STACK_SIZE |
-| LED          |        1 |   no |                     2048 |
-| Buzzer       |        1 |   no |                     4096 |
-| ToF          |        1 |   no |                     4096 |
-| IMU          |        6 |    0 |                     4096 |
-| Encoder      |        6 |    0 | configMINIMAL_STACK_SIZE |
-| Reflector    |       20 |    1 |                     2048 |
-| SpeedCtrl    |        5 |    0 |                     4096 |
-| WallDetector |        5 |    0 |                     2048 |
-| MoveAction   |        4 |   no |                     8192 |
-| drive        |        1 |   no |                     4096 |
-| print        |        1 |   no |                     4096 |
+| esp_timer    |       22 |  PRO |                 3584+512 |
+| IMU          |        6 |  PRO |                     4096 |
+| Encoder      |        6 |  PRO | configMINIMAL_STACK_SIZE |
+| SpeedCtrl    |        5 |  PRO |                     4096 |
+| WallDetector |        5 |  PRO |                     2048 |
+| ToF          |        1 |  PRO |                     4096 |
+| main         |        0 |  PRO |                     8192 |
+| Reflector    |       20 |  APP |                     2048 |
+| MoveAction   |        4 |   NO |                     8192 |
+| Button       |        1 |   NO | configMINIMAL_STACK_SIZE |
+| LED          |        1 |   NO |                     2048 |
+| Buzzer       |        1 |   NO |                     4096 |
+| drive        |        2 |   NO |                     4096 |
+| print        |        1 |   NO |                     4096 |
+
+- PRO_CPU_NUM: 0
+- APP_CPU_NUM: 1
+- tskNO_AFFINITY

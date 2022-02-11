@@ -22,6 +22,8 @@
 #include <utils/math_utils.hpp>
 
 #include <cmath>
+#include <condition_variable>
+#include <mutex>
 
 class MoveAction {
 public:
@@ -38,7 +40,7 @@ public:
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 0;
     bool front_wall_fix_enabled = 1;
-    bool side_wall_avoid_enabled = 0;
+    bool side_wall_avoid_enabled = 1;
     bool side_wall_fix_theta_enabled = 0;
     bool wall_cut_enabled = 0;
     /* common values */
@@ -48,7 +50,7 @@ public:
     std::array<float, field::ShapeIndexMax> v_slalom;
     /* search run */
     float v_search = 300;
-    float v_unknown_accel = 720;
+    float v_unknown_accel = 600;
     /* fast run */
     float fan_duty = 0.4f;
 
@@ -88,7 +90,6 @@ public:
 private:
   hardware::Hardware *hw;
   supporters::Supporters *sp;
-  ctrl::TrajectoryTracker::Gain tt_gain;
 
 public:
   MoveAction(hardware::Hardware *hw, supporters::Supporters *sp,
@@ -106,35 +107,35 @@ public:
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
                 "MoveAction", 8192, this, 4, NULL);
   }
+
   void enable(const TaskAction ta) {
+    // disable if enabled
     sp->sc->disable();
+    // set parameter
     task_action = ta;
-    in_action = true;
-    break_requested = false;
-    enabled = true;
-    hw->led->set(2); //< for debug
+    // enable
+    state_update(State::STATE_RUNNING);
   }
   void disable() {
-    break_requested = true;
-    while (enabled)
-      vTaskDelay(pdMS_TO_TICKS(1));
-    sp->sc->disable();
-    while (!sa_queue.empty())
-      sa_queue.pop();
-    in_action = false;
-    break_requested = false;
+    hw->led->set(2); //< for debug
+    if (state != State::STATE_DISABLED)
+      state_update(State::STATE_BREAKING);
+    hw->led->set(3); //< for debug // freeze
+    state_wait(State::STATE_DISABLED);
+    hw->led->set(4); //< for debug
   }
-  void waitForEndAction() const {
-    while (in_action)
-      vTaskDelay(pdMS_TO_TICKS(1));
+  void waitForEndAction() { //
+    state_wait(~State::STATE_RUNNING);
   }
   void enqueue_action(const MazeLib::RobotBase::SearchAction action) {
     sa_queue.push(action);
-    in_action = true;
+    if (state == STATE_WAITING)
+      state_update(State::STATE_RUNNING);
   }
   void set_fast_path(const std::string &fast_path) {
     this->fast_path = fast_path;
-    in_action = true;
+    if (state == STATE_WAITING)
+      state_update(State::STATE_RUNNING);
   }
   void emergency_release() {
     if (hw->mt->is_emergency()) {
@@ -162,24 +163,44 @@ public:
   }
 
 private:
+  ctrl::TrajectoryTracker::Gain tt_gain;
   TaskAction task_action = TaskActionSearchRun;
-  std::atomic_bool enabled{false};
-  std::atomic_bool in_action{false};
-  std::atomic_bool break_requested{false};
   lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
   ctrl::Pose offset;
   std::array<bool, 3> is_wall;
   bool prev_wall[2];
   bool continue_straight_if_no_front_wall = false;
 
+  /* State Manager */
+  enum State : uint8_t {
+    STATE_DISABLED = 1 << 0, //< 停止中
+    STATE_RUNNING = 1 << 1,  //< キューの内容を走行中
+    STATE_WAITING = 1 << 2,  //< キューが空になって待機中
+    STATE_BREAKING = 1 << 3, //< 離脱中
+  };
+  enum State state = State::STATE_DISABLED;
+  std::mutex state_mutex;
+  std::condition_variable state_cv;
+  void state_update(enum State state_new) {
+    std::lock_guard<std::mutex> lock_guard(state_mutex);
+    state = state_new;
+    state_cv.notify_all();
+  }
+  void state_wait(uint8_t state_mask) {
+    std::unique_lock<std::mutex> unique_lock(state_mutex);
+    state_cv.wait(unique_lock, [&] { return state & state_mask; });
+  }
+  bool is_break_state() const {
+    return hw->mt->is_emergency() || state == State::STATE_BREAKING;
+  }
+
   void task() {
     while (1) {
-      vTaskDelay(pdMS_TO_TICKS(1));
-      if (!enabled)
-        continue;
+      // wait for action
+      state_wait(State::STATE_RUNNING);
+      // start action
       switch (task_action) {
       case TaskAction::TaskActionSearchRun:
-        hw->led->set(4); //< for debug
         search_run_task();
         break;
       case TaskAction::TaskActionFastRun:
@@ -191,14 +212,9 @@ private:
       default:
         break;
       }
-      hw->led->set(11); //< for debug
-      // cleaning
-      while (!sa_queue.empty())
-        sa_queue.pop();
-      hw->led->set(12); //< for debug
-      enabled = false;
-      in_action = false;
-      break_requested = false;
+      sp->sc->disable();
+      // hw->led->set(12); //< for debug // freezed here
+      state_update(State::STATE_DISABLED);
     }
   }
   bool isAlong() { return int(std::abs(offset.th) * 180 / PI + 1) % 90 < 2; }
@@ -207,7 +223,7 @@ private:
   }
 
   void wall_attach(bool force = false) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     if ((force && hw->tof->getDistance() < field::SegWidthFull * 5 / 4) ||
         hw->tof->getDistance() < 90 ||
@@ -217,7 +233,7 @@ private:
       vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
       sp->sc->est_p.clear();
       for (int i = 0; i < 2000; i++) {
-        if (break_requested || hw->mt->is_emergency())
+        if (is_break_state())
           break;
         sp->sc->sampling_sync();
         WheelParameter wp;
@@ -249,7 +265,7 @@ private:
     /* 現在の姿勢が区画に対して垂直か調べる */
     const float th_g = offset.th + p.th; //< グローバル姿勢
     const float th_g_w = math_utils::round2(th_g, PI / 2); //< 直近の壁の姿勢
-    const float theta_threshold = PI * 1 / 180;
+    const float theta_threshold = PI * 0.5f / 180;
     if (std::abs(th_g - th_g_w) > theta_threshold)
       return;
     /* 壁との距離を取得 */
@@ -267,14 +283,15 @@ private:
     const float x_diff_abs = std::abs(x_diff);
     if (x_diff_abs > 30) //< [mm]
       return;
+    hw->bz->play(hardware::Buzzer::SHORT7);
     const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
     /* 局所位置の修正 */
-    const float alpha = 0.01f; //< 補正割合 (0: 補正なし)
+    const float alpha = 0.1f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0});
     return;
   }
   void side_wall_avoid(const float remain, const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
     const float theta_threshold = PI * 1 / 180;
@@ -342,7 +359,7 @@ private:
     hw->led->set(led_flags);
   }
   void side_wall_theta_fix(const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
   }
   void side_wall_cut(const RunParameter &rp) {
@@ -407,7 +424,7 @@ private:
   }
   void straight_x(const float distance, float v_max, float v_end,
                   const RunParameter &rp, bool unknown_accel = false) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     v_end = unknown_accel ? rp.v_unknown_accel : v_end;
     v_max = unknown_accel ? rp.v_unknown_accel : v_max;
@@ -422,7 +439,7 @@ private:
                        sp->sc->est_p.x);
       tt.reset(v_start);
       for (float t = 0; true; t += sp->sc->Ts) {
-        if (break_requested || hw->mt->is_emergency())
+        if (is_break_state())
           break;
         /* 終了条件 */
         const float remain = distance - sp->sc->est_p.x;
@@ -467,7 +484,7 @@ private:
     offset += ctrl::Pose(distance, 0, 0).rotate(offset.th);
   }
   void turn(const float angle) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     const float dddth_max = 2400 * PI;
     const float ddth_max = 54 * PI;
@@ -475,7 +492,7 @@ private:
     constexpr float back_gain = model::turn_back_gain;
     ctrl::AccelDesigner ad(dddth_max, ddth_max, dth_max, 0, 0, angle);
     for (float t = 0; t < ad.t_end(); t += sp->sc->Ts) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       sp->sc->sampling_sync();
       const float delta = sp->sc->est_p.x * std::cos(-sp->sc->est_p.th) -
@@ -485,7 +502,7 @@ private:
     /* 確実に目標角度に持っていく処理 */
     float int_error = 0;
     while (1) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       sp->sc->sampling_sync();
       float delta = sp->sc->est_p.x * std::cos(-sp->sc->est_p.th) -
@@ -504,7 +521,7 @@ private:
     offset += net.rotate(offset.th);
   }
   void trace(ctrl::slalom::Trajectory &trajectory, const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     const float Ts = sp->sc->Ts;
     const float velocity = sp->sc->ref_v.tra;
@@ -517,7 +534,7 @@ private:
     if (std::abs(sp->sc->est_p.x) > 1)
       hw->bz->play(hardware::Buzzer::CONFIRM);
     for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       /* データの更新 */
       sp->sc->sampling_sync();
@@ -541,7 +558,7 @@ private:
   void SlalomProcess(const field::ShapeIndex si, const bool mirror_x,
                      const bool reverse, float &straight,
                      const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     const auto &shape = field::shapes[si];
     ctrl::slalom::Trajectory st(shape, mirror_x);
@@ -560,7 +577,7 @@ private:
     straight += reverse ? straight_prev : straight_post;
   }
   void u_turn() {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     if (sp->wd->distance.side[0] > sp->wd->distance.side[1]) {
       wall_attach();
@@ -575,7 +592,7 @@ private:
     }
   }
   void wall_stop_aebs() {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     hw->bz->play(hardware::Buzzer::AEBS);
     // ToDo: compiler bug avoidance!
@@ -587,10 +604,10 @@ private:
     vTaskDelay(pdMS_TO_TICKS(200));
     sp->sc->disable();
     hw->mt->emergency_stop();
-    break_requested = true;
+    state_update(State::STATE_BREAKING);
   }
   void start_step(const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     sp->sc->disable();
     hw->mt->drive(-0.2f, -0.2f); /*< 背中を確実に壁につける */
@@ -604,7 +621,7 @@ private:
     straight_x(field::SegWidthFull, rp.v_search, rp.v_search, rp);
   }
   void start_init() {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     wall_attach();
     turn(PI / 2);
@@ -612,10 +629,10 @@ private:
     turn(PI / 2);
     put_back();
     sp->sc->disable();
-    break_requested = true;
+    state_update(State::STATE_BREAKING);
   }
   void put_back() {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     const int max_v = 150;
     const float th_gain = 50.0f;
@@ -641,24 +658,19 @@ private:
     /* 区画の中心に配置 */
     offset = ctrl::Pose(field::SegWidthFull / 2,
                         field::SegWidthFull / 2 + model::CenterOffsetY, PI / 2);
-    hw->led->set(5); //< for debug
     while (1) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       /* 壁を確認 */
       is_wall = sp->wd->is_wall;
-      hw->led->set(3); //< for debug
       /* 探索器に終了を通知 */
       if (sa_queue.empty())
-        in_action = false;
-      hw->led->set(6); //< for debug
+        state_update(State::STATE_WAITING);
       /* Actionがキューされるまで直進で待つ */
       search_run_queue_wait_decel(rp);
-      hw->led->set(7); //< for debug
       /* 既知区間走行 */
       if (sa_queue.size() >= 2)
         search_run_known(rp);
-      hw->led->set(8); //< for debug
       /* 探索走行 */
       if (!sa_queue.empty()) {
         const auto action = sa_queue.front();
@@ -666,9 +678,10 @@ private:
         search_run_switch(action, rp);
       }
     }
-    hw->led->set(9); //< for debug
+    // cleaning
+    while (!sa_queue.empty())
+      sa_queue.pop();
     sp->sc->disable();
-    hw->led->set(10); //< for debug
   }
   void search_run_queue_wait_decel(const RunParameter &rp) {
     /* Actionがキューされるまで減速しながら待つ */
@@ -679,7 +692,7 @@ private:
     /* start */
     tt.reset(v_start);
     for (float t = 0; sa_queue.empty(); t += sp->sc->Ts) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       sp->sc->sampling_sync();
       side_wall_avoid(0, rp);
@@ -728,7 +741,7 @@ private:
   }
   void search_run_switch(const MazeLib::RobotBase::SearchAction action,
                          const RunParameter &rp) {
-    if (break_requested || hw->mt->is_emergency())
+    if (is_break_state())
       return;
     const bool no_front_front_wall =
         hw->tof->getDistance() >
@@ -822,7 +835,7 @@ private:
         field::SegWidthFull / 2 - model::TailLength - field::WallThickness / 2;
     /* 走行 */
     for (int path_index = 0; path_index < path.length(); path_index++) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       const auto action =
           static_cast<MazeLib::RobotBase::FastAction>(path[path_index]);
@@ -926,7 +939,7 @@ private:
     sp->sc->enable();
     int index = 0;
     for (float t = 0; t < ad.t_end(); t += sp->sc->Ts) {
-      if (break_requested || hw->mt->is_emergency())
+      if (is_break_state())
         break;
       sp->sc->sampling_sync();
       const float delta = sp->sc->est_p.x * std::cos(-sp->sc->est_p.th) -

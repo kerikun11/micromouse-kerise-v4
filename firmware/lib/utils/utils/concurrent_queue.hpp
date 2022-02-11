@@ -9,7 +9,7 @@
 #define LIME62_CONCURRENT_QUEUE_H
 
 #include <queue>
-#include <atomic>
+// #include <atomic>
 #include <mutex>
 #include <condition_variable>
 

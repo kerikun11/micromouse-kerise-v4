@@ -15,8 +15,6 @@
 #include <ctrl/pose.h>
 #include <freertospp/semphr.h>
 
-#include <atomic>
-
 class SpeedController {
 public:
   static constexpr const float Ts = 1e-3f;
@@ -28,10 +26,12 @@ public:
   ctrl::Polar est_a;
   ctrl::Pose est_p;
   WheelParameter enc_v;
-  ctrl::FeedbackController<ctrl::Polar> fbc;
   static constexpr int acc_num = 4;
   ctrl::Accumulator<float, acc_num> wheel_position[2];
   ctrl::Accumulator<ctrl::Polar, acc_num> accel;
+
+public:
+  ctrl::FeedbackController<ctrl::Polar> fbc;
 
 private:
   hardware::Hardware *hw;
@@ -69,14 +69,14 @@ public:
       fix.x = std::max(std::min(fix.x, max_fix), -max_fix);
       fix.y = std::max(std::min(fix.y, max_fix), -max_fix);
     }
-    this->fix += fix;
+    est_p += fix; // ToDo: make thread safe
   }
   void sampling_sync() const { //
     data_ready_semaphore.take();
   }
 
 private:
-  std::atomic_bool drive_enabled{false};
+  volatile bool drive_enabled = false;
   freertospp::Semaphore data_ready_semaphore;
   ctrl::Pose fix;
 
@@ -90,7 +90,6 @@ private:
       update_samples();
       update_estimator();
       update_odometry();
-      update_fix();
       /* notify */
       data_ready_semaphore.give();
       /* drive */
@@ -146,24 +145,6 @@ private:
     est_p.th += hw->imu->gyro.z * Ts;
     est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
     est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
-  }
-  void update_fix() {
-    /* Fix Pose */
-    const float delta = 100;
-    if (fix.x > delta) {
-      est_p.x += delta;
-      fix.x -= delta;
-    } else if (fix.x < -delta) {
-      est_p.x -= delta;
-      fix.x += delta;
-    }
-    if (fix.y > delta) {
-      est_p.y += delta;
-      fix.y -= delta;
-    } else if (fix.y < -delta) {
-      est_p.y -= delta;
-      fix.y += delta;
-    }
   }
   void drive() {
     /* calculate pwm value */
