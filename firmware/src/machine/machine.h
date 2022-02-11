@@ -655,6 +655,7 @@ private:
     log_init(log_select);
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
+    hw->enc->clear_offset();
     /* parameter */
     const auto &shape = field::shapes[field::ShapeIndex::F180];
     const bool mirror = mode;
@@ -675,7 +676,7 @@ private:
     }
     /* start */
     sp->sc->enable();
-    tt.reset(0);
+    tt.reset(/* v_start = */ 0);
     /* accel */
     ctrl::straight::Trajectory ref;
     ref.reset(j_max, a_max, v_max, 0, velocity, d_1 + shape.straight_prev);

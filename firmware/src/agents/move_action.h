@@ -37,7 +37,7 @@ public:
     /* common flags */
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 0;
-    bool front_wall_fix_enabled = 0;
+    bool front_wall_fix_enabled = 1;
     bool side_wall_avoid_enabled = 0;
     bool side_wall_fix_theta_enabled = 0;
     bool wall_cut_enabled = 0;

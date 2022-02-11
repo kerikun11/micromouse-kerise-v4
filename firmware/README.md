@@ -1,4 +1,4 @@
-# KERISE firmware
+# MicroMouse KERISE firmware
 
 ## 開発環境
 
