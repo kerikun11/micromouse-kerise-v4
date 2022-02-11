@@ -269,7 +269,7 @@ private:
     if (std::abs(th_g - th_g_w) > theta_threshold)
       return;
     /* 壁との距離を取得 */
-    const float wall_fix_offset = model::wall_fix_offset; //< 大: 壁から遠く
+    const float wall_fix_offset = model::wall_fix_offset; //< 大: 壁に近く
     const float d_tof = wall_fix_offset + hw->tof->getDistance() -
                         hw->tof->passedTimeMs() * 1e-3f * sp->sc->ref_v.tra;
     /* グローバル位置に変換 */
@@ -590,6 +590,8 @@ private:
       wall_attach();
       turn(PI / 2);
     }
+    // なぜか前進しているので修正
+    sp->sc->est_p.x += model::CenterOffsetY;
   }
   void wall_stop_aebs() {
     if (is_break_state())
@@ -655,9 +657,8 @@ private:
     const auto &rp = rp_search;
     /* スタート */
     sp->sc->enable();
-    /* 区画の中心に配置 */
-    offset = ctrl::Pose(field::SegWidthFull / 2,
-                        field::SegWidthFull / 2 + model::CenterOffsetY, PI / 2);
+    /* とりあえず区画の中心に配置 */
+    offset = ctrl::Pose(field::SegWidthFull / 2, field::SegWidthFull / 2);
     while (1) {
       if (is_break_state())
         break;
@@ -763,7 +764,7 @@ private:
       straight_x(field::SegWidthFull, v_s, v_s, rp, unknown_accel);
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF:
-      straight_x(field::SegWidthFull / 2 - model::CenterOffsetY, v_s, v_s, rp);
+      straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
       break;
     case MazeLib::RobotBase::SearchAction::TURN_L:
       if (sp->sc->est_p.x < 5.0f && sp->sc->ref_v.tra < v_s * 1.2f) {
@@ -774,11 +775,10 @@ private:
         trace(st, rp);
         straight_x(st.getShape().straight_post, v_s, v_s, rp);
       } else {
-        straight_x(field::SegWidthFull / 2 + model::CenterOffsetY, v_s, 0, rp);
+        straight_x(field::SegWidthFull / 2, v_s, 0, rp);
         wall_attach();
         turn(PI / 2);
-        straight_x(field::SegWidthFull / 2 - model::CenterOffsetY, v_s, v_s,
-                   rp);
+        straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
       }
       break;
     case MazeLib::RobotBase::SearchAction::TURN_R:
@@ -790,18 +790,17 @@ private:
         trace(st, rp);
         straight_x(st.getShape().straight_post, v_s, v_s, rp);
       } else {
-        straight_x(field::SegWidthFull / 2 + model::CenterOffsetY, v_s, 0, rp);
+        straight_x(field::SegWidthFull / 2, v_s, 0, rp);
         wall_attach();
         turn(-PI / 2);
-        straight_x(field::SegWidthFull / 2 - model::CenterOffsetY, v_s, v_s,
-                   rp);
+        straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
       }
       break;
     case MazeLib::RobotBase::SearchAction::ROTATE_180:
       u_turn();
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF_STOP:
-      straight_x(field::SegWidthFull / 2 + model::CenterOffsetY, v_s, 0, rp);
+      straight_x(field::SegWidthFull / 2, v_s, 0, rp);
       break;
     }
   }

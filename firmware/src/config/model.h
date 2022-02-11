@@ -36,7 +36,7 @@ static constexpr float TailLength = 13.0f;
 /* ToF */
 static constexpr float tof_raw_range_90 = 75;
 static constexpr float tof_raw_range_180 = 160;
-static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 36.0f;
 static constexpr float wall_attach_end = 0.5f;
@@ -76,7 +76,7 @@ static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_raw_range_90 = 69;
 static constexpr float tof_raw_range_180 = 154;
-static constexpr float wall_fix_offset = -10; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
@@ -111,12 +111,12 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.92f; //< 径を大きく：進行距離を短く
-static constexpr float CenterOffsetY = 6.0f;
+static constexpr float CenterOffsetY = 8.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_raw_range_90 = 69;
 static constexpr float tof_raw_range_180 = 154;
-static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁から遠く */
+static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
 static constexpr float wall_attach_gain_Kp = 24.0f;
 static constexpr float wall_attach_end = 0.1f;
