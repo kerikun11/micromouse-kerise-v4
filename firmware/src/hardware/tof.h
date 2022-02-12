@@ -16,22 +16,24 @@ namespace hardware {
 
 class ToF {
 public:
-  ToF(i2c_port_t i2c_port) : sensor(i2c_port) {}
-  bool init() {
-    sensor.setTimeout(20);
-    sensor.init();
+  ToF() {}
+  bool init(i2c_port_t i2c_port) {
+    vl6180x = new VL6180X(i2c_port);
+    vl6180x->setTimeout(20);
+    vl6180x->init();
     /* [pre-cal] fixed 3.2ms */
-    sensor.configureDefault();
+    vl6180x->configureDefault();
     /* [readout average; 1300us + 64.5us * value] default: 48 (4.3ms) */
-    // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 32); //< 3.2ms
-    // sensor.writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 64); //< 5.4ms
+    // vl6180x->writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD, 32);
+    // //< 3.2ms vl6180x->writeReg(VL6180X::READOUT__AVERAGING_SAMPLE_PERIOD,
+    // 64); //< 5.4ms
     /* [max-convergence; includes readout average time] default: 49ms */
-    sensor.writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
+    vl6180x->writeReg(VL6180X::SYSRANGE__MAX_CONVERGENCE_TIME, 32);
     xTaskCreatePinnedToCore(
         [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "ToF",
         4096, this, 1, NULL, PRO_CPU_NUM);
     vTaskDelay(pdMS_TO_TICKS(40));
-    if (sensor.last_status != 0) {
+    if (vl6180x->last_status != 0) {
       ESP_LOGE(TAG, "ToF init failed :(");
       return false;
     }
@@ -53,7 +55,7 @@ public:
 
 private:
   static constexpr const char *TAG = "ToF";
-  VL6180X sensor;
+  VL6180X *vl6180x;
   bool enabled = true;
   uint16_t distance;
   uint16_t range;
@@ -71,11 +73,11 @@ private:
         continue;
       }
       /* sampling start */
-      sensor.writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
-      sensor.writeReg(VL6180X::SYSRANGE__START, 0x01);
+      vl6180x->writeReg(VL6180X::SYSTEM__INTERRUPT_CLEAR, 0x01);
+      vl6180x->writeReg(VL6180X::SYSRANGE__START, 0x01);
       {
         uint32_t startAt = millis();
-        while ((sensor.readReg(VL6180X::RESULT__INTERRUPT_STATUS_GPIO) &
+        while ((vl6180x->readReg(VL6180X::RESULT__INTERRUPT_STATUS_GPIO) &
                 0x04) == 0) {
           vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
           passed_ms++;
@@ -85,7 +87,7 @@ private:
         dur = millis() - startAt;
       }
       /* get data from sensor */
-      range = sensor.readReg(VL6180X::RESULT__RANGE_VAL);
+      range = vl6180x->readReg(VL6180X::RESULT__RANGE_VAL);
       const auto r90 = model::tof_raw_range_90;
       const auto r180 = model::tof_raw_range_180;
       /* line equation: y-y1 = (y2-y1) / (x2-x1) * (x-x1) */
