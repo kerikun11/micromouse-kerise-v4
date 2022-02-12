@@ -8,6 +8,8 @@
 #pragma once
 
 #include <esp_spiffs.h>
+#include <sys/dirent.h>
+#include <sys/stat.h>
 
 namespace peripheral {
 
@@ -35,6 +37,25 @@ public:
   static bool deinit() {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_vfs_spiffs_unregister(NULL));
     return true;
+  }
+  static void list_dir(const char *name) {
+    DIR *dir;
+    struct dirent *entry;
+    struct stat buf;
+    if (!(dir = opendir(name)))
+      return;
+    while ((entry = readdir(dir)) != NULL) {
+      char path[256 + 1];
+      snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
+      if (entry->d_type == DT_DIR) {
+        printf("          %s/\n", path);
+        list_dir(path); // recursive call
+      } else {
+        stat(path, &buf);
+        printf("%9ld %s/%s\n", buf.st_size, name, entry->d_name);
+      }
+    }
+    closedir(dir);
   }
 };
 

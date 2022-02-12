@@ -1,13 +1,13 @@
 /**
  * @file buzzer.h
- * @brief Buzzer Driver
+ * @brief Buzzer Driver for MicroMouse KERISE
  * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
  */
 #pragma once
 
-#include "app_log.h"
 #include <driver/ledc.h>
+#include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
@@ -65,14 +65,16 @@ public:
                 "Buzzer", 4096, this, 1, NULL);
     return true;
   }
-  void play(const enum Music music) { xQueueSendToBack(playList, &music, 0); }
+  void play(const enum Music music) {
+    xQueueSendToBack(playList, &music, /* xTicksToWait = */ 0);
+  }
 
 private:
-  static constexpr const char *tag = "Buzzer";
+  static constexpr const char *TAG = "Buzzer";
+  QueueHandle_t playList;
   ledc_channel_t channel;
   ledc_timer_t timer;
   ledc_mode_t mode = LEDC_HIGH_SPEED_MODE;
-  QueueHandle_t playList;
   typedef enum {
     NOTE_C,
     NOTE_Cs,
@@ -89,12 +91,12 @@ private:
     NOTE_MAX,
   } note_t;
 
-  void write_note(note_t note, uint8_t octave) {
+  void ledc_write_note(note_t note, uint8_t octave) {
     static const uint32_t noteFrequencyBase[12] = {
         // C    C#     D    Eb     E     F    F#     G    G#     A    Bb     B
         4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902};
     if (octave > 8 || note >= NOTE_MAX) {
-      app_loge << "out of range" << std::endl;
+      ESP_LOGE(TAG, "note out of range. octave: %d, note: %d", octave, note);
       return;
     }
     uint32_t freq = noteFrequencyBase[note] / (1 << (8 - octave));
@@ -102,138 +104,136 @@ private:
     ledc_set_duty(mode, channel, 4); //< [0, 2^duty_resolution]
     ledc_update_duty(mode, channel);
   }
-  void write(uint32_t duty) {
-    ledc_set_duty(mode, channel, 0);
-    ledc_update_duty(mode, channel);
-  }
-  void sound(const note_t note, uint8_t octave, uint32_t time_ms) {
-    write_note(note, octave);
+  void note(const note_t note, uint8_t octave, uint32_t time_ms) {
+    ledc_write_note(note, octave);
     vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void mute(uint32_t time_ms = 400) {
-    write(0);
+    ledc_set_duty(mode, channel, 0);
+    ledc_update_duty(mode, channel);
     vTaskDelay(pdMS_TO_TICKS(time_ms));
   }
   void task() {
+    vTaskDelay(pdMS_TO_TICKS(1)); //< for first note drop bug avoidance
     while (1) {
       Music music;
       xQueueReceive(playList, &music, portMAX_DELAY);
       switch (music) {
       case SELECT:
-        sound(NOTE_C, 6, 100);
+        note(NOTE_C, 6, 100);
         mute(100);
         break;
       case CANCEL:
-        sound(NOTE_E, 6, 100);
-        sound(NOTE_C, 6, 100);
+        note(NOTE_E, 6, 100);
+        note(NOTE_C, 6, 100);
         mute(100);
         break;
       case CONFIRM:
-        sound(NOTE_C, 6, 100);
-        sound(NOTE_E, 6, 100);
+        note(NOTE_C, 6, 100);
+        note(NOTE_E, 6, 100);
         mute(100);
         break;
       case SUCCESSFUL:
-        sound(NOTE_C, 6, 100);
-        sound(NOTE_E, 6, 100);
-        sound(NOTE_G, 6, 100);
+        note(NOTE_C, 6, 100);
+        note(NOTE_E, 6, 100);
+        note(NOTE_G, 6, 100);
         mute(100);
         break;
       case ERROR:
         for (int i = 0; i < 6; i++) {
-          sound(NOTE_C, 7, 100);
-          sound(NOTE_E, 7, 100);
+          note(NOTE_C, 7, 100);
+          note(NOTE_E, 7, 100);
         }
         mute();
         break;
       case BOOT:
-        sound(NOTE_B, 5, 200);
-        sound(NOTE_E, 6, 400);
-        sound(NOTE_Fs, 6, 200);
-        sound(NOTE_B, 6, 600);
+        note(NOTE_B, 5, 200);
+        note(NOTE_E, 6, 400);
+        note(NOTE_Fs, 6, 200);
+        note(NOTE_B, 6, 600);
         mute();
         break;
       case SHUTDOWN:
-        sound(NOTE_Gs, 6, 200);
-        sound(NOTE_Eb, 6, 200);
-        sound(NOTE_Gs, 5, 200);
-        sound(NOTE_Bb, 5, 600);
+        note(NOTE_Gs, 6, 200);
+        note(NOTE_Eb, 6, 200);
+        note(NOTE_Gs, 5, 200);
+        note(NOTE_Bb, 5, 600);
         mute();
         break;
       case TIMEOUT:
-        sound(NOTE_C, 7, 400);
+        note(NOTE_C, 7, 400);
         mute(200);
-        sound(NOTE_C, 7, 400);
+        note(NOTE_C, 7, 400);
         mute(200);
-        sound(NOTE_C, 7, 400);
+        note(NOTE_C, 7, 400);
         mute(200);
         break;
       case EMERGENCY:
-        sound(NOTE_C, 6, 100);
-        sound(NOTE_F, 6, 100);
+        note(NOTE_C, 6, 100);
+        note(NOTE_F, 6, 100);
         mute(100);
-        sound(NOTE_F, 6, 75);
+        note(NOTE_F, 6, 75);
         mute(25);
 
-        sound(NOTE_F, 6, 176);
-        sound(NOTE_E, 6, 176);
-        sound(NOTE_D, 6, 176);
-        sound(NOTE_C, 6, 200);
+        note(NOTE_F, 6, 176);
+        note(NOTE_E, 6, 176);
+        note(NOTE_D, 6, 176);
+        note(NOTE_C, 6, 200);
         mute(100);
         break;
       case COMPLETE:
-        sound(NOTE_C, 6, 100);
-        sound(NOTE_D, 6, 100);
-        sound(NOTE_E, 6, 100);
-        sound(NOTE_F, 6, 100);
-        sound(NOTE_G, 6, 100);
-        sound(NOTE_A, 6, 100);
-        sound(NOTE_B, 6, 100);
-        sound(NOTE_C, 7, 100);
+        note(NOTE_C, 6, 100);
+        note(NOTE_D, 6, 100);
+        note(NOTE_E, 6, 100);
+        note(NOTE_F, 6, 100);
+        note(NOTE_G, 6, 100);
+        note(NOTE_A, 6, 100);
+        note(NOTE_B, 6, 100);
+        note(NOTE_C, 7, 100);
         mute(100);
         break;
       case SHORT6:
-        sound(NOTE_C, 6, 50);
+        note(NOTE_C, 6, 50);
         mute(50);
         break;
       case SHORT7:
-        sound(NOTE_C, 7, 50);
+        note(NOTE_C, 7, 50);
         mute(50);
         break;
       case SHORT8:
-        sound(NOTE_C, 8, 50);
+        note(NOTE_C, 8, 50);
         mute(50);
         break;
       case SHORT9:
-        sound(NOTE_G, 8, 50);
+        note(NOTE_G, 8, 50);
         mute(50);
         break;
       case MAZE_BACKUP:
-        sound(NOTE_G, 7, 100);
-        sound(NOTE_E, 7, 100);
-        sound(NOTE_C, 7, 100);
+        note(NOTE_G, 7, 100);
+        note(NOTE_E, 7, 100);
+        note(NOTE_C, 7, 100);
         mute(100);
         break;
       case MAZE_RESTORE:
-        sound(NOTE_C, 7, 100);
-        sound(NOTE_E, 7, 100);
-        sound(NOTE_G, 7, 100);
+        note(NOTE_C, 7, 100);
+        note(NOTE_E, 7, 100);
+        note(NOTE_G, 7, 100);
         mute(100);
         break;
       case CALIBRATION:
-        sound(NOTE_C, 7, 100);
-        sound(NOTE_E, 7, 100);
+        note(NOTE_C, 7, 100);
+        note(NOTE_E, 7, 100);
         mute(100);
         break;
       case AEBS:
         for (int i = 0; i < 8; ++i) {
-          sound(NOTE_E, 7, 150);
+          note(NOTE_E, 7, 150);
           mute(50);
         }
         mute(200);
         break;
       default:
-        sound(NOTE_C, 4, 1000);
+        note(NOTE_C, 4, 1000);
         mute();
         break;
       }

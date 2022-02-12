@@ -78,30 +78,22 @@ public:
 private:
   volatile bool drive_enabled = false;
   freertospp::Semaphore data_ready_semaphore;
-  ctrl::Pose fix;
 
   void task() {
     while (1) {
-      // const int us_start = esp_timer_get_time();
-      /* sync */
+      /* sampling sync */
       hw->imu->sampling_sync();
       hw->enc->sampling_sync();
-      /* sampling */
+      /* update data */
       update_samples();
       update_estimator();
       update_odometry();
-      /* notify */
+      /* notify app */
       data_ready_semaphore.give();
-      /* drive */
+      /* ToDo: wait for app here (reference update) */
+      /* PID control */
       if (drive_enabled)
         drive();
-      // const int us_end = esp_timer_get_time();
-      /* debug */
-      // if (us_end - us_start > 1500 && drive_enabled) {
-      //   hw->bz->play(hardware::Buzzer::SHORT9);
-      //   app_logw << "sampling overtime: " << int(us_end - us_start)
-      //            << std::endl;
-      // }
     }
   }
   void reset() {
@@ -114,7 +106,6 @@ private:
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(hw->enc->get_position(i));
     accel.clear(ctrl::Polar(hw->imu->accel.y, hw->imu->angular_accel));
-    fix.clear();
     fbc.reset();
   }
   void update_samples() {
@@ -131,7 +122,7 @@ private:
     /* calculate estimated velocity value with complementary filter */
     const ctrl::Polar v_low = ctrl::Polar(enc_v.tra, hw->imu->gyro.z);
     const ctrl::Polar v_high = est_v + accel[0] * float(Ts);
-    const ctrl::Polar alpha = model::alpha;
+    const ctrl::Polar alpha = model::velocity_filter_alpha;
     est_v = alpha * v_low + (ctrl::Polar(1, 1) - alpha) * v_high;
     /* estimated acceleration */
     est_a = accel[0];

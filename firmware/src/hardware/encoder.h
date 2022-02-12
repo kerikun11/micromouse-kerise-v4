@@ -12,18 +12,17 @@
 
 #include <drivers/as5048a/as5048a.h>
 #include <drivers/ma730/ma730.h>
-#include <freertospp/mutex.h>
 #include <freertospp/semphr.h>
 
 #include <cmath>
 #include <iomanip>
+#include <mutex>
 
 namespace hardware {
 
 class Encoder {
 public:
-  Encoder(const float SCALE_PULSES_TO_MM)
-      : SCALE_PULSES_TO_MM(SCALE_PULSES_TO_MM) {}
+  Encoder() {}
   bool init(spi_host_device_t spi_host,
             std::array<gpio_num_t, ENCODER_NUM> pins_cs) {
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -54,24 +53,11 @@ public:
     return positions[ch];
   }
   void clear_offset() {
-    mutex.take();
+    std::lock_guard<std::mutex> lock_guard(mutex);
     pulses_ovf[0] = pulses_ovf[1] = 0;
-    mutex.give();
   }
   void csv() {
-    // std::cout << "0," << get_position(0) << "," << get_position(1) <<
-    // std::endl;
-    // std::cout << "0," << get_raw(0) << "," << get_raw(1) << std::endl;
-    std::cout << -pulses[0] << "," << pulses[1] << std::endl;
-#if 0
-    static int pre[2];
-    int now[2];
-    for (int i : {0, 1})
-      now[i] = pulses[i];
-    std::cout << -(now[0] - pre[0]) << "," << now[1] - pre[1] << std::endl;
-    for (int i : {0, 1})
-      pre[i] = now[i];
-#endif
+    std::printf("%d,%d\n", -pulses[0], pulses[1]); //
   }
   friend std::ostream &operator<<(std::ostream &os, const Encoder &e) {
     return os << "Encoder: position (" //
@@ -91,14 +77,13 @@ private:
 #elif KERISE_SELECT == 5
   MA730 ma[2];
 #endif
-  const float SCALE_PULSES_TO_MM;
   int pulses[2] = {};
   int pulses_raw[2] = {};
   int pulses_prev[2] = {};
   int pulses_ovf[2] = {};
   float positions[2] = {};
   freertospp::Semaphore sampling_end_semaphore;
-  freertospp::Mutex mutex;
+  std::mutex mutex;
 
   void task() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -110,7 +95,7 @@ private:
   }
 
   void update() {
-    mutex.take();
+    std::lock_guard<std::mutex> lock_guard(mutex);
     /* fetch data from encoder */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
     constexpr int pulses_size = AS5048A_DUAL::PULSES_SIZE;
@@ -145,6 +130,8 @@ private:
       }
       pulses_prev[i] = pulses_raw[i];
       /* calculate position */
+      const float SCALE_PULSES_TO_MM =
+          model::GearRatio * model::WheelDiameter * PI;
       pulses[i] = pulses_ovf[i] * pulses_size + pulses_raw[i];
       mm[i] = (pulses_ovf[i] + float(pulses_raw[i]) / pulses_size) *
               SCALE_PULSES_TO_MM;
@@ -157,7 +144,6 @@ private:
     positions[0] = -mm[0];
     positions[1] = +mm[1];
 #endif
-    mutex.give();
   }
 };
 

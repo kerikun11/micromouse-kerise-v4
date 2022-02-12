@@ -66,9 +66,6 @@ public:
     /* Normal Boot */
     bz->play(hardware::Buzzer::BOOT);
 
-    /* SPIFFS for MazeRobot, WallDetector */
-    if (!peripheral::SPIFFS::init())
-      bz->play(hardware::Buzzer::ERROR);
     /* SPI for IMU, Encoder */
     if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,
                                   CONFIG_SPI_MISO_PIN, CONFIG_SPI_MOSI_PIN,
@@ -79,7 +76,7 @@ public:
     if (!imu->init(ICM20602_SPI_HOST, ICM20602_CS_PINS))
       bz->play(hardware::Buzzer::ERROR);
     /* Encoder */
-    enc = new Encoder(model::GearRatio * model::WheelDiameter * PI);
+    enc = new Encoder();
     if (!enc->init(ENCODER_SPI_HOST, ENCODER_CS_PINS))
       bz->play(hardware::Buzzer::ERROR);
     /* Reflector */

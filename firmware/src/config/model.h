@@ -27,6 +27,7 @@ namespace model {
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
+static constexpr uint64_t MAC_ID = 0xD866'5A1D'A0D8; //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
@@ -54,9 +55,9 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
         .Ki = ctrl::Polar(0.04, 4.0),
         .Kd = ctrl::Polar(0.0, 0.0),
 };
-static constexpr float turn_back_gain = 10;
+static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(1.0f, 1.0f);
+static constexpr ctrl::Polar velocity_filter_alpha = ctrl::Polar(1.0f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
@@ -67,6 +68,7 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 
 #elif KERISE_SELECT == 4
 /* Original KERISE v4 */
+static constexpr uint64_t MAC_ID = 0x080C'401D'A0D8; //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
@@ -96,7 +98,7 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
 };
 static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
+static constexpr ctrl::Polar velocity_filter_alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
@@ -107,6 +109,7 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 
 #elif KERISE_SELECT == 3
 /* KERISE v4 Copy */
+static constexpr uint64_t MAC_ID = 0x807F'631D'A0D8; //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
@@ -136,7 +139,7 @@ static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
 };
 static constexpr float turn_back_gain = 10.0f;
 /* Velocity Estimation IIR Filter gain */
-static constexpr ctrl::Polar alpha = ctrl::Polar(0.2f, 1.0f);
+static constexpr ctrl::Polar velocity_filter_alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 #if 1

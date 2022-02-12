@@ -219,19 +219,4 @@ public:
     else
       hw->led->set(0x0F);
   }
-  void batteryCheck() {
-    const float voltage = getBatteryVoltage();
-    batteryLedIndicate(voltage);
-    app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
-    if (voltage < thr_battery) {
-      app_logw << "Battery Low!" << std::endl;
-      hw->bz->play(hardware::Buzzer::SHUTDOWN);
-      hw->led->set(0);
-      /* wait for button pressed */
-      while (!hw->btn->pressed)
-        vTaskDelay(pdMS_TO_TICKS(10));
-      hw->btn->flags = 0;
-      hw->led->set(0);
-    }
-  }
 };

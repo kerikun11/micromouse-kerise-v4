@@ -14,6 +14,11 @@
 #include "config/model.h"
 #include "freertospp/task.h"
 #include "hardware/hardware.h"
+#include "peripheral/esp.h"
+#include "peripheral/spiffs.h"
+
+#include <esp_err.h>
+#include <esp_system.h>
 
 namespace machine {
 
@@ -32,27 +37,67 @@ private:
 public:
   Machine() {}
   bool init() {
-    /* print info */
-    std::cout << std::endl;
-    std::cout << "I'm KERISE v" << KERISE_SELECT << "." << std::endl;
-    std::cout << "IDF Version: " << esp_get_idf_version() << std::endl;
+    bool result = true;
+    /* System */
+    peripheral::SPIFFS::init() || (result = false);
+    /* info */
+    show_info();
+    /* check chip */
+    if (!check_chip()) {
+      auto *bz = new hardware::Buzzer();
+      bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
+      bz->play(hardware::Buzzer::TIMEOUT);
+      return false;
+    }
     /* Hardware */
     hw = new hardware::Hardware();
-    hw->init();
+    hw->init() || (result = false);
     /* Supporters */
     sp = new supporters::Supporters(hw);
-    sp->init();
+    sp->init() || (result = false);
     /* Agents */
     ma = new MoveAction(hw, sp, model::TrajectoryTrackerGain);
     mr = new MazeRobot(hw, sp, ma);
     /* Others */
     lgr = new Logger();
+    /* Ending */
+    if (!result) {
+      hw->bz->play(hardware::Buzzer::ERROR);
+      return false;
+    }
     return true;
   }
   void start() {
     /* start tasks */
     task_drive.start(this, &Machine::drive, "Drive", 4096, 2, tskNO_AFFINITY);
     task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
+  }
+  void show_info() {
+    /* show info */
+    LOGI("I'm KERISE v%d.", KERISE_SELECT);
+    LOGI("IDF version:  %s", esp_get_idf_version());
+    LOGI("CPU Freq:     %u [MHz]", ets_get_cpu_frequency());
+    /* show SPIFFS info */
+    size_t total = 0, used = 0;
+    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+    if (ret != ESP_OK) {
+      LOGE("Failed to get SPIFFS partition information!");
+    } else {
+      LOGI("SPIFFS total: %d, used: %d, free: %d", total, used, total - used);
+    }
+    /* show SPIFFS file list */
+    LOGI("SPIFFS file list:");
+    peripheral::SPIFFS::list_dir("/spiffs");
+  }
+  bool check_chip() {
+    auto mac = peripheral::ESP::get_mac();
+    if (mac != model::MAC_ID) {
+      LOGW("MAC ID mismatched!");
+      LOGW("MAC ID: 0x%012llX != 0x%012llX", mac, model::MAC_ID);
+      return false;
+    }
+    return true;
   }
 
 private:
