@@ -16,13 +16,14 @@ public:
       mcpwm_timer_t timer = MCPWM_TIMER_0,
       mcpwm_io_signals_t io_signals = MCPWM0A)
       : gpio_num(gpio_num), unit(unit), timer(timer) {
-    mcpwm_gpio_init(unit, io_signals, gpio_num);
-    gpio_pulldown_en(gpio_num);
-    static mcpwm_config_t pwm_config;
-    pwm_config.frequency = 250000; //< frequency
-    pwm_config.cmpr_a = 0;         //< duty cycle of PWMxA = 0
-    pwm_config.counter_mode = MCPWM_UP_COUNTER;
-    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
+    ESP_ERROR_CHECK(mcpwm_gpio_init(unit, io_signals, gpio_num));
+    mcpwm_config_t pwm_config = {
+        .frequency = 250000, //< frequency (period: 640 <= 160MHz/250kHz)
+        .cmpr_a = 0,         //< duty cycle of PWMxA = 0
+        .cmpr_b = 0,         //< duty cycle of PWMxB = 0
+        .duty_mode = MCPWM_DUTY_MODE_0,
+        .counter_mode = MCPWM_UP_COUNTER,
+    };
     ESP_ERROR_CHECK(mcpwm_init(unit, timer, &pwm_config));
   }
   ~Fan() {

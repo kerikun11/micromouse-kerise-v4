@@ -22,8 +22,7 @@ public:
         ui(new UserInterface(hw)), //
         sc(new SpeedController(model::SpeedControllerModel,
                                model::SpeedControllerGain, hw)), //
-        wd(new WallDetector(hw))                                 //
-  {}
+        wd(new WallDetector(hw)) {}
   bool init() {
     if (!wd->init()) {
       hw->bz->play(hardware::Buzzer::ERROR);

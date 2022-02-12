@@ -41,24 +41,28 @@ public:
   Buzzer() {
     playList = xQueueCreate(/* uxQueueLength = */ 10, sizeof(enum Music));
   }
-  bool init(gpio_num_t pin, ledc_channel_t channel, ledc_timer_t timer) {
+  bool init(gpio_num_t gpio_num, ledc_channel_t channel, ledc_timer_t timer) {
     this->channel = channel;
     this->timer = timer;
     // LEDC Timer
-    static ledc_timer_config_t ledc_timer;
-    ledc_timer.speed_mode = mode;                  // timer mode
-    ledc_timer.duty_resolution = LEDC_TIMER_8_BIT; // resolution of PWM duty
-    ledc_timer.timer_num = timer;                  // timer index
-    ledc_timer.freq_hz = 5000;                     // frequency of PWM signal
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode = mode,                  // timer mode
+        .duty_resolution = LEDC_TIMER_8_BIT, // resolution of PWM duty
+        .timer_num = timer,                  // timer index
+        .freq_hz = 5000,                     // frequency of PWM signal
+        .clk_cfg = LEDC_AUTO_CLK,            // Configure LEDC source clock
+    };
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
     // LEDC Channel
-    static ledc_channel_config_t ledc_channel;
-    ledc_channel.channel = channel;
-    ledc_channel.duty = 0;
-    ledc_channel.gpio_num = pin;
-    ledc_channel.speed_mode = mode;
-    ledc_channel.hpoint = 0;
-    ledc_channel.timer_sel = LEDC_TIMER_0;
+    ledc_channel_config_t ledc_channel = {
+        .gpio_num = gpio_num,
+        .speed_mode = mode,
+        .channel = channel,
+        .intr_type = LEDC_INTR_DISABLE,
+        .timer_sel = LEDC_TIMER_0,
+        .duty = 0,
+        .hpoint = 0,
+    };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
     // Player Task
     xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },

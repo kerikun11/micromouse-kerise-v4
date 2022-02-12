@@ -84,8 +84,8 @@ public:
     if (!rfl->init())
       bz->play(hardware::Buzzer::ERROR);
     /* ToF */
-    tof = new ToF(I2C_PORT_NUM_TOF);
-    if (!tof->init())
+    tof = new ToF();
+    if (!tof->init(I2C_PORT_NUM_TOF))
       bz->play(hardware::Buzzer::ERROR);
     /* Motor */
     mt = new Motor(MOTOR_L_CTRL1_PIN, MOTOR_L_CTRL2_PIN, MOTOR_R_CTRL1_PIN,

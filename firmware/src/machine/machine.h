@@ -6,8 +6,6 @@
  */
 #pragma once
 
-#include "app_log.h"
-
 #include "agents/maze_robot.h"
 #include "agents/move_action.h"
 #include "config/io_mapping.h"
@@ -773,59 +771,6 @@ private:
     if (hw->mt->is_emergency())
       hw->mt->emergency_release(), hw->bz->play(hardware::Buzzer::EMERGENCY);
     hw->bz->play(hardware::Buzzer::CANCEL);
-  }
-  void pidTuner() {
-    ctrl::FeedbackController<ctrl::Polar>::Gain gain = sp->sc->fbc.getGain();
-    /* load */
-    constexpr auto filepath = "/spiffs/machine/pid.gain";
-    {
-      std::ifstream f(filepath, std::ios::binary);
-      if (f.fail())
-        app_loge << "Can't open file!" << std::endl;
-      else if (f.eof())
-        app_loge << "File size is invalid!" << std::endl;
-      else
-        f.read((char *)(&gain), sizeof(gain));
-      std::cout << filepath << std::endl;
-      std::cout << "\t.Kp = ctrl::Polar(" << gain.Kp.tra << ", " << gain.Kp.rot
-                << "), .Ki = ctrl::Polar(" << gain.Ki.tra << ", " << gain.Ki.rot
-                << ")," << std::endl;
-    }
-    /* user input */
-    int mode = sp->ui->waitForSelect(5);
-    int value = sp->ui->waitForSelect(16);
-    value = (value > 7) ? (value - 16) : value; //< in [-8, 7]
-    if (mode < 0)
-      return;
-    switch (mode) {
-    case 0:
-      gain = sp->sc->fbc.getGain();
-    case 1:
-      gain.Kp.tra *= std::pow(1.1f, float(value));
-      break;
-    case 2:
-      gain.Ki.tra *= std::pow(1.1f, float(value));
-      break;
-    case 3:
-      gain.Kp.rot *= std::pow(1.1f, float(value));
-      break;
-    case 4:
-      gain.Ki.rot *= std::pow(1.1f, float(value));
-      break;
-    }
-    hw->led->set(15);
-    if (!sp->ui->waitForCover())
-      return;
-    /* save */
-    std::ofstream of(filepath, std::ios::binary);
-    if (of.fail()) {
-      app_loge << "Can't open file. " << filepath << std::endl;
-      hw->bz->play(hardware::Buzzer::ERROR);
-    } else {
-      of.write((const char *)(&gain), sizeof(gain));
-    }
-    sp->sc->fbc.setGain(gain);
-    hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
   void position_recovery() {
     while (1) {

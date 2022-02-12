@@ -286,7 +286,7 @@ private:
     hw->bz->play(hardware::Buzzer::SHORT7);
     const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
     /* 局所位置の修正 */
-    const float alpha = 0.1f; //< 補正割合 (0: 補正なし)
+    const float alpha = 0.02f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0});
     return;
   }
@@ -660,6 +660,7 @@ private:
     /* とりあえず区画の中心に配置 */
     offset = ctrl::Pose(field::SegWidthFull / 2, field::SegWidthFull / 2);
     while (1) {
+      /* 離脱確認 */
       if (is_break_state())
         break;
       /* 壁を確認 */

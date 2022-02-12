@@ -51,10 +51,7 @@ public:
     std::cout << std::endl;
   }
   void print() const {
-    static char str[64];
-    snprintf(str, sizeof(str), "Reflector: %4d %4d %4d %4d", read(0), read(1),
-             read(2), read(3));
-    app_logd << str << std::endl;
+    LOGI("Reflector: %4d %4d %4d %4d", read(0), read(1), read(2), read(3));
   }
 
 private:
