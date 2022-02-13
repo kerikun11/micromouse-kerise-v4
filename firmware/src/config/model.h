@@ -31,7 +31,7 @@ static constexpr uint64_t MAC_ID = 0xD866'5A1D'A0D8; //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.38; //< 径を大きく：進行距離を短く
+static constexpr float WheelDiameter = 12.72f; //< 径を大きく：進行距離を短く
 static constexpr float CenterOffsetY = 0.0f;
 static constexpr float TailLength = 13.0f;
 /* ToF */
@@ -113,7 +113,7 @@ static constexpr uint64_t MAC_ID = 0x807F'631D'A0D8; //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.92f; //< 径を大きく：進行距離を短く
+static constexpr float WheelDiameter = 12.96f; //< 径を大きく：進行距離を短く
 static constexpr float CenterOffsetY = 8.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */

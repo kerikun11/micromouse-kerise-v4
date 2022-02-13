@@ -1,7 +1,5 @@
 #pragma once
 
-/* Peripheral */
-#include "peripheral/spiffs.h"
 /* Driver */
 #include "hardware/buzzer.h"
 #include "hardware/fan.h"
@@ -36,7 +34,7 @@ private:
 public:
   Hardware() {}
   bool init() {
-    /* pullup all the pins of the SPI-CS so that the bus is not blocked  */
+    /* pullup all the pins of the SPI-CS so that the bus is not blocked */
     for (auto p : CONFIG_SPI_CS_PINS) {
       gpio_reset_pin(p);
       gpio_set_direction(p, GPIO_MODE_INPUT);
@@ -44,15 +42,15 @@ public:
     }
 
     /* Buzzer (initialize first to notify errors by sound) */
-    bz = new Buzzer();
+    bz = Buzzer::get_instance();
     bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
     /* Button */
     btn = new Button();
     btn->init(BUTTON_PIN);
-    /* I2C for *led, ToF */
+    /* I2C for LED, ToF */
     if (!peripheral::I2C::install(I2C_PORT_NUM, I2C_SDA_PIN, I2C_SCL_PIN))
       bz->play(hardware::Buzzer::ERROR);
-    /* *led */
+    /* LED */
     led = new LED();
     if (!led->init(I2C_PORT_NUM_LED))
       bz->play(hardware::Buzzer::ERROR);

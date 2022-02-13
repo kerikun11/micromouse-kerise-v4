@@ -42,9 +42,10 @@ public:
   void enable() { enabled = true; }
   void disable() { enabled = false; }
   uint16_t getDistance() const { return distance; }
-  const auto &getLog() const { return log; }
+  uint16_t getRangeRaw() const { return range; }
   uint16_t passedTimeMs() const { return passed_ms; }
   bool isValid() const { return passed_ms < 20; }
+  const auto &getLog() const { return log; }
   void print() const {
     ESP_LOGI(TAG, "range: %3d [mm] D: %3d [mm] Dur: %3d [ms], Passed: %4d [ms]",
              range, distance, dur, passed_ms);

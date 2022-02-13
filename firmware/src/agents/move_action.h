@@ -19,7 +19,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <utils/concurrent_queue.hpp>
-#include <utils/math_utils.hpp>
+#include <utils/math_utils.hpp> //< for round2, saturate
 
 #include <cmath>
 #include <condition_variable>
@@ -38,10 +38,11 @@ public:
   public:
     /* common flags */
     bool diag_enabled = 1;
-    bool unknown_accel_enabled = 0;
+    bool unknown_accel_enabled = 1;
     bool front_wall_fix_enabled = 1;
     bool side_wall_avoid_enabled = 1;
-    bool side_wall_fix_theta_enabled = 0;
+    bool side_wall_fix_theta_enabled = 1;
+    bool side_wall_fix_v90_enabled = 1;
     bool wall_cut_enabled = 0;
     /* common values */
     float v_max = 720;
@@ -49,7 +50,7 @@ public:
     float j_max = 240'000;
     std::array<float, field::ShapeIndexMax> v_slalom;
     /* search run */
-    float v_search = 300;
+    float v_search = 360;
     float v_unknown_accel = 600;
     /* fast run */
     float fan_duty = 0.4f;
@@ -150,13 +151,9 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
   void calibration() {
-    hw->led->set(3); //< for debug
     hw->bz->play(hardware::Buzzer::CALIBRATION);
-    hw->led->set(4); //< for debug
     hw->imu->calibration();
-    hw->led->set(5); //< for debug
     hw->enc->clear_offset();
-    hw->led->set(6); //< for debug
   }
   void set_unknown_accel_flag(bool flag) {
     continue_straight_if_no_front_wall = flag;
@@ -261,8 +258,11 @@ private:
     /* 適用条件の判定 */
     if (!rp.front_wall_fix_enabled || !hw->tof->isValid())
       return;
-    const auto &p = sp->sc->est_p; //< 局所座標系における位置
+    /* 適用距離 */
+    if (hw->tof->getDistance() > field::SegWidthFull * 1.5f)
+      return;
     /* 現在の姿勢が区画に対して垂直か調べる */
+    const auto &p = sp->sc->est_p;       //< 局所座標系における位置
     const float th_g = offset.th + p.th; //< グローバル姿勢
     const float th_g_w = math_utils::round2(th_g, PI / 2); //< 直近の壁の姿勢
     const float theta_threshold = PI * 0.5f / 180;
@@ -281,26 +281,60 @@ private:
     const float x_diff = d_ref_g - d_tof_g;
     /* 壁の有無の判断 */
     const float x_diff_abs = std::abs(x_diff);
-    if (x_diff_abs > 30) //< [mm]
+    if (x_diff_abs > 20) //< [mm]
       return;
-    hw->bz->play(hardware::Buzzer::SHORT7);
     const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
     /* 局所位置の修正 */
     const float alpha = 0.02f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0});
+    if (x_diff > 0) {
+      hw->led->set(hw->led->get() | 2);
+    } else {
+      hw->led->set(hw->led->get() | 4);
+    }
     return;
   }
-  void side_wall_avoid(const float remain, const RunParameter &rp) {
-    if (is_break_state())
-      return;
-    /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
-    const float theta_threshold = PI * 1 / 180;
-    if (!rp.side_wall_avoid_enabled || sp->sc->est_v.tra < 210.0f ||
-        std::abs(sp->sc->est_p.th) > theta_threshold) {
-      hw->led->set(0);
+  void side_wall_fix_v90(const RunParameter &rp) {
+    if (!rp.side_wall_fix_v90_enabled) {
       return;
     }
-    uint8_t led_flags = 0;
+    /* 現在の姿勢が区画に対して垂直か調べる */
+    const auto &p = sp->sc->est_p;       //< 局所座標系における位置
+    const float th_g = offset.th + p.th; //< グローバル姿勢
+    const float th_g_w = math_utils::round2(th_g, PI / 2); //< 直近の壁の姿勢
+    const float theta_threshold = PI * 0.5f / 180;
+    if (std::abs(th_g - th_g_w) > theta_threshold)
+      return;
+    /* グローバル位置に変換 */
+    const auto p_g = offset + p.rotate(offset.th); //< グローバル位置
+    const float y_g = p_g.rotate(-th_g_w).y;       //< グローバル横位置
+    const float y_w = math_utils::round2(y_g, field::SegWidthFull); //< 内側
+    const float y_in = std::abs(y_g - y_w); //< 内側の柱との距離 (30mm 基準)
+    /* 壁との距離を取得 */
+    for (int i = 0; i < 2; i++) {
+      const float y_out = 45 + sp->wd->distance.side[i]; //< 外壁との距離
+      const float y_diff = y_in + y_out - 90;
+      const float y_diff_abs = std::abs(y_diff);
+      const float alpha = 0.1f;
+      if (y_diff_abs < 20) {
+        if (i == 0) {
+          sp->sc->fix_pose(ctrl::Pose(0, alpha * y_diff).rotate(p.th));
+          hw->led->set(hw->led->get() | 1);
+        } else {
+          sp->sc->fix_pose(ctrl::Pose(0, alpha * y_diff).rotate(p.th));
+          hw->led->set(hw->led->get() | 8);
+        }
+      }
+    }
+  }
+  void side_wall_avoid(const RunParameter &rp, const float remain) {
+    /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
+    const float theta_threshold = PI * 0.5f / 180;
+    if (!rp.side_wall_avoid_enabled || sp->sc->est_v.tra < 210.0f ||
+        std::abs(sp->sc->est_p.th) > theta_threshold) {
+      return;
+    }
+    uint8_t led_flags = hw->led->get();
     /* 90 [deg] の倍数 */
     if (isAlong()) {
       const float alpha = 0.05;       //< 補正割合 (0: 補正なし)
@@ -426,6 +460,7 @@ private:
                   const RunParameter &rp, bool unknown_accel = false) {
     if (is_break_state())
       return;
+    /* 未知区間加速の反映 */
     v_end = unknown_accel ? rp.v_unknown_accel : v_end;
     v_max = unknown_accel ? rp.v_unknown_accel : v_max;
     if (distance - sp->sc->est_p.x > 0) {
@@ -464,8 +499,9 @@ private:
         /* 情報の更新 */
         sp->sc->sampling_sync();
         /* 壁制御 */
+        hw->led->set(0);
         front_wall_fix(rp);
-        side_wall_avoid(remain, rp);
+        side_wall_avoid(rp, remain);
         side_wall_theta_fix(rp);
         side_wall_cut(rp);
         /* 軌道追従 */
@@ -532,16 +568,20 @@ private:
     trajectory.reset(velocity);
     s.q.x = sp->sc->est_p.x; /*< 既に移動した分を反映 */
     if (std::abs(sp->sc->est_p.x) > 1)
-      hw->bz->play(hardware::Buzzer::CONFIRM);
+      hw->bz->play(hardware::Buzzer::CANCEL); //< 現在位置が進みすぎ
     for (float t = 0; t < trajectory.getTimeCurve(); t += Ts) {
       if (is_break_state())
         break;
       /* データの更新 */
       sp->sc->sampling_sync();
-      /* 補正 */
+      /* 壁補正 */
+      hw->led->set(0);
       front_wall_fix(rp);
-      side_wall_avoid(0, rp);
+      side_wall_avoid(rp, 0);
       side_wall_cut(rp);
+      if (std::abs(trajectory.getShape().v_ref -
+                   field::shapes[field::ShapeIndex::FV90].v_ref) < 0.01f)
+        side_wall_fix_v90(rp); /*< V90の横壁補正 */
       /* 軌道を更新 */
       trajectory.update(s, t, Ts);
       const auto ref =
@@ -697,7 +737,10 @@ private:
       if (is_break_state())
         break;
       sp->sc->sampling_sync();
-      side_wall_avoid(0, rp);
+      /* 壁補正 */
+      hw->led->set(0);
+      front_wall_fix(rp);
+      side_wall_avoid(rp, 0);
       const auto ref = tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a,
                                  ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
                                  ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));

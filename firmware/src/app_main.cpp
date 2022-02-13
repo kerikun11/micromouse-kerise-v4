@@ -11,14 +11,15 @@ void kerise_main() {
   auto machine = new machine::Machine;
   machine->init();
   machine->start();
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  LOGI("Free Heap: %u [Bytes]", esp_get_free_heap_size());
   vTaskDelay(portMAX_DELAY);
 }
 
 void devkit_main() {
   LOGI("This is ESP32 DevKit");
-  auto *bz = new hardware::Buzzer();
+  auto *bz = hardware::Buzzer::get_instance();
   bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
-  // ets_delay_us(1000'000);
   bz->play(hardware::Buzzer::BOOT);
   vTaskDelay(portMAX_DELAY);
 }

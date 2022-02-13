@@ -8,126 +8,25 @@
 
 #include "agents/maze_robot.h"
 #include "agents/move_action.h"
-#include "config/io_mapping.h"
 #include "config/model.h"
 #include "freertospp/task.h"
 #include "hardware/hardware.h"
 #include "peripheral/esp.h"
 #include "peripheral/spiffs.h"
-
+#include "supporters/supporters.h"
 #include <esp_err.h>
-#include <esp_system.h>
 
 namespace machine {
 
 class Machine {
 private:
-  /* Hardware */
-  hardware::Hardware *hw;
-  /* Supporter */
-  supporters::Supporters *sp;
-  /* Agents */
-  MoveAction *ma;
-  MazeRobot *mr;
-  /* Logger */
-  Logger *lgr;
-
-public:
-  Machine() {}
-  bool init() {
-    bool result = true;
-    /* System */
-    peripheral::SPIFFS::init() || (result = false);
-    /* info */
-    show_info();
-    /* check chip */
-    if (!check_chip()) {
-      auto *bz = new hardware::Buzzer();
-      bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
-      bz->play(hardware::Buzzer::TIMEOUT);
-      return false;
-    }
-    /* Hardware */
-    hw = new hardware::Hardware();
-    hw->init() || (result = false);
-    /* Supporters */
-    sp = new supporters::Supporters(hw);
-    sp->init() || (result = false);
-    /* Agents */
-    ma = new MoveAction(hw, sp, model::TrajectoryTrackerGain);
-    mr = new MazeRobot(hw, sp, ma);
-    /* Others */
-    lgr = new Logger();
-    /* Ending */
-    if (!result) {
-      hw->bz->play(hardware::Buzzer::ERROR);
-      return false;
-    }
-    return true;
-  }
-  void start() {
-    /* start tasks */
-    task_drive.start(this, &Machine::drive, "Drive", 4096, 2, tskNO_AFFINITY);
-    task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
-  }
-  void show_info() {
-    /* show info */
-    LOGI("I'm KERISE v%d.", KERISE_SELECT);
-    LOGI("IDF version:  %s", esp_get_idf_version());
-    LOGI("CPU Freq:     %u [MHz]", ets_get_cpu_frequency());
-    /* show SPIFFS info */
-    size_t total = 0, used = 0;
-    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
-    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
-    if (ret != ESP_OK) {
-      LOGE("Failed to get SPIFFS partition information!");
-    } else {
-      LOGI("SPIFFS total: %d, used: %d, free: %d", total, used, total - used);
-    }
-    /* show SPIFFS file list */
-    LOGI("SPIFFS file list:");
-    peripheral::SPIFFS::list_dir("/spiffs");
-  }
-  bool check_chip() {
-    auto mac = peripheral::ESP::get_mac();
-    if (mac != model::MAC_ID) {
-      LOGW("MAC ID mismatched!");
-      LOGW("MAC ID: 0x%012llX != 0x%012llX", mac, model::MAC_ID);
-      return false;
-    }
-    return true;
-  }
-
-private:
-  freertospp::Task<Machine> task_drive;
-  freertospp::Task<Machine> task_print;
-
-  void drive() {
-    // driveAutomatically();
-    while (1) {
-      driveManually();
-    }
-  }
-  void print() {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    while (1) {
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(9));
-      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(90));
-      // hw->tof->print();
-      // hw->rfl->csv();
-      // hw->enc->csv();
-      // sp->wd->print();
-      // sp->wd->csv();
-    }
-  }
   void driveAutomatically() {
     Machine::restore();
     if (sp->ui->waitForPickup())
       return;
     mr->autoRun();
   }
-  int driveManually() {
+  void driveManually() {
     int mode = sp->ui->waitForSelect(16);
     switch (mode) {
     case 0: /* 探索・最短を含む通常の自律走行 */
@@ -163,16 +62,19 @@ private:
     case 10: /* 迷路の表示 */
       mr->print();
       break;
-    case 12:
-      Machine::position_recovery();
-      // Machine::sysid();
-      // Machine::motor_test();
+    case 11: /* 壁表示 */
+      Machine::print_wall();
+      break;
+    case 12: /* タイヤ径の測定 */
+      Machine::wheel_diameter_measurement();
       break;
     case 13:
       // Machine::encoder_test();
       // Machine::accel_test();
       // Machine::wall_attach_test();
-      Machine::wall_test();
+      // Machine::position_recovery();
+      // Machine::sysid();
+      // Machine::wall_test();
       break;
     case 14: /* テスト */
       Machine::slalom_test();
@@ -181,7 +83,6 @@ private:
       lgr->print();
       break;
     }
-    return 0;
   }
   void driveNormally() {
     /* 探索状態のお知らせ */
@@ -289,19 +190,17 @@ private:
       ma->rp_search.side_wall_fix_theta_enabled = value & 1;
       ma->rp_fast.side_wall_fix_theta_enabled = value & 2;
       break;
-    case 5: /* 壁切れ */
+    case 5: /* V90の横壁補正 */
+      ma->rp_search.side_wall_fix_v90_enabled = value & 1;
+      ma->rp_fast.side_wall_fix_v90_enabled = value & 2;
+      break;
+    case 6: /* 壁切れ */
       ma->rp_search.wall_cut_enabled = value & 1;
       ma->rp_fast.wall_cut_enabled = value & 2;
       break;
-    case 6: /* 探索速度 */
-      if (value == 0)
-        ma->rp_search.v_search = ma->rp_fast.v_search = 300;
-      else if (value == 1)
-        ma->rp_search.v_search = ma->rp_fast.v_search = 330;
-      else if (value == 2)
-        ma->rp_search.v_search = ma->rp_fast.v_search = 360;
-      else if (value == 3)
-        ma->rp_search.v_search = ma->rp_fast.v_search = 390;
+    case 7: /* 探索速度 */
+      value = (value < 3) ? 12 : value;
+      ma->rp_search.v_search = ma->rp_fast.v_search = 30 * value;
       break;
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
@@ -602,6 +501,46 @@ private:
     vTaskDelay(pdMS_TO_TICKS(500));
     hw->mt->free();
   }
+  void wheel_diameter_measurement() {
+    int cells = sp->ui->waitForSelect(16);
+    if (cells < 0)
+      return;
+    cells = (cells == 0) ? 8 : cells; //< default is 8 cells straight
+    while (1) {
+      /* wait for start */
+      if (!sp->ui->waitForCover())
+        return;
+      vTaskDelay(pdMS_TO_TICKS(500));
+      /* calibration */
+      hw->bz->play(hardware::Buzzer::CALIBRATION);
+      hw->imu->calibration();
+      /* put back */
+      hw->mt->drive(-0.1f, -0.1f);
+      vTaskDelay(pdMS_TO_TICKS(200));
+      /* config */
+      float dist = 90 * cells - (model::TailLength + field::WallThickness / 2);
+      ctrl::AccelDesigner ad;
+      ad.reset(120'000, 3'000, 720, 0, 30, dist);
+      /* start */
+      sp->sc->enable(); //< includes position reset
+      for (float t = 0; !hw->mt->is_emergency(); t += 1e-3f) {
+        sp->sc->set_target(ad.v(t), 0, ad.a(t), 0);
+        sp->sc->sampling_sync();
+        if (sp->sc->est_p.x > dist)
+          break;
+      }
+      /* stop statically */
+      sp->sc->set_target(0, 0);
+      vTaskDelay(pdMS_TO_TICKS(100));
+      sp->sc->disable();
+      if (hw->mt->is_emergency())
+        hw->mt->emergency_release(), hw->bz->play(hardware::Buzzer::EMERGENCY);
+      hw->bz->play(hardware::Buzzer::CANCEL);
+      /* wait for next */
+      if (sp->ui->waitForSelect(1) < 0)
+        return;
+    }
+  }
   void wall_test() {
     int cells = sp->ui->waitForSelect(16);
     if (cells < 0)
@@ -850,6 +789,115 @@ private:
     sp->sc->disable();
     hw->mt->emergency_release();
   }
+  void print_wall() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
+      LOGI("[%5.1f %5.1f %5.1f %5.1f] [%c %c %c] [%3d mm %3d ms (%4d mm)]",
+           (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
+           (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
+           sp->wd->is_wall[0] ? 'X' : '_', sp->wd->is_wall[2] ? 'X' : '_',
+           sp->wd->is_wall[1] ? 'X' : '_', hw->tof->getDistance(),
+           hw->tof->passedTimeMs(), hw->tof->getRangeRaw());
+    }
+  }
+  void show_info() {
+    /* show info */
+    LOGI("I'm KERISE v%d.", KERISE_SELECT);
+    LOGI("IDF version:  %s", esp_get_idf_version());
+    LOGI("CPU Freq:     %u [MHz]", ets_get_cpu_frequency());
+    /* show SPIFFS info */
+    size_t total = 0, used = 0;
+    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+    if (ret != ESP_OK) {
+      LOGE("Failed to get SPIFFS partition information!");
+    } else {
+      LOGI("SPIFFS total: %d, used: %d, free: %d", total, used, total - used);
+    }
+    /* show SPIFFS file list */
+    LOGI("SPIFFS file list:");
+    peripheral::SPIFFS::list_dir("/spiffs");
+  }
+  bool check_chip() {
+    auto mac = peripheral::ESP::get_mac();
+    if (mac != model::MAC_ID) {
+      LOGW("MAC ID mismatched!");
+      LOGW("MAC ID: 0x%012llX != 0x%012llX", mac, model::MAC_ID);
+      return false;
+    }
+    return true;
+  }
+
+public:
+  Machine() {}
+  bool init() {
+    bool result = true;
+    /* System */
+    peripheral::SPIFFS::init() || (result = false);
+    /* show info */
+    show_info();
+    /* check chip */
+    if (!check_chip()) {
+      auto *bz = hardware::Buzzer::get_instance();
+      bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
+      bz->play(hardware::Buzzer::TIMEOUT);
+      return false;
+    }
+    /* Hardware */
+    hw = new hardware::Hardware();
+    hw->init() || (result = false);
+    /* Supporters */
+    sp = new supporters::Supporters(hw);
+    sp->init() || (result = false);
+    /* Agents */
+    ma = new MoveAction(hw, sp, model::TrajectoryTrackerGain);
+    mr = new MazeRobot(hw, sp, ma);
+    /* Others */
+    lgr = new Logger();
+    /* Ending */
+    if (!result) {
+      hw->bz->play(hardware::Buzzer::ERROR);
+      return false;
+    }
+    return true;
+  }
+  void start() {
+    task_drive.start(this, &Machine::drive, "Drive", 4096, 2, tskNO_AFFINITY);
+    task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
+  }
+  void drive() {
+    // driveAutomatically();
+    while (1) {
+      driveManually();
+    }
+  }
+  void print() {
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    while (1) {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(9));
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(90));
+      // hw->tof->print();
+      // sp->wd->print();
+      // hw->rfl->csv();
+      // hw->enc->csv();
+    }
+  }
+
+private:
+  freertospp::Task<Machine> task_drive;
+  freertospp::Task<Machine> task_print;
+
+  /* Hardware */
+  hardware::Hardware *hw;
+  /* Supporter */
+  supporters::Supporters *sp;
+  /* Agents */
+  MoveAction *ma;
+  MazeRobot *mr;
+  /* Logger */
+  Logger *lgr;
 };
 
 } // namespace machine

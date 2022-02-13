@@ -32,6 +32,7 @@ public:
     xQueueSendToBack(playList, &value, 0);
     return value;
   }
+  uint8_t get() const { return value; }
   operator uint8_t() const { return value; }
   uint8_t operator=(uint8_t new_value) { return set(new_value); }
 
