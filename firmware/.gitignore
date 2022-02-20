@@ -1,5 +1,9 @@
+## ESP-IDF
+build
+
+## PlatformIO
 .pio
 .pioenvs
 .piolibdeps
 .vscode
-build
+/platformio-device-monitor-*.log

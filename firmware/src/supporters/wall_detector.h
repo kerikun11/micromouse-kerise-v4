@@ -55,7 +55,6 @@ public:
 
 public:
   WallValue distance;
-  // WallValue diff;
   std::array<bool, 3> is_wall;
 
 private:
@@ -77,7 +76,7 @@ public:
       app_loge << "Can't open file. " << WALL_DETECTOR_BACKUP_PATH << std::endl;
       return false;
     }
-    of.write((const char *)(&(wall_ref)), sizeof(WallDetector::WallValue));
+    of.write((const char *)&wall_ref, sizeof(WallDetector::WallValue));
     return true;
   }
   bool restore() {
@@ -91,7 +90,7 @@ public:
                << std::endl;
       return false;
     }
-    f.read((char *)(&wall_ref), sizeof(WallDetector::WallValue));
+    f.read((char *)&wall_ref, sizeof(WallDetector::WallValue));
     app_logi << "Wall Reference Restore:"
              << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0] //
              << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1] //
@@ -159,7 +158,7 @@ private:
     }
   }
   void update() {
-    // データの更新
+    // リフレクタ値の更新
     for (int i = 0; i < 2; i++) {
       distance.side[i] = ref2dist(hw->rfl->side(i)) - wall_ref.side[i];
       distance.front[i] = ref2dist(hw->rfl->front(i)) - wall_ref.front[i];
@@ -167,13 +166,12 @@ private:
     buffer.push(distance);
 
     // 前壁の更新
-    // int front_mm = hw->tof->getLog().average(2);
     int front_mm = hw->tof->getDistance();
-    if (front_mm < wall_threshold_front * 0.95f)
+    if (!hw->tof->isValid())
+      is_wall[2] = false; //< ToFの測距範囲内に壁がない場合はinvalidになる
+    else if (front_mm < wall_threshold_front * 0.95f)
       is_wall[2] = true;
     else if (front_mm > wall_threshold_front * 1.05f)
-      is_wall[2] = false;
-    if (hw->tof->passedTimeMs() > 50)
       is_wall[2] = false;
 
     // 横壁の更新
@@ -184,15 +182,6 @@ private:
       else if (value > wall_threshold_side * 1.03f)
         is_wall[i] = false;
     }
-
-    // 変化量の更新
-    // diff = (buffer[0] - buffer[ave_num - 1]) / Ts / (ave_num - 1);
-    // WallValue tmp;
-    // for (int i = 0; i < ave_num / 2; ++i)
-    //   tmp += buffer[i];
-    // for (int i = 0; i < ave_num / 2; ++i)
-    //   tmp -= buffer[ave_num / 2 + i];
-    // diff = tmp / (ave_num / 2) / Ts / (ave_num - 1);
   }
 
   float ref2dist(const int16_t value) const {

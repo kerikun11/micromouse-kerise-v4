@@ -195,8 +195,8 @@ private:
       ma->rp_fast.side_wall_fix_v90_enabled = value & 2;
       break;
     case 6: /* 壁切れ */
-      ma->rp_search.wall_cut_enabled = value & 1;
-      ma->rp_fast.wall_cut_enabled = value & 2;
+      ma->rp_search.side_wall_cut_enabled = value & 1;
+      ma->rp_fast.side_wall_cut_enabled = value & 2;
       break;
     case 7: /* 探索速度 */
       value = (value < 3) ? 12 : value;
@@ -422,9 +422,9 @@ private:
       return lgr->push({
           hw->enc->get_position(0),
           hw->enc->get_position(1),
-          hw->imu->gyro.z,
-          hw->imu->accel.y,
-          hw->imu->angular_accel,
+          hw->imu->get_gyro().z,
+          hw->imu->get_accel().y,
+          hw->imu->get_angular_accel(),
           bd.u.tra,
           bd.u.rot,
       });
@@ -475,9 +475,9 @@ private:
       lgr->push({
           hw->enc->get_position(0),
           hw->enc->get_position(1),
-          hw->imu->gyro.z,
-          hw->imu->accel.y,
-          hw->imu->angular_accel,
+          hw->imu->get_gyro().z,
+          hw->imu->get_accel().y,
+          hw->imu->get_angular_accel(),
           bd.u.tra,
           bd.u.rot,
           sp->ui->getBatteryVoltage(),
@@ -552,7 +552,7 @@ private:
     const float j_max = 240'000;
     const float a_max = 9000;
     const float v_max = 600;
-    const float dist = 90 * cells;
+    const float dist = field::SegWidthFull * cells;
     enum LOG_SELECT log_select = LOG_WALL;
     /* prepare */
     log_init(log_select);
@@ -731,7 +731,7 @@ private:
     if (!sp->ui->waitForCover(true))
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
-    float duty = (value < 8 ? value : value - 16) * 0.1;
+    float duty = (value < 8 ? value : value - 16) * 0.1f;
     hw->mt->drive(duty, duty);
     sp->ui->waitForCover();
     hw->mt->free();
@@ -743,7 +743,7 @@ private:
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
-    float pwm = 0.05 * value;
+    float pwm = 0.05f * value;
     hw->mt->drive(pwm, pwm);
     sp->ui->waitForCover(true);
     hw->mt->free();

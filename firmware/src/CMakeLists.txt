@@ -13,4 +13,5 @@ component_compile_options(
   -Wcast-align # Warn whenever a pointer is cast such that the required alignment of the target is increased.
   -Wdouble-promotion # Give a warning when a value of type float is implicitly promoted to double.
   -Wfloat-equal # Warn if floating-point values are used in equality comparisons.
+  # -Wconversion # Warn for implicit conversions that may alter a value.
 )

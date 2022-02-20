@@ -30,10 +30,6 @@ public:
 #endif
 
 public:
-  MotionParameter gyro, accel;
-  float angle = 0, angular_accel = 0;
-
-public:
   IMU() {}
   bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
     for (int i = 0; i < IMU_NUM; ++i) {
@@ -71,6 +67,27 @@ public:
   void csv() {
     std::cout << "0," << gyro.x << "," << gyro.y << "," << gyro.z << std::endl;
   }
+  const MotionParameter &get_gyro() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    return gyro;
+  }
+  const MotionParameter &get_accel() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    return accel;
+  }
+  float get_angle() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    return angle;
+  }
+  float get_angular_accel() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    return angular_accel;
+  }
+
+private:
+  MotionParameter gyro, accel;
+  float angle = 0, angular_accel = 0;
+  std::mutex mutex;
 
 private:
   ICM20602 icm[IMU_NUM];
@@ -110,6 +127,7 @@ private:
         accel_sum += accel;
         gyro_sum += gyro;
       }
+      std::lock_guard<std::mutex> lock_guard(mutex);
       accel_offset += accel_sum / ave_count;
       gyro_offset += gyro_sum / ave_count;
     }
@@ -118,6 +136,7 @@ private:
     for (size_t i = 0; i < IMU_NUM; i++)
       icm[i].update();
 
+    std::lock_guard<std::mutex> lock_guard(mutex);
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
 #if 1
     gyro.x = (-icm[0].gyro.x + icm[1].gyro.x) / 2;

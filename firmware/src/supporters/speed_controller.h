@@ -18,6 +18,7 @@
 class SpeedController {
 public:
   static constexpr const float Ts = 1e-3f;
+  static constexpr int acc_num = 4;
 
 public:
   ctrl::Polar ref_v;
@@ -26,11 +27,8 @@ public:
   ctrl::Polar est_a;
   ctrl::Pose est_p;
   WheelParameter enc_v;
-  static constexpr int acc_num = 4;
   ctrl::Accumulator<float, acc_num> wheel_position[2];
   ctrl::Accumulator<ctrl::Polar, acc_num> accel;
-
-public:
   ctrl::FeedbackController<ctrl::Polar> fbc;
 
 private:
@@ -105,14 +103,14 @@ private:
     enc_v.clear();
     for (int i = 0; i < 2; i++)
       wheel_position[i].clear(hw->enc->get_position(i));
-    accel.clear(ctrl::Polar(hw->imu->accel.y, hw->imu->angular_accel));
+    accel.clear({hw->imu->get_accel().y, hw->imu->get_angular_accel()});
     fbc.reset();
   }
   void update_samples() {
     /* add new samples */
     for (int i = 0; i < 2; i++)
       wheel_position[i].push(hw->enc->get_position(i));
-    accel.push(ctrl::Polar(hw->imu->accel.y, hw->imu->angular_accel));
+    accel.push({hw->imu->get_accel().y, hw->imu->get_angular_accel()});
   }
   void update_estimator() {
     /* calculate differential of encoder value */
@@ -120,7 +118,7 @@ private:
       enc_v.wheel[i] = (wheel_position[i][0] - wheel_position[i][1]) / Ts;
     enc_v.wheel2pole();
     /* calculate estimated velocity value with complementary filter */
-    const ctrl::Polar v_low = ctrl::Polar(enc_v.tra, hw->imu->gyro.z);
+    const ctrl::Polar v_low = ctrl::Polar(enc_v.tra, hw->imu->get_gyro().z);
     const ctrl::Polar v_high = est_v + accel[0] * float(Ts);
     const ctrl::Polar alpha = model::velocity_filter_alpha;
     est_v = alpha * v_low + (ctrl::Polar(1, 1) - alpha) * v_high;
@@ -133,7 +131,7 @@ private:
     const float k = 0.0f;
     const float slip_angle = k * ref_v.tra * ref_v.rot / 1000;
     /* calculate odometry value */
-    est_p.th += hw->imu->gyro.z * Ts;
+    est_p.th += hw->imu->get_gyro().z * Ts;
     est_p.x += enc_v.tra * std::cos(est_p.th + slip_angle) * Ts;
     est_p.y += enc_v.tra * std::sin(est_p.th + slip_angle) * Ts;
   }

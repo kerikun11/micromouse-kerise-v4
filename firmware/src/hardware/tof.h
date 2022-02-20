@@ -62,7 +62,7 @@ private:
   uint16_t range;
   uint16_t dur;
   int passed_ms;
-  ctrl::Accumulator<uint16_t, 10> log;
+  ctrl::Accumulator<int, 10> log;
 
   static uint32_t millis() { return esp_timer_get_time() / 1000; }
   void task() {

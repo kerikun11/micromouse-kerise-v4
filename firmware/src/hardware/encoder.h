@@ -46,7 +46,8 @@ public:
     return true;
   }
   int get_raw(uint8_t ch) const { return pulses_raw[ch]; }
-  float get_position(uint8_t ch) const {
+  float get_position(uint8_t ch) {
+    std::lock_guard<std::mutex> lock_guard(mutex);
     /* the reason the type of pulses is no problem with type int */
     /* estimated position 1,000 [mm/s] * 10 [min] * 60 [s/min] = 600,000 [mm] */
     /* int32_t 2,147,483,647 / 16384 * 1/3 * 3.1415 * 13 [mm] = 1,784,305 [mm]*/
@@ -58,14 +59,6 @@ public:
   }
   void csv() {
     std::printf("%d,%d\n", -pulses[0], pulses[1]); //
-  }
-  friend std::ostream &operator<<(std::ostream &os, const Encoder &e) {
-    return os << "Encoder: position (" //
-              << std::setw(6) << std::setfill(' ') << e.get_position(0) << ", "
-              << std::setw(6) << std::setfill(' ') << e.get_position(1) << ")"
-              << " pulses_raw (" //
-              << std::setw(6) << std::setfill(' ') << e.get_raw(0) << ", "
-              << std::setw(6) << std::setfill(' ') << e.get_raw(1) << ")";
   }
   void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
     sampling_end_semaphore.take(xBlockTime);
@@ -95,7 +88,6 @@ private:
   }
 
   void update() {
-    std::lock_guard<std::mutex> lock_guard(mutex);
     /* fetch data from encoder */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
     constexpr int pulses_size = AS5048A_DUAL::PULSES_SIZE;
@@ -136,6 +128,7 @@ private:
       mm[i] = (pulses_ovf[i] + float(pulses_raw[i]) / pulses_size) *
               SCALE_PULSES_TO_MM;
     }
+    std::lock_guard<std::mutex> lock_guard(mutex);
     /* fix rotation direction */
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
     positions[0] = +mm[0];

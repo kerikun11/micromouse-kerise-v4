@@ -43,7 +43,7 @@ public:
     bool side_wall_avoid_enabled = 1;
     bool side_wall_fix_theta_enabled = 1;
     bool side_wall_fix_v90_enabled = 1;
-    bool wall_cut_enabled = 0;
+    bool side_wall_cut_enabled = 1;
     /* common values */
     float v_max = 720;
     float a_max = 3600;
@@ -236,12 +236,12 @@ private:
         WheelParameter wp;
         for (int j = 0; j < 2; ++j)
           wp.wheel[j] = sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
-        const float end = model::wall_attach_end;
+        constexpr float end = model::wall_attach_end;
         if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
           break;
         wp.wheel2pole();
-        const float sat_tra = 180.0f; //< [mm/s]
-        const float sat_rot = PI / 2; //< [rad/s]
+        constexpr float sat_tra = 180.0f; //< [mm/s]
+        constexpr float sat_rot = PI / 2; //< [rad/s]
         sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                            math_utils::saturate(wp.rot, sat_rot));
       }
@@ -265,11 +265,11 @@ private:
     const auto &p = sp->sc->est_p;       //< 局所座標系における位置
     const float th_g = offset.th + p.th; //< グローバル姿勢
     const float th_g_w = math_utils::round2(th_g, PI / 2); //< 直近の壁の姿勢
-    const float theta_threshold = PI * 0.5f / 180;
+    constexpr float theta_threshold = PI * 0.5f / 180;
     if (std::abs(th_g - th_g_w) > theta_threshold)
       return;
     /* 壁との距離を取得 */
-    const float wall_fix_offset = model::wall_fix_offset; //< 大: 壁に近く
+    constexpr float wall_fix_offset = model::wall_fix_offset; //< 大: 壁に近く
     const float d_tof = wall_fix_offset + hw->tof->getDistance() -
                         hw->tof->passedTimeMs() * 1e-3f * sp->sc->ref_v.tra;
     /* グローバル位置に変換 */
@@ -285,7 +285,7 @@ private:
       return;
     const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
     /* 局所位置の修正 */
-    const float alpha = 0.02f; //< 補正割合 (0: 補正なし)
+    constexpr float alpha = 0.01f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0});
     if (x_diff > 0) {
       hw->led->set(hw->led->get() | 2);
@@ -302,7 +302,7 @@ private:
     const auto &p = sp->sc->est_p;       //< 局所座標系における位置
     const float th_g = offset.th + p.th; //< グローバル姿勢
     const float th_g_w = math_utils::round2(th_g, PI / 2); //< 直近の壁の姿勢
-    const float theta_threshold = PI * 0.5f / 180;
+    constexpr float theta_threshold = PI * 0.5f / 180;
     if (std::abs(th_g - th_g_w) > theta_threshold)
       return;
     /* グローバル位置に変換 */
@@ -329,7 +329,7 @@ private:
   }
   void side_wall_avoid(const RunParameter &rp, const float remain) {
     /* 有効 かつ 一定速度より大きい かつ 姿勢が整っているときのみ */
-    const float theta_threshold = PI * 0.5f / 180;
+    constexpr float theta_threshold = PI * 0.5f / 180;
     if (!rp.side_wall_avoid_enabled || sp->sc->est_v.tra < 210.0f ||
         std::abs(sp->sc->est_p.th) > theta_threshold) {
       return;
@@ -342,14 +342,18 @@ private:
       float y_error = 0;              //< 姿勢の補正用変数
       if (sp->wd->distance.side[0] < wall_dist_thr) {
         y_error -= sp->wd->distance.side[0];
-        sp->sc->est_p.y =
-            (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[0];
+        // sp->sc->est_p.y =
+        //     (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[0];
+        sp->sc->fix_pose(
+            {0, -alpha * (sp->sc->est_p.y + sp->wd->distance.side[0])});
         led_flags |= 8;
       }
       if (sp->wd->distance.side[1] < wall_dist_thr) {
         y_error += sp->wd->distance.side[1];
-        sp->sc->est_p.y =
-            (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[1];
+        // sp->sc->est_p.y =
+        //     (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[1];
+        sp->sc->fix_pose(
+            {0, -alpha * (sp->sc->est_p.y - sp->wd->distance.side[1])});
         led_flags |= 1;
       }
       /* 機体姿勢の補正 (壁に寄り続けている→姿勢を補正) */
@@ -392,42 +396,29 @@ private:
 #endif
     hw->led->set(led_flags);
   }
-  void side_wall_theta_fix(const RunParameter &rp) {
-    if (is_break_state())
-      return;
-  }
   void side_wall_cut(const RunParameter &rp) {
-    if (!rp.wall_cut_enabled)
+    if (!rp.side_wall_cut_enabled)
       return;
-    /* 曲線なら前半しか使わない */
-    if (std::abs(sp->sc->est_p.th) > PI * 0.01f)
-      return;
-    /* 左右 */
+    /* 姿勢が整っているときのみ */
+    constexpr float theta_threshold = PI * 0.5f / 180;
+    /* 左右それぞれ */
     for (int i = 0; i < 2; i++) {
       /* 壁の変化 */
       if (prev_wall[i] && !sp->wd->is_wall[i]) {
-        /* 90 [deg] の倍数 */
-        if (isAlong()) {
-          const float wall_cut_offset = -15; /*< 大きいほど前へ */
-          const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
-          const float x_abs_cut =
-              math_utils::round2(x_abs, field::SegWidthFull);
-          const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
-          const auto fixed_x_abs = std::abs(fixed_x);
-          if (fixed_x_abs < 3.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
-            hw->bz->play(hardware::Buzzer::SHORT8);
-          } else if (fixed_x_abs < 10.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
-            hw->bz->play(hardware::Buzzer::SHORT7);
-          } else if (fixed_x_abs < 20.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x / 2, 0, 0));
-            hw->bz->play(hardware::Buzzer::SHORT6);
-          } else {
+        if (std::abs(sp->sc->est_p.th) > theta_threshold)
+          /* along の壁切れ */
+          if (isAlong()) {
+            const float wall_cut_offset = -15; /*< 大きいほど前へ */
+            const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
+            const float x_abs_cut =
+                math_utils::round2(x_abs, field::SegWidthFull);
+            const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
+            const float fixed_x_abs = std::abs(fixed_x);
+            // sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
             hw->bz->play(hardware::Buzzer::CANCEL);
           }
-        }
-        /* 45 [deg] + 90 [deg] の倍数 */
+          /* 斜めの壁切れ */
+#if 0
         if (isDiag()) {
           const float wall_cut_offset = -9; /*< 大きいほど前に */
                                             /* 壁切れ方向 */
@@ -451,7 +442,8 @@ private:
           } else {
             hw->bz->play(hardware::Buzzer::CANCEL);
           }
-        }
+      }
+#endif
       }
       prev_wall[i] = sp->wd->is_wall[i];
     }
@@ -463,6 +455,9 @@ private:
     /* 未知区間加速の反映 */
     v_end = unknown_accel ? rp.v_unknown_accel : v_end;
     v_max = unknown_accel ? rp.v_unknown_accel : v_max;
+    /* 壁切れ用 */
+    prev_wall[0] = sp->wd->is_wall[0], prev_wall[1] = sp->wd->is_wall[1];
+    /* 移動分が存在する場合 */
     if (distance - sp->sc->est_p.x > 0) {
       const float v_start = sp->sc->ref_v.tra;
       ctrl::TrajectoryTracker tt{tt_gain};
@@ -498,11 +493,10 @@ private:
         }
         /* 情報の更新 */
         sp->sc->sampling_sync();
-        /* 壁制御 */
+        /* 壁補正 */
         hw->led->set(0);
         front_wall_fix(rp);
         side_wall_avoid(rp, remain);
-        side_wall_theta_fix(rp);
         side_wall_cut(rp);
         /* 軌道追従 */
         trajectory.update(ref_s, t);
@@ -578,7 +572,7 @@ private:
       hw->led->set(0);
       front_wall_fix(rp);
       side_wall_avoid(rp, 0);
-      side_wall_cut(rp);
+      // side_wall_cut(rp);
       if (std::abs(trajectory.getShape().v_ref -
                    field::shapes[field::ShapeIndex::FV90].v_ref) < 0.01f)
         side_wall_fix_v90(rp); /*< V90の横壁補正 */
