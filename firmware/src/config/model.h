@@ -73,7 +73,7 @@ static constexpr uint64_t MAC_ID = 0x080C'401D'A0D8; //< efuse 48 bit MAC
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
 static constexpr float WheelDiameter = 12.67f; //< 径を大きく：進行距離を短く
-static constexpr float CenterOffsetY = 6.0f;
+static constexpr float CenterOffsetY = 8.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
 static constexpr float tof_raw_range_90 = 69;

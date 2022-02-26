@@ -21,10 +21,13 @@ namespace machine {
 class Machine {
 private:
   void driveAutomatically() {
-    Machine::restore();
+    /* 回収待ち */
     if (sp->ui->waitForPickup())
       return;
-    mr->autoRun();
+    /* 状態復元 -> 走行再開 */
+    Machine::restore();
+    /* 自己位置復帰 */
+    mr->autoRun(true, true);
   }
   void driveManually() {
     int mode = sp->ui->waitForSelect(16);
@@ -97,26 +100,26 @@ private:
     /* 異常検出 */
     if (!mr->isSolvable()) {
       hw->bz->play(hardware::Buzzer::ERROR);
-      mr->resetLastWalls(6);
+      mr->resetLastWalls(3);
       return;
     }
     /* 走行オプション */
     int mode = sp->ui->waitForSelect(2);
     if (mode < 0)
       return;
-    bool forceSearch = false;
+    bool isAutoParamSelect = true;
     switch (mode) {
     case 0: /*< デフォルト */
       break;
-    case 1: /*< 強制探索モード */
-      forceSearch = true;
+    case 1: /*< パラメータ固定 */
+      isAutoParamSelect = false;
       break;
     }
     if (!sp->ui->waitForCover())
       return;
     hw->led->set(9);
     // vTaskDelay(pdMS_TO_TICKS(5000)); //< 動画用 delay
-    mr->autoRun(forceSearch);
+    mr->autoRun(isAutoParamSelect);
   }
   void selectParamManually() {
     int value;
@@ -855,16 +858,15 @@ public:
     mr = new MazeRobot(hw, sp, ma);
     /* Others */
     lgr = new Logger();
+    /* start tasks */
+    task_drive.start(this, &Machine::drive, "Drive", 4096, 2, tskNO_AFFINITY);
+    task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
     /* Ending */
     if (!result) {
       hw->bz->play(hardware::Buzzer::ERROR);
       return false;
     }
     return true;
-  }
-  void start() {
-    task_drive.start(this, &Machine::drive, "Drive", 4096, 2, tskNO_AFFINITY);
-    task_print.start(this, &Machine::print, "Print", 4096, 1, tskNO_AFFINITY);
   }
   void drive() {
     // driveAutomatically();

@@ -414,7 +414,8 @@ private:
                 math_utils::round2(x_abs, field::SegWidthFull);
             const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
             const float fixed_x_abs = std::abs(fixed_x);
-            // sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0));
+            const float alpha = 0.1f;
+            // sp->sc->fix_pose(ctrl::Pose(alpha * fixed_x, 0, 0));
             hw->bz->play(hardware::Buzzer::CANCEL);
           }
           /* 斜めの壁切れ */

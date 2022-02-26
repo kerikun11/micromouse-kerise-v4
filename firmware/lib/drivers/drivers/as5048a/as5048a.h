@@ -27,7 +27,7 @@ public:
     dev_cfg.duty_cycle_pos = 0;
     dev_cfg.cs_ena_pretrans = 0;
     dev_cfg.cs_ena_posttrans = 0;
-    dev_cfg.clock_speed_hz = 10'000'000;
+    dev_cfg.clock_speed_hz = 5'000'000;
     dev_cfg.spics_io_num = pin_cs;
     dev_cfg.flags = 0;
     dev_cfg.queue_size = 1;

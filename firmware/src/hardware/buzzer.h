@@ -22,6 +22,8 @@ public:
     CONFIRM,
     SUCCESSFUL,
     ERROR,
+    UP,
+    DOWN,
     COMPLETE,
     BOOT,
     SHUTDOWN,
@@ -157,6 +159,18 @@ protected:
       note(NOTE_G, 6, 100);
       mute();
       break;
+    case UP:
+      note(NOTE_C, 7, 100);
+      note(NOTE_D, 7, 100);
+      note(NOTE_E, 7, 100);
+      mute();
+      break;
+    case DOWN:
+      note(NOTE_E, 7, 100);
+      note(NOTE_D, 7, 100);
+      note(NOTE_C, 7, 100);
+      mute();
+      break;
     case ERROR:
       for (int i = 0; i < 4; i++) {
         note(NOTE_C, 7, 100);
@@ -210,13 +224,13 @@ protected:
       mute();
       break;
     case MAZE_BACKUP:
-      note(NOTE_G, 7, 100);
+      note(NOTE_G, 7, 200);
       note(NOTE_E, 7, 100);
       note(NOTE_C, 7, 100);
       mute();
       break;
     case MAZE_RESTORE:
-      note(NOTE_C, 7, 100);
+      note(NOTE_C, 7, 200);
       note(NOTE_E, 7, 100);
       note(NOTE_G, 7, 100);
       mute();

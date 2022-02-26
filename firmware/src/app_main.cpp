@@ -8,9 +8,8 @@
 #include "machine/machine.h"
 
 void kerise_main() {
-  auto machine = new machine::Machine;
+  auto machine = new machine::Machine();
   machine->init();
-  machine->start();
   vTaskDelay(pdMS_TO_TICKS(1000));
   LOGI("Free Heap: %u [Bytes]", esp_get_free_heap_size());
   vTaskDelay(portMAX_DELAY);
@@ -18,9 +17,9 @@ void kerise_main() {
 
 void devkit_main() {
   LOGI("This is ESP32 DevKit");
-  auto *bz = hardware::Buzzer::get_instance();
-  bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
-  bz->play(hardware::Buzzer::BOOT);
+  // auto *bz = hardware::Buzzer::get_instance();
+  // bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
+  // bz->play(hardware::Buzzer::BOOT);
   vTaskDelay(portMAX_DELAY);
 }
 

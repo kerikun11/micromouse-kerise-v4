@@ -16,10 +16,20 @@
 
 using namespace MazeLib;
 
+/* 大会前には必ず 0 にする */
+#define MAZEROBOT_TIMEOUT_SELECT 2
 #define GOAL_SELECT 1
+
+/* ゴール座標 */
 #if GOAL_SELECT == 0
 #define MAZE_GOAL                                                              \
-  { MazeLib::Position(2, 2) }
+  {                                                                            \
+    MazeLib::Position(16, 16), MazeLib::Position(16, 17),                      \
+        MazeLib::Position(16, 18), MazeLib::Position(17, 16),                  \
+        MazeLib::Position(17, 17), MazeLib::Position(17, 18),                  \
+        MazeLib::Position(18, 16), MazeLib::Position(18, 17),                  \
+        MazeLib::Position(18, 18),                                             \
+  }
 #elif GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
@@ -101,7 +111,6 @@ private:
     int running_parameter = 0; /**< 走行パラメータ */
 
   private:
-#define MAZEROBOT_TIMEOUT_SELECT 0
 #if MAZEROBOT_TIMEOUT_SELECT == 0 /* 32 x 32 */
     static constexpr int competition_limit_time_s = 10 * 60;
     static constexpr int expected_fast_run_time_s = 90;
@@ -147,24 +156,32 @@ public:
     state.restore();
     return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
-  bool autoRun(const bool isForceSearch = false) {
+  bool autoRun(const bool isAutoParamSelect = false,
+               const bool isForcePI = false) {
+    /* 緊急停止の解放 (念のため) */
     ma->emergency_release();
     /* 迷路のチェック */
-    auto_maze_check();
+    if (!auto_maze_check())
+      return false;
+    /* 自己位置復帰走行: 任意 -> 復帰 -> ゴール -> スタート */
+    if (isForcePI) {
+      auto_pi_run();
+    }
     /* 探索走行: スタート -> ゴール -> スタート */
-    if (isForceSearch || !calcShortestDirections(true))
-      if (!auto_search_run()) //< 成功するまで戻らない
-        return false;
+    if (!calcShortestDirections(true))
+      if (!auto_search_run())
+        return false; //< 探索不能迷路
     /* 最短走行ループ: スタート -> ゴール -> スタート */
     while (1) {
-      /* 5走終了→離脱 */
-      // if (state.get_try_count_remain() <= 0)
-      // break;
+      /* 5走終了 → 離脱 */
+      if (isAutoParamSelect && state.get_try_count_remain() <= 0)
+        break;
       /* 回収待ち */
-      hw->bz->play(hardware::Buzzer::SHORT6); // for debug
       if (sp->ui->waitForPickup())
         return false;
-      hw->bz->play(hardware::Buzzer::SHORT7); // for debug
+      /* 走行パラメータ選択 */
+      if (isAutoParamSelect)
+        auto_parameter_select();
       /* 最短走行 */
       if (!auto_fast_run()) {
         if (!hw->mt->is_emergency())
@@ -172,14 +189,11 @@ public:
         /* クラッシュ後の場合、自動復帰 */
         ma->emergency_release();
         /* 回収待ち */
-        hw->bz->play(hardware::Buzzer::SHORT6); // for debug
         if (sp->ui->waitForPickup())
           return false;
-        hw->bz->play(hardware::Buzzer::SHORT7); // for debug
         /* 自動復帰 */
         auto_pi_run();
       }
-      hw->bz->play(hardware::Buzzer::SUCCESSFUL);
     }
     /* 5走終了 */
     hw->bz->play(hardware::Buzzer::COMPLETE);
@@ -267,18 +281,64 @@ private:
     if (!isSolvable())
       hw->bz->play(hardware::Buzzer::ERROR);
     while (!isSolvable()) {
-      maze.resetLastWalls(12); //< 探索可能になるまで壁を消す
+      maze.resetLastWalls(6); //< 探索可能になるまで壁を消す
       if (getMaze().getWallRecords().empty())
         reset(), hw->bz->play(hardware::Buzzer::ERROR);
     }
     return true;
   }
+  bool auto_search_run() {
+    /* 探索走行: スタート -> ゴール -> スタート */
+    state.start_search_run(); //< 0 -> 1
+    if (searchRun()) {
+      hw->bz->play(hardware::Buzzer::COMPLETE);
+      return true;
+    }
+    /* エラー処理 */
+    if (!isSolvable()) {
+      /* 探索失敗 */
+      hw->bz->play(hardware::Buzzer::ERROR);
+      /* ToDo: 迷路を編集して探索を再開 */
+      /* ここでは姿勢復帰をせずとも自己位置同定を開始できる． */
+      return false;
+    }
+    ma->emergency_release();
+    /* 自動復帰 */
+    return auto_pi_run();
+  }
+  bool auto_fast_run() {
+    /* 最短経路の作成 */
+    if (!calcShortestDirections(ma->rp_fast.diag_enabled)) {
+      hw->bz->play(hardware::Buzzer::ERROR);
+      return false;
+    }
+    const auto search_path = convertDirectionsToSearch(getShortestDirections());
+    /* 走行回数インクリメント */
+    state.start_fast_run();
+    //> FastRun Start
+    ma->set_fast_path(search_path);
+    ma->enable(MoveAction::TaskActionFastRun);
+    ma->waitForEndAction();
+    ma->disable();
+    //< FastRun End
+    if (hw->mt->is_emergency()) {
+      state.end_fast_run(false);
+      return false; //< クラッシュした
+    }
+    /* 最短成功 */
+    state.end_fast_run(true);
+    /* ゴールで回収されるか待つ */
+    if (sp->ui->waitForPickup())
+      return false; //< 回収された
+    /* 帰る */
+    return endFastRunBackingToStartRun();
+  }
   bool auto_pi_run() {
     /* 迷路のチェック */
-    auto_maze_check();
+    // auto_maze_check();
     /* 既知区間斜めを無効化 */
     ma->rp_search.diag_enabled = false;
-    /* 自動復帰: 任意 -> ゴール -> スタート */
+    /* 自動復帰: 姿勢復帰 -> 自己位置同定 -> ゴール -> スタート */
     while (1) {
       /* 姿勢復帰ループ */
       while (1) {
@@ -307,79 +367,44 @@ private:
         break;
       /* エラー処理 */
       if (hw->mt->is_emergency())
-        ma->emergency_release();
+        ma->emergency_release(); //< 自己位置同定中にクラッシュ
       else
-        hw->bz->play(hardware::Buzzer::ERROR);
+        hw->bz->play(hardware::Buzzer::ERROR); //< 自己位置同定に失敗
+      /* 再チャレ */
     }
     /* スタート位置に戻ってきた */
     hw->bz->play(hardware::Buzzer::COMPLETE);
     return true;
   }
-  bool auto_search_run() {
-    /* 探索走行: スタート -> ゴール -> スタート */
-    state.start_search_run(); //< 0 -> 1
-    if (searchRun()) {
-      hw->bz->play(hardware::Buzzer::COMPLETE);
-      return true;
-    }
-    /* エラー処理 */
-    if (!isSolvable()) {
-      /* 探索失敗 */
-      hw->bz->play(hardware::Buzzer::ERROR);
-      /* ToDo: 迷路を編集して探索を再開 */
-      /* ToDo: 姿勢復帰をせずとも自己位置同定を開始できる． */
-      return false;
-    }
-    ma->emergency_release();
-    /* 自動復帰 */
-    return auto_pi_run();
-  }
-  bool auto_fast_run() {
-    /* 走行パラメータ選択 */
-    if (state.get_fast_run_failed()) { /*< 最短走行中のクラッシュ後の場合 */
-      if (state.get_at_least_fast_run_succeeded()) { /*< 最短未成功の状態 */
+  bool auto_parameter_select() {
+    /* 残り時間が足りない場合 */
+    if (state.no_more_time()) {
+      ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
+      ma->rp_fast.diag_enabled = false;
+      ma->rp_search.diag_enabled = false; //< 既知区間斜めは無効化
+      hw->bz->play(hardware::Buzzer::TIMEOUT);
+    } else if (state.get_fast_run_failed()) {
+      /* 最短走行中のクラッシュ後の場合 */
+      if (state.get_at_least_fast_run_succeeded()) {
+        /* 少なくとも1回は最短が成功している: パラメータを1落として再チャレ */
+        ma->rp_fast.down(1), state.running_parameter -= 1;
+      } else {
+        /* 最短未成功の状態: パラメータ0の斜めありなしを交互に試す */
         ma->rp_fast.diag_enabled = !ma->rp_fast.diag_enabled; //< 斜めを交互に
         ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
       }
+      hw->bz->play(hardware::Buzzer::DOWN);
     } else {
       /* 初回 or 完走した場合 */
-      if (state.get_try_count() == 2) //< 最短初回だけ特別にパラメータを上げる
+      if (state.get_try_count() == 1) //< 最短初回だけ特別にパラメータを上げる
         ma->rp_fast.up(2), state.running_parameter += 2;
       if (ma->rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
         ma->rp_fast.up(2), state.running_parameter += 2;
       else //< 斜めなし -> 斜めあり
         ma->rp_fast.diag_enabled = true;
       // ma->rp_search.diag_enabled = true; //< 既知区間斜めを有効化
+      hw->bz->play(hardware::Buzzer::UP);
     }
-    /* 残り時間が足りない場合 */
-    if (state.no_more_time()) {
-      ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
-      ma->rp_search.diag_enabled = false;
-      ma->rp_fast.diag_enabled = false;
-      hw->bz->play(hardware::Buzzer::TIMEOUT);
-    }
-    /* 最短経路の作成 */
-    if (!calcShortestDirections(ma->rp_fast.diag_enabled)) {
-      hw->bz->play(hardware::Buzzer::ERROR);
-      return false;
-    }
-    const auto search_path = convertDirectionsToSearch(getShortestDirections());
-    /* 走行回数インクリメント */
-    state.start_fast_run();
-    //> FastRun Start
-    ma->set_fast_path(search_path);
-    ma->enable(MoveAction::TaskActionFastRun);
-    ma->waitForEndAction();
-    ma->disable();
-    //< FastRun End
-    if (hw->mt->is_emergency())
-      return false; //< クラッシュした
-    /* 最短成功 */
-    state.end_fast_run(true);
-    /* ゴールで回収されるか待つ */
-    if (sp->ui->waitForPickup())
-      return false; //< 回収された
-    /* 帰る */
-    return endFastRunBackingToStartRun();
+    return true;
   }
 };
