@@ -219,40 +219,44 @@ private:
     return int(std::abs(offset.th) * 180 / PI + 45 + 1) % 90 < 2;
   }
 
-  void wall_attach(bool force = false) {
+  bool front_wall_attach(bool force = false) {
     if (is_break_state())
-      return;
-    if ((force && hw->tof->getDistance() < field::SegWidthFull * 5 / 4) ||
-        hw->tof->getDistance() < 90 ||
-        (sp->wd->distance.front[0] < 0 && sp->wd->distance.front[1] < 0)) {
-      hw->led->set(6);
-      hw->tof->disable();
-      vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
-      sp->sc->est_p.clear();
-      for (int i = 0; i < 2000; i++) {
-        if (is_break_state())
-          break;
-        sp->sc->sampling_sync();
-        WheelParameter wp;
-        for (int j = 0; j < 2; ++j)
-          wp.wheel[j] = sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
-        constexpr float end = model::wall_attach_end;
-        if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
-          break;
-        wp.wheel2pole();
-        constexpr float sat_tra = 180.0f; //< [mm/s]
-        constexpr float sat_rot = PI / 2; //< [rad/s]
-        sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
-                           math_utils::saturate(wp.rot, sat_rot));
+      return false;
+    // 強制モードのときは1マス先の壁でも補正
+    if (force && hw->tof->getDistance() > field::SegWidthFull * 5 / 4)
+      return false;
+    // 通常モードのときは1マス以内
+    if (!force && hw->tof->getDistance() > field::SegWidthFull)
+      return false;
+    bool result = false;
+    hw->led->set(6);
+    hw->tof->disable();
+    vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
+    sp->sc->est_p.clear(); //< 初動を抑えるため位置をリセット
+    for (int i = 0; i < 3000; i++) {
+      if (is_break_state())
+        break;
+      sp->sc->sampling_sync();
+      WheelParameter wp;
+      for (int j = 0; j < 2; ++j)
+        wp.wheel[j] =
+            sp->wd->distance.front[j] * model::front_wall_attach_gain_Kp;
+      constexpr float end = model::front_wall_attach_end;
+      if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end) {
+        result = true; //< 補正成功
+        break;
       }
-      sp->sc->set_target(0, 0);
-      sp->sc->est_p.x = 0;  //< 直進方向の補正
-      sp->sc->est_p.th = 0; //< 回転方向の補正
-      if (force)
-        sp->sc->est_p.y = 0; //< 強制の場合は大きくずれうる
-      hw->tof->enable();
-      hw->led->set(0);
+      wp.wheel2pole();
+      constexpr float sat_tra = 360.0f; //< [mm/s]
+      constexpr float sat_rot = PI / 2; //< [rad/s]
+      sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
+                         math_utils::saturate(wp.rot, sat_rot));
     }
+    sp->sc->set_target(0, 0);
+    sp->sc->est_p.clear(); //< 位置をリセット
+    hw->tof->enable();     //< ToF の有効化を忘れずに！
+    hw->led->set(0);
+    return result;
   }
   void front_wall_fix(const RunParameter &rp) {
     /* 適用条件の判定 */
@@ -343,7 +347,8 @@ private:
       if (sp->wd->distance.side[0] < wall_dist_thr) {
         y_error -= sp->wd->distance.side[0];
         // sp->sc->est_p.y =
-        //     (1 - alpha) * sp->sc->est_p.y - alpha * sp->wd->distance.side[0];
+        //     (1 - alpha) * sp->sc->est_p.y - alpha *
+        //     sp->wd->distance.side[0];
         sp->sc->fix_pose(
             {0, -alpha * (sp->sc->est_p.y + sp->wd->distance.side[0])});
         led_flags |= 8;
@@ -351,7 +356,8 @@ private:
       if (sp->wd->distance.side[1] < wall_dist_thr) {
         y_error += sp->wd->distance.side[1];
         // sp->sc->est_p.y =
-        //     (1 - alpha) * sp->sc->est_p.y + alpha * sp->wd->distance.side[1];
+        //     (1 - alpha) * sp->sc->est_p.y + alpha *
+        //     sp->wd->distance.side[1];
         sp->sc->fix_pose(
             {0, -alpha * (sp->sc->est_p.y - sp->wd->distance.side[1])});
         led_flags |= 1;
@@ -614,16 +620,13 @@ private:
   void u_turn() {
     if (is_break_state())
       return;
-    if (sp->wd->distance.side[0] > sp->wd->distance.side[1]) {
-      wall_attach();
-      turn(-PI / 2);
-      wall_attach();
-      turn(-PI / 2);
+    int dir = (sp->wd->distance.side[0] > sp->wd->distance.side[1]) ? -1 : 1;
+    if (front_wall_attach()) {
+      turn(dir * PI);
     } else {
-      wall_attach();
-      turn(PI / 2);
-      wall_attach();
-      turn(PI / 2);
+      turn(dir * PI / 2);
+      front_wall_attach();
+      turn(dir * PI / 2);
     }
     // なぜか前進しているので修正
     sp->sc->est_p.x += model::CenterOffsetY;
@@ -660,9 +663,9 @@ private:
   void start_init() {
     if (is_break_state())
       return;
-    wall_attach();
+    front_wall_attach();
     turn(PI / 2);
-    wall_attach();
+    front_wall_attach();
     turn(PI / 2);
     put_back();
     sp->sc->disable();
@@ -815,7 +818,7 @@ private:
         straight_x(st.getShape().straight_post, v_s, v_s, rp);
       } else {
         straight_x(field::SegWidthFull / 2, v_s, 0, rp);
-        wall_attach();
+        front_wall_attach();
         turn(PI / 2);
         straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
       }
@@ -830,7 +833,7 @@ private:
         straight_x(st.getShape().straight_post, v_s, v_s, rp);
       } else {
         straight_x(field::SegWidthFull / 2, v_s, 0, rp);
-        wall_attach();
+        front_wall_attach();
         turn(-PI / 2);
         straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
       }
@@ -1017,7 +1020,7 @@ private:
       straight_x(hw->tof->getDistance() - field::SegWidthFull / 2, 240, 0,
                  rp_search);
     /* 前壁補正 */
-    wall_attach(true);
+    front_wall_attach(true);
     /* 前壁補正のため、壁がありそうな方に回転 */
     turn(sp->wd->distance.side[0] < sp->wd->distance.side[1] ? PI / 2
                                                              : -PI / 2);
@@ -1025,7 +1028,7 @@ private:
     while (!hw->mt->is_emergency()) {
       if (hw->tof->getDistance() > field::SegWidthFull)
         break;
-      wall_attach(true);
+      front_wall_attach(true);
       turn(-PI / 2);
     }
     sp->sc->disable();

@@ -18,10 +18,10 @@ using namespace MazeLib;
 
 /* 大会前には必ず 0 にする */
 #define MAZEROBOT_TIMEOUT_SELECT 2
-#define GOAL_SELECT 1
+#define MAZEROBOT_GOAL_SELECT 1
 
 /* ゴール座標 */
-#if GOAL_SELECT == 0
+#if MAZEROBOT_GOAL_SELECT == 0
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(16, 16), MazeLib::Position(16, 17),                      \
@@ -30,16 +30,16 @@ using namespace MazeLib;
         MazeLib::Position(18, 16), MazeLib::Position(18, 17),                  \
         MazeLib::Position(18, 18),                                             \
   }
-#elif GOAL_SELECT == 1
+#elif MAZEROBOT_GOAL_SELECT == 1
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(1, 0) }
-#elif GOAL_SELECT == 2
+#elif MAZEROBOT_GOAL_SELECT == 2
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(7, 7), MazeLib::Position(7, 8), MazeLib::Position(8, 7), \
         MazeLib::Position(8, 8),                                               \
   }
-#elif GOAL_SELECT == 3
+#elif MAZEROBOT_GOAL_SELECT == 3
 #define MAZE_GOAL                                                              \
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \

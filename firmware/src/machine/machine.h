@@ -7,28 +7,14 @@
 #pragma once
 
 #include "agents/maze_robot.h"
-#include "agents/move_action.h"
-#include "config/model.h"
 #include "freertospp/task.h"
-#include "hardware/hardware.h"
 #include "peripheral/esp.h"
 #include "peripheral/spiffs.h"
-#include "supporters/supporters.h"
-#include <esp_err.h>
 
 namespace machine {
 
 class Machine {
 private:
-  void driveAutomatically() {
-    /* 回収待ち */
-    if (sp->ui->waitForPickup())
-      return;
-    /* 状態復元 -> 走行再開 */
-    Machine::restore();
-    /* 自己位置復帰 */
-    mr->autoRun(true, true);
-  }
   void driveManually() {
     int mode = sp->ui->waitForSelect(16);
     switch (mode) {
@@ -41,10 +27,10 @@ private:
     case 2: /* パラメータの絶対設定 */
       Machine::selectParamPreset();
       break;
-    case 3: /* 斜め走行・壁制御などの設定 */
+    case 3: /* 走行設定 */
       Machine::selectRunConfig();
       break;
-    case 4: /* ファンの設定 */
+    case 4: /* ファン設定 */
       Machine::selectFanGain();
       break;
     case 5: /* 迷路データ・探索状態の復元・削除 */
@@ -62,11 +48,11 @@ private:
     case 9: /* プチコン */
       Machine::petitcon();
       break;
-    case 10: /* 迷路の表示 */
+    case 10: /* 迷路情報の表示 */
       mr->print();
       break;
-    case 11: /* 壁表示 */
-      Machine::print_wall();
+    case 11: /* 壁センサのリアルタイム表示 */
+      Machine::print_wall_detector();
       break;
     case 12: /* タイヤ径の測定 */
       Machine::wheel_diameter_measurement();
@@ -74,7 +60,7 @@ private:
     case 13:
       // Machine::encoder_test();
       // Machine::accel_test();
-      // Machine::wall_attach_test();
+      Machine::front_wall_attach_test();
       // Machine::position_recovery();
       // Machine::sysid();
       // Machine::wall_test();
@@ -86,6 +72,15 @@ private:
       lgr->print();
       break;
     }
+  }
+  void driveAutomatically() {
+    /* 回収待ち */
+    if (sp->ui->waitForPickup())
+      return;
+    /* 状態復元 -> 走行再開 */
+    Machine::restore();
+    /* 自己位置復帰 */
+    mr->autoRun(true, true);
   }
   void driveNormally() {
     /* 探索状態のお知らせ */
@@ -751,20 +746,18 @@ private:
     sp->ui->waitForCover(true);
     hw->mt->free();
   }
-  void wall_attach_test() {
+  void front_wall_attach_test() {
     if (!sp->ui->waitForCover())
       return;
     vTaskDelay(pdMS_TO_TICKS(500));
     sp->sc->enable();
-    //
+    // prepare
     hw->led->set(6);
     hw->tof->disable();
     vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
-    while (1) {
-      if (hw->mt->is_emergency()) {
-        hw->bz->play(hardware::Buzzer::EMERGENCY);
-        break;
-      }
+    sp->sc->est_p.clear();
+    while (!hw->mt->is_emergency()) {
+      // 横壁センサに手をかざして終了
       if (hw->rfl->side(0) > 1.2 * UserInterface::thr_ref_side &&
           hw->rfl->side(1) > 1.2 * UserInterface::thr_ref_side) {
         hw->bz->play(hardware::Buzzer::CANCEL);
@@ -773,30 +766,35 @@ private:
       sp->sc->sampling_sync();
       WheelParameter wp;
       for (int j = 0; j < 2; ++j)
-        wp.wheel[j] = sp->wd->distance.front[j] * model::wall_attach_gain_Kp;
-      const float end = model::wall_attach_end;
+        wp.wheel[j] =
+            sp->wd->distance.front[j] * model::front_wall_attach_gain_Kp;
+      const float end = model::front_wall_attach_end;
       if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
         hw->led->set(0);
       else
         hw->led->set(6);
       wp.wheel2pole();
       const float sat_tra = 180.0f; //< [mm/s]
-      const float sat_rot = 1 * PI; //< [rad/s]
+      const float sat_rot = PI / 2; //< [rad/s]
       sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                          math_utils::saturate(wp.rot, sat_rot));
     }
     sp->sc->set_target(0, 0);
     hw->tof->enable();
     hw->led->set(0);
-    //
+    // ending
     sp->sc->disable();
-    hw->mt->emergency_release();
+    if (hw->mt->is_emergency()) {
+      hw->bz->play(hardware::Buzzer::EMERGENCY);
+      hw->mt->emergency_release();
+    }
   }
-  void print_wall() {
+  void print_wall_detector() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
-      LOGI("[%5.1f %5.1f %5.1f %5.1f] [%c %c %c] [%3d mm %3d ms (%4d mm)]",
+      LOGI("Ref:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
+           "ToF:[%3d mm %3d ms (%4d mm)]",
            (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
            (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
            sp->wd->is_wall[0] ? 'X' : '_', sp->wd->is_wall[2] ? 'X' : '_',
@@ -809,18 +807,7 @@ private:
     LOGI("I'm KERISE v%d.", KERISE_SELECT);
     LOGI("IDF version:  %s", esp_get_idf_version());
     LOGI("CPU Freq:     %u [MHz]", ets_get_cpu_frequency());
-    /* show SPIFFS info */
-    size_t total = 0, used = 0;
-    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
-    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
-    if (ret != ESP_OK) {
-      LOGE("Failed to get SPIFFS partition information!");
-    } else {
-      LOGI("SPIFFS total: %d, used: %d, free: %d", total, used, total - used);
-    }
-    /* show SPIFFS file list */
-    LOGI("SPIFFS file list:");
-    peripheral::SPIFFS::list_dir("/spiffs");
+    peripheral::SPIFFS::show_info();
   }
   bool check_chip() {
     auto mac = peripheral::ESP::get_mac();

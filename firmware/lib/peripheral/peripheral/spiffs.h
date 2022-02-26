@@ -26,9 +26,11 @@ public:
     ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
     if (ret != ESP_OK) {
       if (ret == ESP_FAIL) {
-        std::printf("Failed to mount or format SPIFFS\n");
+        fprintf(stderr, "[%s:%d] Failed to mount or format SPIFFS!\n", __FILE__,
+                __LINE__);
       } else if (ret == ESP_ERR_NOT_FOUND) {
-        std::printf("Failed to find SPIFFS partition\n");
+        fprintf(stderr, "[%s:%d] Failed to find SPIFFS partition!\n", __FILE__,
+                __LINE__);
       }
       return false;
     }
@@ -56,6 +58,20 @@ public:
       }
     }
     closedir(dir);
+  }
+  static void show_info() {
+    size_t total = 0, used = 0;
+    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+    if (ret != ESP_OK) {
+      fprintf(stderr, "[%s:%d] Failed to get SPIFFS partition information!\n",
+              __FILE__, __LINE__);
+      return;
+    }
+    printf("SPIFFS total: %d, used: %d, free: %d\n", total, used, total - used);
+    /* show SPIFFS file list */
+    printf("SPIFFS file list:\n");
+    peripheral::SPIFFS::list_dir("/spiffs");
   }
 };
 
