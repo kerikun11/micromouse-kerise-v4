@@ -747,53 +747,61 @@ private:
     hw->mt->free();
   }
   void front_wall_attach_test() {
-    if (!sp->ui->waitForCover())
-      return;
-    vTaskDelay(pdMS_TO_TICKS(500));
-    sp->sc->enable();
-    // prepare
-    hw->led->set(6);
-    hw->tof->disable();
-    vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
-    sp->sc->est_p.clear();
-    while (!hw->mt->is_emergency()) {
-      // 横壁センサに手をかざして終了
-      if (hw->rfl->side(0) > 1.2 * UserInterface::thr_ref_side &&
-          hw->rfl->side(1) > 1.2 * UserInterface::thr_ref_side) {
-        hw->bz->play(hardware::Buzzer::CANCEL);
-        break;
+    while (1) {
+      /* 開始待ち */
+      if (!sp->ui->waitForCover(true))
+        return;
+      vTaskDelay(pdMS_TO_TICKS(500));
+      sp->sc->enable();
+      /* wall_attach start */
+      bool result = false;
+      hw->led->set(6);
+      hw->tof->disable(); /*< ノイズ防止のためToFを無効化 */
+      vTaskDelay(pdMS_TO_TICKS(20));
+      sp->sc->est_p.clear(); //< 初動防止のため位置をクリア
+      for (int i = 0; i < 2000; i++) {
+        // if (is_break_state())
+        //   break;
+        /* 差分計算 */
+        WheelParameter wp;
+        for (int j = 0; j < 2; ++j) {
+          wp.wheel[j] = sp->wd->distance_average.front[j] *
+                        model::front_wall_attach_gain_Kp;
+        }
+        wp.wheel2pole();
+        /* 終了条件 */
+        const float end = model::front_wall_attach_end;
+        if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end) {
+          result = true; //< 補正成功
+          break;
+        }
+        /* 制御 */
+        const float sat_tra = 180.0f; //< [mm/s]
+        const float sat_rot = PI;     //< [rad/s]
+        sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
+                           math_utils::saturate(wp.rot, sat_rot));
+        sp->sc->sampling_sync();
       }
-      sp->sc->sampling_sync();
-      WheelParameter wp;
-      for (int j = 0; j < 2; ++j)
-        wp.wheel[j] =
-            sp->wd->distance.front[j] * model::front_wall_attach_gain_Kp;
-      const float end = model::front_wall_attach_end;
-      if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end)
-        hw->led->set(0);
-      else
-        hw->led->set(6);
-      wp.wheel2pole();
-      const float sat_tra = 180.0f; //< [mm/s]
-      const float sat_rot = PI / 2; //< [rad/s]
-      sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
-                         math_utils::saturate(wp.rot, sat_rot));
-    }
-    sp->sc->set_target(0, 0);
-    hw->tof->enable();
-    hw->led->set(0);
-    // ending
-    sp->sc->disable();
-    if (hw->mt->is_emergency()) {
-      hw->bz->play(hardware::Buzzer::EMERGENCY);
-      hw->mt->emergency_release();
+      hw->bz->play(result ? hardware::Buzzer::SUCCESSFUL
+                          : hardware::Buzzer::CANCEL);
+      sp->sc->set_target(0, 0);
+      vTaskDelay(pdMS_TO_TICKS(100));
+      hw->tof->enable();     //< ToF の有効化を忘れずに！
+      sp->sc->est_p.clear(); //< 位置を補正
+      hw->led->set(0);
+      // ending
+      sp->sc->disable();
+      if (hw->mt->is_emergency()) {
+        hw->bz->play(hardware::Buzzer::EMERGENCY);
+        hw->mt->emergency_release();
+      }
     }
   }
   void print_wall_detector() {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
-      LOGI("Ref:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
+      LOGI("Dist:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
            "ToF:[%3d mm %3d ms (%4d mm)]",
            (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
            (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
@@ -857,9 +865,9 @@ public:
   }
   void drive() {
     // driveAutomatically();
-    while (1) {
+    while (1)
       driveManually();
-    }
+    vTaskDelay(portMAX_DELAY);
   }
   void print() {
     TickType_t xLastWakeTime = xTaskGetTickCount();

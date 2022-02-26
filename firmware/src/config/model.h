@@ -121,10 +121,10 @@ static constexpr float tof_raw_range_90 = 69;
 static constexpr float tof_raw_range_180 = 154;
 static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
-static constexpr float front_wall_attach_gain_Kp = 24.0f;
+static constexpr float front_wall_attach_gain_Kp = 30.0f;
 static constexpr float front_wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
-static constexpr float wall_fix_theta_gain = 1e-9f;
+static constexpr float wall_fix_theta_gain = 1e-8f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {

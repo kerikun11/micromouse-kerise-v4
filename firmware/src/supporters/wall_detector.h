@@ -55,6 +55,7 @@ public:
 
 public:
   WallValue distance;
+  WallValue distance_average;
   std::array<bool, 3> is_wall;
 
 private:
@@ -147,7 +148,7 @@ public:
 
 private:
   WallValue wall_ref;
-  static const int ave_num = 32;
+  static const int ave_num = 16;
   ctrl::Accumulator<WallValue, ave_num> buffer;
 
   void task() {
@@ -164,6 +165,7 @@ private:
       distance.front[i] = ref2dist(hw->rfl->front(i)) - wall_ref.front[i];
     }
     buffer.push(distance);
+    distance_average = buffer.average();
 
     // 前壁の更新
     int front_mm = hw->tof->getDistance();

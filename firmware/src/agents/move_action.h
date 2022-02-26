@@ -39,7 +39,7 @@ public:
     /* common flags */
     bool diag_enabled = 1;
     bool unknown_accel_enabled = 1;
-    bool front_wall_fix_enabled = 1;
+    bool front_wall_fix_enabled = 0;
     bool side_wall_avoid_enabled = 1;
     bool side_wall_fix_theta_enabled = 1;
     bool side_wall_fix_v90_enabled = 1;
@@ -228,33 +228,41 @@ private:
     // 通常モードのときは1マス以内
     if (!force && hw->tof->getDistance() > field::SegWidthFull)
       return false;
+    /* wall_attach start */
     bool result = false;
     hw->led->set(6);
-    hw->tof->disable();
-    vTaskDelay(pdMS_TO_TICKS(20)); /*< ノイズ防止のためToFを無効化 */
-    sp->sc->est_p.clear(); //< 初動を抑えるため位置をリセット
-    for (int i = 0; i < 3000; i++) {
+    hw->tof->disable(); /*< ノイズ防止のためToFを無効化 */
+    vTaskDelay(pdMS_TO_TICKS(20));
+    sp->sc->est_p.clear(); //< 初動防止のため位置をクリア
+    for (int i = 0; i < 2000; i++) {
       if (is_break_state())
         break;
-      sp->sc->sampling_sync();
+      /* 差分計算 */
       WheelParameter wp;
-      for (int j = 0; j < 2; ++j)
-        wp.wheel[j] =
-            sp->wd->distance.front[j] * model::front_wall_attach_gain_Kp;
-      constexpr float end = model::front_wall_attach_end;
+      for (int j = 0; j < 2; ++j) {
+        wp.wheel[j] = sp->wd->distance_average.front[j] *
+                      model::front_wall_attach_gain_Kp;
+      }
+      wp.wheel2pole();
+      /* 終了条件 */
+      const float end = model::front_wall_attach_end;
       if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end) {
         result = true; //< 補正成功
         break;
       }
-      wp.wheel2pole();
-      constexpr float sat_tra = 360.0f; //< [mm/s]
-      constexpr float sat_rot = PI / 2; //< [rad/s]
+      /* 制御 */
+      const float sat_tra = 180.0f; //< [mm/s]
+      const float sat_rot = PI;     //< [rad/s]
       sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                          math_utils::saturate(wp.rot, sat_rot));
+      sp->sc->sampling_sync();
     }
+    hw->bz->play(result ? hardware::Buzzer::SUCCESSFUL
+                        : hardware::Buzzer::CANCEL);
     sp->sc->set_target(0, 0);
-    sp->sc->est_p.clear(); //< 位置をリセット
+    vTaskDelay(pdMS_TO_TICKS(100));
     hw->tof->enable();     //< ToF の有効化を忘れずに！
+    sp->sc->est_p.clear(); //< 位置を補正
     hw->led->set(0);
     return result;
   }
@@ -414,13 +422,13 @@ private:
         if (std::abs(sp->sc->est_p.th) > theta_threshold)
           /* along の壁切れ */
           if (isAlong()) {
-            const float wall_cut_offset = -15; /*< 大きいほど前へ */
-            const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
-            const float x_abs_cut =
-                math_utils::round2(x_abs, field::SegWidthFull);
-            const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
-            const float fixed_x_abs = std::abs(fixed_x);
-            const float alpha = 0.1f;
+            // const float wall_cut_offset = -15; /*< 大きいほど前へ */
+            // const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
+            // const float x_abs_cut =
+            //     math_utils::round2(x_abs, field::SegWidthFull);
+            // const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
+            // const float fixed_x_abs = std::abs(fixed_x);
+            // const float alpha = 0.1f;
             // sp->sc->fix_pose(ctrl::Pose(alpha * fixed_x, 0, 0));
             hw->bz->play(hardware::Buzzer::CANCEL);
           }
