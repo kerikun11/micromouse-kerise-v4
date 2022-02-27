@@ -16,8 +16,8 @@
 
 using namespace MazeLib;
 
-/* 大会前には必ず 0 にする */
-#define MAZEROBOT_TIMEOUT_SELECT 2
+/* 大会前には必ず 32 にする */
+#define MAZEROBOT_TIMEOUT_SELECT 1
 #define MAZEROBOT_GOAL_SELECT 1
 
 /* ゴール座標 */
@@ -57,8 +57,31 @@ private:
 private:
   struct State {
   public:
+    static constexpr int max_try_count = 5;
+
+  public:
+    State() { set_timeout(MAZEROBOT_TIMEOUT_SELECT); }
+    void set_timeout(int size) {
+      switch (size) {
+      case 0:
+      case 32:
+        competition_limit_time_s = 60 * 10;
+        expected_fast_run_time_s = 90; //< 90: 6分で打ち切り
+        break;
+      case 2:
+      case 16:
+        competition_limit_time_s = 60 * 5;
+        expected_fast_run_time_s = 45; //< 45: 2分で打ち切り
+        break;
+      case 1:
+      case 9:
+        competition_limit_time_s = 3 * 60;
+        expected_fast_run_time_s = 30; //< 30: 1分で打ち切り
+        break;
+      }
+    }
     bool save(const std::string &filepath = STATE_SAVE_PATH) {
-      offset_ms = millis();
+      backup_time_ms = get_eraped_time_ms();
       std::ofstream of(filepath, std::ios::binary);
       if (of.fail()) {
         app_loge << "failed to open file! " << filepath << std::endl;
@@ -67,23 +90,24 @@ private:
       of.write((const char *)this, sizeof(*this));
       return true;
     }
-    bool restore(const std::string &filepath = STATE_SAVE_PATH) const {
+    bool restore(const std::string &filepath = STATE_SAVE_PATH) {
       std::ifstream f(filepath, std::ios::binary);
       if (f.fail()) {
         app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
       f.read((char *)this, sizeof(*this));
+      offset_time_ms = backup_time_ms;
       return true;
     }
     /* updaters */
-    void start_fast_run() {
+    void start_search_run() {
       try_count++;
       has_reached_goal = false;
       is_fast_run = false;
       save();
     }
-    void start_search_run() {
+    void start_fast_run() {
       try_count++;
       has_reached_goal = false;
       is_fast_run = true;
@@ -92,44 +116,39 @@ private:
     void end_fast_run(bool result) {
       if (result) {
         is_fast_run = false;
-        max_parameter = running_parameter;
+        succeeded_parameter = running_parameter;
       }
       save();
     }
-    void reached_goal() { has_reached_goal = true; }
+    void set_reached_goal() { has_reached_goal = true; }
     /* checkers */
     bool get_fast_run_failed() { return is_fast_run; }
     bool get_has_reached_goal() { return has_reached_goal; }
-    bool get_at_least_fast_run_succeeded() { return max_parameter >= 0; }
+    bool get_at_least_fast_run_succeeded() {
+      return succeeded_parameter > INT_MIN;
+    }
     bool no_more_time() {
       int time_limit_s = competition_limit_time_s -
                          get_try_count_remain() * expected_fast_run_time_s;
-      return getTimeSecond() > time_limit_s;
+      return get_eraped_time_ms() / 1000 > time_limit_s;
     }
     int get_try_count_remain() const { return max_try_count - try_count; }
-    int get_try_count() const { return max_try_count - try_count; }
+    int get_try_count() const { return try_count; }
     int running_parameter = 0; /**< 走行パラメータ */
 
   private:
-#if MAZEROBOT_TIMEOUT_SELECT == 0 /* 32 x 32 */
-    static constexpr int competition_limit_time_s = 10 * 60;
-    static constexpr int expected_fast_run_time_s = 90;
-#elif MAZEROBOT_TIMEOUT_SELECT == 1 /* 16 x 16 */
-    static constexpr int competition_limit_time_s = 5 * 60;
-    static constexpr int expected_fast_run_time_s = 45;
-#elif MAZEROBOT_TIMEOUT_SELECT == 2 /* 9 x 9 */
-    static constexpr int competition_limit_time_s = 2 * 60;
-    static constexpr int expected_fast_run_time_s = 20;
-#endif
-    static constexpr int max_try_count = 5;
-    int try_count = 0;             /**< 走行回数 */
-    int max_parameter = -1;        /**< 成功パラメータ */
+    int competition_limit_time_s;
+    int expected_fast_run_time_s;
+    int backup_time_ms = 0;            /**< 追加時間 */
+    int offset_time_ms = 0;            /**< 追加時間 */
+    int try_count = 0;                 /**< 走行回数 */
+    int succeeded_parameter = INT_MIN; /**< 成功パラメータ */
     bool has_reached_goal = false; /**< ゴール区画にたどり着いたか */
     bool is_fast_run = false;      /**< 最短走行の途中かどうか */
-    int offset_ms = 0;             /**< リセット後を想定 */
 
-    static uint32_t millis() { return esp_timer_get_time() / 1000; }
-    int getTimeSecond() const { return (offset_ms + millis()) / 1000; }
+    int get_eraped_time_ms() const {
+      return offset_time_ms + esp_timer_get_time() / 1000;
+    }
   };
 
 private:
@@ -156,6 +175,7 @@ public:
     state.restore();
     return maze.restoreWallRecordsFromFile(MAZE_SAVE_PATH);
   }
+  void setTimeout(int timeout_select) { state.set_timeout(timeout_select); }
   bool autoRun(const bool isAutoParamSelect = false,
                const bool isForcePI = false) {
     /* 緊急停止の解放 (念のため) */
@@ -250,7 +270,7 @@ protected:
     ma->set_unknown_accel_flag(getUnknownAccelFlag());
     /* ゴール判定 */
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
-      state.reached_goal();
+      state.set_reached_goal();
       hw->bz->play(hardware::Buzzer::CONFIRM);
     }
     /* 探索情報のお知らせ */
@@ -377,17 +397,20 @@ private:
     return true;
   }
   bool auto_parameter_select() {
-    /* 残り時間が足りない場合 */
+    /* 現在の状態に応じたパラメータ選択 */
     if (state.no_more_time()) {
+      /* 残り時間が足りない場合 */
       ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
-      ma->rp_fast.diag_enabled = false;
       ma->rp_search.diag_enabled = false; //< 既知区間斜めは無効化
+      /* 最短初回なら斜め有効、それ以外は無効 */
+      ma->rp_fast.diag_enabled = (state.get_try_count() == 1);
       hw->bz->play(hardware::Buzzer::TIMEOUT);
     } else if (state.get_fast_run_failed()) {
       /* 最短走行中のクラッシュ後の場合 */
       if (state.get_at_least_fast_run_succeeded()) {
         /* 少なくとも1回は最短が成功している: パラメータを1落として再チャレ */
         ma->rp_fast.down(1), state.running_parameter -= 1;
+        ma->rp_fast.diag_enabled = true; //< 斜めあり
       } else {
         /* 最短未成功の状態: パラメータ0の斜めありなしを交互に試す */
         ma->rp_fast.diag_enabled = !ma->rp_fast.diag_enabled; //< 斜めを交互に
@@ -397,10 +420,10 @@ private:
     } else {
       /* 初回 or 完走した場合 */
       if (state.get_try_count() == 1) //< 最短初回だけ特別にパラメータを上げる
+        ma->rp_fast.up(3), state.running_parameter += 3;
+      if (ma->rp_fast.diag_enabled) //< 既に斜めあり -> 単にパラメータを上げる
         ma->rp_fast.up(2), state.running_parameter += 2;
-      if (ma->rp_fast.diag_enabled) //< 斜めあり -> パラメータを上げる
-        ma->rp_fast.up(2), state.running_parameter += 2;
-      else //< 斜めなし -> 斜めあり
+      else //< 斜めなしで成功 -> 同じパラメータで斜めありにする
         ma->rp_fast.diag_enabled = true;
       // ma->rp_search.diag_enabled = true; //< 既知区間斜めを有効化
       hw->bz->play(hardware::Buzzer::UP);

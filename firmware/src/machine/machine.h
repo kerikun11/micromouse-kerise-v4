@@ -315,27 +315,33 @@ private:
     if (value < 0)
       return;
     switch (value) {
-    case 0: {
+    case 0: { //< マニュアル選択
       int x = sp->ui->waitForSelect(16);
       int y = sp->ui->waitForSelect(16);
       mr->setGoals({MazeLib::Position(x, y)});
       break;
     }
-    case 1:
+    case 1: //< 調整迷路
       mr->setGoals({MazeLib::Position(1, 0)});
+      mr->setTimeout(9);
       break;
-    case 15:
+    case 2: //< 調整迷路
+      mr->setGoals({MazeLib::Position(8, 8)});
+      mr->setTimeout(16);
+      break;
+    case 15: //< 本番迷路
       mr->setGoals({
-          MazeLib::Position(17, 13),
-          MazeLib::Position(18, 13),
-          MazeLib::Position(19, 13),
-          MazeLib::Position(17, 14),
-          MazeLib::Position(18, 14),
-          MazeLib::Position(19, 14),
-          MazeLib::Position(17, 15),
-          MazeLib::Position(18, 15),
-          MazeLib::Position(19, 15),
+          MazeLib::Position(16, 16),
+          MazeLib::Position(16, 17),
+          MazeLib::Position(16, 18),
+          MazeLib::Position(17, 16),
+          MazeLib::Position(17, 17),
+          MazeLib::Position(17, 18),
+          MazeLib::Position(18, 16),
+          MazeLib::Position(18, 17),
+          MazeLib::Position(18, 18),
       });
+      mr->setTimeout(32);
       break;
     default:
       mr->setGoals({MazeLib::Position(value, value)});

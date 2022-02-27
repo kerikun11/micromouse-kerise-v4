@@ -148,7 +148,7 @@ public:
   /**
    * @brief マシン回収まで待つ関数
    */
-  bool waitForPickup(const int wait_ms = 2000) {
+  bool waitForPickup(const int wait_ms = 1200) {
     hw->led->set(0xf);
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
