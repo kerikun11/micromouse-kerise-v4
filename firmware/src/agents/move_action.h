@@ -240,8 +240,8 @@ private:
       /* 差分計算 */
       WheelParameter wp;
       for (int j = 0; j < 2; ++j) {
-        wp.wheel[j] = sp->wd->distance_average.front[j] *
-                      model::front_wall_attach_gain_Kp;
+        wp.wheel[j] =
+            sp->wd->distance_average.front[j] * model::front_wall_attach_gain;
       }
       wp.wheel2pole();
       /* 終了条件 */
@@ -270,8 +270,10 @@ private:
     /* 適用条件の判定 */
     if (!rp.front_wall_fix_enabled || !hw->tof->isValid())
       return;
-    /* 適用距離 */
-    if (hw->tof->getDistance() > field::SegWidthFull * 1.5f)
+    const int tof_mm = hw->tof->getDistance();
+    const int passed_ms = hw->tof->passedTimeMs();
+    /* 前壁1.5マス以内、かつ、サンプリング後1ms以内の場合のみ */
+    if (tof_mm < 70 || tof_mm > 120 || passed_ms > 1)
       return;
     /* 現在の姿勢が区画に対して垂直か調べる */
     const auto &p = sp->sc->est_p;       //< 局所座標系における位置
@@ -282,8 +284,8 @@ private:
       return;
     /* 壁との距離を取得 */
     constexpr float wall_fix_offset = model::wall_fix_offset; //< 大: 壁に近く
-    const float d_tof = wall_fix_offset + hw->tof->getDistance() -
-                        hw->tof->passedTimeMs() * 1e-3f * sp->sc->ref_v.tra;
+    const float d_tof =
+        wall_fix_offset + tof_mm - passed_ms * 1e-3f * sp->sc->ref_v.tra;
     /* グローバル位置に変換 */
     const auto p_g = offset + p.rotate(offset.th); //< グローバル位置
     const float d_tof_g = p_g.rotate(-p_g.th).x + d_tof; //< 壁距離(グローバル)
@@ -293,16 +295,18 @@ private:
     const float x_diff = d_ref_g - d_tof_g;
     /* 壁の有無の判断 */
     const float x_diff_abs = std::abs(x_diff);
-    if (x_diff_abs > 20) //< [mm]
+    if (x_diff_abs > 30) //< [mm]
       return;
-    const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
     /* 局所位置の修正 */
-    constexpr float alpha = 0.01f; //< 補正割合 (0: 補正なし)
+    const auto p_fix = ctrl::Pose(x_diff).rotate(p.th); //< ローカル座標に変換
+    constexpr float alpha = 0.1f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0});
-    if (x_diff > 0) {
-      hw->led->set(hw->led->get() | 2);
+    // constexpr float alpha = 0.5f; //< 補正割合 (0: 補正なし)
+    // sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0}, false);
+    if (x_diff_abs < 5) {
+      hw->bz->play(hardware::Buzzer::SHORT8);
     } else {
-      hw->led->set(hw->led->get() | 4);
+      hw->bz->play(hardware::Buzzer::SHORT6);
     }
     return;
   }
@@ -394,8 +398,8 @@ private:
 #if 1
     /* 45 [deg] の倍数 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
-      const float alpha = 0.01;        //< 補正割合 (0: 補正なし)
-      const float wall_dist_ref = -12; //< 斜めの壁の基準値
+      const float alpha = 0.1;         //< 補正割合 (0: 補正なし)
+      const float wall_dist_ref = -12; //< 大きく：補正強く
       if (sp->wd->distance.side[0] < wall_dist_ref) {
         sp->sc->fix_pose(
             ctrl::Pose(0, +alpha * (wall_dist_ref - sp->wd->distance.side[0])));

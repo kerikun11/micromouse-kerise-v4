@@ -45,14 +45,14 @@ private:
     case 8: /* 壁センサキャリブレーション */
       Machine::wallCalibration();
       break;
-    case 9: /* プチコン */
-      Machine::petitcon();
+    case 9: /* 壁センサのリアルタイム表示 */
+      Machine::print_wall_detector();
       break;
     case 10: /* 迷路情報の表示 */
       mr->print();
       break;
-    case 11: /* 壁センサのリアルタイム表示 */
-      Machine::print_wall_detector();
+    case 11: /* プチコン */
+      Machine::petitcon();
       break;
     case 12: /* タイヤ径の測定 */
       Machine::wheel_diameter_measurement();
@@ -765,8 +765,8 @@ private:
         /* 差分計算 */
         WheelParameter wp;
         for (int j = 0; j < 2; ++j) {
-          wp.wheel[j] = sp->wd->distance_average.front[j] *
-                        model::front_wall_attach_gain_Kp;
+          wp.wheel[j] =
+              sp->wd->distance_average.front[j] * model::front_wall_attach_gain;
         }
         wp.wheel2pole();
         /* 終了条件 */
@@ -798,11 +798,14 @@ private:
     }
   }
   void print_wall_detector() {
+    // int value = sp->ui->waitForSelect(16);
+    // if (value < 0)
+    //   return;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
       LOGI("Dist:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
-           "ToF:[%3d mm %3d ms (%4d mm)]",
+           "ToF:[%3d mm %3d ms (%3d mm)]",
            (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
            (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
            sp->wd->is_wall[0] ? 'X' : '_', sp->wd->is_wall[2] ? 'X' : '_',

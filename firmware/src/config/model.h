@@ -39,10 +39,10 @@ static constexpr float tof_raw_range_90 = 75;
 static constexpr float tof_raw_range_180 = 160;
 static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
-static constexpr float front_front_wall_attach_gain_Kp = 36.0f;
-static constexpr float front_front_wall_attach_end = 0.5f;
-static constexpr float wall_avoid_gain = 1e-4f;
-static constexpr float wall_fix_theta_gain = 1e-9f;
+static constexpr float front_wall_attach_gain = 30.0f;
+static constexpr float front_wall_attach_end = 0.4f;
+static constexpr float wall_avoid_gain = 0.001f;
+static constexpr float wall_fix_theta_gain = 1e-8f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
@@ -80,20 +80,20 @@ static constexpr float tof_raw_range_90 = 69;
 static constexpr float tof_raw_range_180 = 154;
 static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
-static constexpr float front_wall_attach_gain_Kp = 24.0f;
+static constexpr float front_wall_attach_gain = 30.0f;
 static constexpr float front_wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
-static constexpr float wall_fix_theta_gain = 1e-9f;
+static constexpr float wall_fix_theta_gain = 1e-8f;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5789.0f, 1000.0f),
-        .T1 = ctrl::Polar(0.12f, 0.48f), /*< 4 */
+        .K1 = ctrl::Polar(5789, 1000), //< 大きく：FF定常成分小さく
+        .T1 = ctrl::Polar(0.12f, 0.48f), //< 大きく：FF立ち上がり成分大きく
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
         .Kp = ctrl::Polar(0.0008f, 0.15f),
-        .Ki = ctrl::Polar(0.1f, 6.0f), /*< 4 */
+        .Ki = ctrl::Polar(0.1f, 6.0f),
         .Kd = ctrl::Polar(0, 0),
 };
 static constexpr float turn_back_gain = 10.0f;
@@ -121,7 +121,7 @@ static constexpr float tof_raw_range_90 = 69;
 static constexpr float tof_raw_range_180 = 154;
 static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 /* Reflector */
-static constexpr float front_wall_attach_gain_Kp = 30.0f;
+static constexpr float front_wall_attach_gain = 30.0f;
 static constexpr float front_wall_attach_end = 0.1f;
 static constexpr float wall_avoid_gain = 0.003f;
 static constexpr float wall_fix_theta_gain = 1e-8f;
@@ -129,7 +129,7 @@ static constexpr float wall_fix_theta_gain = 1e-8f;
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
         .K1 = ctrl::Polar(5400, 100), //< 大きく：FF定常成分小さく
-        .T1 = ctrl::Polar(0.18, 0.12), //< 大きく：FF立ち上がり成分大きく
+        .T1 = ctrl::Polar(0.18f, 0.12f), //< 大きく：FF立ち上がり成分大きく
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
