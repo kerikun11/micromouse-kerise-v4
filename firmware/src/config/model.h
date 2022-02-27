@@ -102,8 +102,8 @@ static constexpr ctrl::Polar velocity_filter_alpha = ctrl::Polar(0.2f, 1.0f);
 /* Trajectory Tracking Gain */
 static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
     .zeta = 0.8f,
-    .omega_n = 16.0f,
-    .low_zeta = 1.0f,
+    .omega_n = 12.0f,
+    .low_zeta = 0.8f,
     .low_b = 1e-3f,
 };
 

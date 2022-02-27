@@ -59,10 +59,10 @@ public:
       bz->play(hardware::Buzzer::ERROR);
 
     /* Battery Check */
-    batteryCheck();
-
-    /* Normal Boot */
-    bz->play(hardware::Buzzer::BOOT);
+    if (batteryCheck())
+      bz->play(hardware::Buzzer::BOOT);
+    else
+      bz->play(hardware::Buzzer::SHUTDOWN);
 
     /* SPI for IMU, Encoder */
     if (!peripheral::SPI::install(CONFIG_SPI_HOST, CONFIG_SPI_SCLK_PIN,
@@ -119,20 +119,15 @@ public:
     else
       led->set(0x0F);
   }
-  void batteryCheck() {
+  bool batteryCheck() {
     const float voltage = getBatteryVoltage();
     batteryLedIndicate(voltage);
     app_logi << "Battery Voltage: " << voltage << " [V]" << std::endl;
     if (voltage < thr_battery) {
       app_logw << "Battery Low!" << std::endl;
-      bz->play(hardware::Buzzer::SHUTDOWN);
-      led->set(0);
-      /* wait for button pressed */
-      while (!btn->pressed)
-        vTaskDelay(pdMS_TO_TICKS(10));
-      btn->flags = 0;
-      led->set(0);
+      return false;
     }
+    return true;
   }
 };
 

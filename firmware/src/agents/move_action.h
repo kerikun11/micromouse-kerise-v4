@@ -43,7 +43,7 @@ public:
     bool side_wall_avoid_enabled = 1;
     bool side_wall_fix_theta_enabled = 1;
     bool side_wall_fix_v90_enabled = 1;
-    bool side_wall_cut_enabled = 1;
+    bool side_wall_cut_enabled = 0;
     /* common values */
     float v_max = 720;
     float a_max = 3600;
@@ -165,8 +165,11 @@ private:
   lime62::concurrent_queue<MazeLib::RobotBase::SearchAction> sa_queue;
   ctrl::Pose offset;
   std::array<bool, 3> is_wall;
-  bool prev_wall[2];
   bool continue_straight_if_no_front_wall = false;
+  typedef struct {
+    bool prev_wall[2];
+    float prev_x[2];
+  } wall_cut_data_t;
 
   /* State Manager */
   enum State : uint8_t {
@@ -358,18 +361,12 @@ private:
       float y_error = 0;              //< 姿勢の補正用変数
       if (sp->wd->distance.side[0] < wall_dist_thr) {
         y_error -= sp->wd->distance.side[0];
-        // sp->sc->est_p.y =
-        //     (1 - alpha) * sp->sc->est_p.y - alpha *
-        //     sp->wd->distance.side[0];
         sp->sc->fix_pose(
             {0, -alpha * (sp->sc->est_p.y + sp->wd->distance.side[0])});
         led_flags |= 8;
       }
       if (sp->wd->distance.side[1] < wall_dist_thr) {
         y_error += sp->wd->distance.side[1];
-        // sp->sc->est_p.y =
-        //     (1 - alpha) * sp->sc->est_p.y + alpha *
-        //     sp->wd->distance.side[1];
         sp->sc->fix_pose(
             {0, -alpha * (sp->sc->est_p.y - sp->wd->distance.side[1])});
         led_flags |= 1;
@@ -396,7 +393,7 @@ private:
 #endif
     }
 #if 1
-    /* 45 [deg] の倍数 */
+    /* 斜めの壁制御 */
     if (isDiag() && remain > field::SegWidthFull / 3) {
       const float alpha = 0.1;         //< 補正割合 (0: 補正なし)
       const float wall_dist_ref = -12; //< 大きく：補正強く
@@ -414,7 +411,7 @@ private:
 #endif
     hw->led->set(led_flags);
   }
-  void side_wall_cut(const RunParameter &rp) {
+  void side_wall_cut(const RunParameter &rp, wall_cut_data_t &wall_cut_data) {
     if (!rp.side_wall_cut_enabled)
       return;
     /* 姿勢が整っているときのみ */
@@ -422,49 +419,20 @@ private:
     /* 左右それぞれ */
     for (int i = 0; i < 2; i++) {
       /* 壁の変化 */
-      if (prev_wall[i] && !sp->wd->is_wall[i]) {
-        if (std::abs(sp->sc->est_p.th) > theta_threshold)
-          /* along の壁切れ */
-          if (isAlong()) {
-            // const float wall_cut_offset = -15; /*< 大きいほど前へ */
-            // const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
-            // const float x_abs_cut =
-            //     math_utils::round2(x_abs, field::SegWidthFull);
-            // const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
-            // const float fixed_x_abs = std::abs(fixed_x);
-            // const float alpha = 0.1f;
-            // sp->sc->fix_pose(ctrl::Pose(alpha * fixed_x, 0, 0));
-            hw->bz->play(hardware::Buzzer::CANCEL);
-          }
-          /* 斜めの壁切れ */
-#if 0
-        if (isDiag()) {
-          const float wall_cut_offset = -9; /*< 大きいほど前に */
-                                            /* 壁切れ方向 */
-          const float th_ref = (i == 0) ? (-PI / 4) : (PI / 4);
-          /* 壁に沿った方向の位置 */
-          const float x_abs = offset.rotate(offset.th + th_ref).x +
-                              sp->sc->est_p.rotate(th_ref).x;
-          const float x_abs_cut =
-              math_utils::round2(x_abs, field::SegWidthFull);
-          const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
-          const auto fixed_x_abs = std::abs(fixed_x);
-          if (fixed_x_abs < 5.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
-            hw->bz->play(hardware::Buzzer::SHORT8);
-          } else if (fixed_x_abs < 10.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x, 0, 0).rotate(-th_ref));
-            hw->bz->play(hardware::Buzzer::SHORT7);
-          } else if (fixed_x_abs < 20.0f) {
-            sp->sc->fix_pose(ctrl::Pose(fixed_x / 2, 0, 0).rotate(-th_ref));
-            hw->bz->play(hardware::Buzzer::SHORT6);
-          } else {
-            hw->bz->play(hardware::Buzzer::CANCEL);
-          }
+      if (wall_cut_data.prev_wall[i] && !sp->wd->is_wall[i]) {
+        if (isAlong() && std::abs(sp->sc->est_p.th) < theta_threshold) {
+          // const float wall_cut_offset = -15; /*< 大きいほど前へ */
+          // const float x_abs = offset.rotate(offset.th).x + sp->sc->est_p.x;
+          // const float x_abs_cut =
+          //     math_utils::round2(x_abs, field::SegWidthFull);
+          // const float fixed_x = x_abs_cut - x_abs + wall_cut_offset;
+          // const float fixed_x_abs = std::abs(fixed_x);
+          // const float alpha = 0.1f;
+          // sp->sc->fix_pose(ctrl::Pose(alpha * fixed_x, 0, 0));
+          // hw->bz->play(hardware::Buzzer::CANCEL);
+        }
       }
-#endif
-      }
-      prev_wall[i] = sp->wd->is_wall[i];
+      wall_cut_data.prev_wall[i] = sp->wd->is_wall[i];
     }
   }
   void straight_x(const float distance, float v_max, float v_end,
@@ -475,7 +443,12 @@ private:
     v_end = unknown_accel ? rp.v_unknown_accel : v_end;
     v_max = unknown_accel ? rp.v_unknown_accel : v_max;
     /* 壁切れ用 */
-    prev_wall[0] = sp->wd->is_wall[0], prev_wall[1] = sp->wd->is_wall[1];
+    wall_cut_data_t wall_cut_data = {
+        .prev_wall = {sp->wd->is_wall[0], sp->wd->is_wall[1]},
+        .prev_x = {sp->sc->est_p.x, sp->sc->est_p.x},
+    };
+    wall_cut_data.prev_wall[0] = sp->wd->is_wall[0];
+    wall_cut_data.prev_wall[1] = sp->wd->is_wall[1];
     /* 移動分が存在する場合 */
     if (distance - sp->sc->est_p.x > 0) {
       const float v_start = sp->sc->ref_v.tra;
@@ -516,7 +489,7 @@ private:
         hw->led->set(0);
         front_wall_fix(rp);
         side_wall_avoid(rp, remain);
-        side_wall_cut(rp);
+        side_wall_cut(rp, wall_cut_data);
         /* 軌道追従 */
         trajectory.update(ref_s, t);
         const auto ref =
