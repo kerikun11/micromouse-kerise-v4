@@ -77,7 +77,7 @@ private:
     /* 回収待ち */
     if (sp->ui->waitForPickup())
       return;
-    /* 状態復元 -> 走行再開 */
+    /* 状態復元 */
     Machine::restore();
     /* 自己位置復帰 */
     mr->autoRun(true, true);
@@ -477,14 +477,10 @@ private:
     const auto push_log = [&]() {
       const auto &bd = sp->sc->fbc.getBreakdown();
       lgr->push({
-          hw->enc->get_position(0),
-          hw->enc->get_position(1),
-          hw->imu->get_gyro().z,
-          hw->imu->get_accel().y,
-          hw->imu->get_angular_accel(),
-          bd.u.tra,
-          bd.u.rot,
-          sp->ui->getBatteryVoltage(),
+          hw->enc->get_position(0), hw->enc->get_position(1),
+          hw->imu->get_gyro().z, hw->imu->get_accel().y,
+          hw->imu->get_angular_accel(), bd.u.tra, bd.u.rot,
+          // sp->ui->getBatteryVoltage(),
       });
     };
     hw->bz->play(hardware::Buzzer::CALIBRATION);
@@ -873,7 +869,7 @@ public:
     return true;
   }
   void drive() {
-    // driveAutomatically();
+    driveAutomatically();
     while (1)
       driveManually();
     vTaskDelay(portMAX_DELAY);

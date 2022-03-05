@@ -7,19 +7,13 @@
  */
 #pragma once
 
-#include "app_log.h"
-#include "config/io_mapping.h"
-#include "config/model.h"
 #include "hardware/hardware.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <peripheral/adc.h>
 
 class UserInterface {
 public:
-  /* 定数 */
-  static constexpr float thr_battery = 3.8f;
   /* UI パラメータ */
   static constexpr float thr_accel = 3 * 9807; /**< 加速度の閾値 */
   static constexpr float thr_gyro = 4 * PI;    /**< 角速度の閾値 */
@@ -147,12 +141,17 @@ public:
   }
   /**
    * @brief マシン回収まで待つ関数
+   *
+   * @retval true 回収された
+   * @retval false タイムアウト
    */
   bool waitForPickup(const int wait_ms = 1200) {
     hw->led->set(0xf);
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
-      if (std::abs(hw->imu->get_gyro().x) > thr_gyro_pickup) {
+      if (std::abs(hw->imu->get_gyro().x) > thr_gyro_pickup ||
+          std::abs(hw->imu->get_gyro().y) > thr_gyro_pickup ||
+          std::abs(hw->imu->get_gyro().z) > thr_gyro_pickup) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         hw->led->set(0x0);
         return true;
@@ -194,15 +193,6 @@ public:
         return false;
       }
     }
-  }
-  /**
-   * @brief Sample the Battery Voltage
-   * @return float voltage [V]
-   */
-  static float getBatteryVoltage() {
-    // return 2 * 1.1f * 3.54813389f * analogRead(BAT_VOL_PIN) / 4095;
-    return 2 * peripheral::ADC::read_milli_voltage(BAT_VOL_ADC1_CHANNEL, 10) /
-           1e3f;
   }
   /**
    * @brief バッテリー電圧をLEDで表示

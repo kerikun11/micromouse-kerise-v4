@@ -18,7 +18,7 @@ using namespace MazeLib;
 
 /* 大会前には必ず 32 にする */
 #define MAZEROBOT_TIMEOUT_SELECT 1
-#define MAZEROBOT_GOAL_SELECT 1
+#define MAZEROBOT_GOAL_SELECT 7
 
 /* ゴール座標 */
 #if MAZEROBOT_GOAL_SELECT == 0
@@ -45,6 +45,9 @@ using namespace MazeLib;
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
   }
+#elif MAZEROBOT_GOAL_SELECT == 7
+#define MAZE_GOAL                                                              \
+  { MazeLib::Position(7, 7), }
 #endif
 
 class MazeRobot : public RobotBase {
@@ -98,6 +101,7 @@ private:
       }
       f.read((char *)this, sizeof(*this));
       offset_time_ms = backup_time_ms;
+      running_parameter = 0;
       return true;
     }
     /* updaters */
@@ -193,9 +197,12 @@ public:
         return false; //< 探索不能迷路
     /* 最短走行ループ: スタート -> ゴール -> スタート */
     while (1) {
-      /* 5走終了 → 離脱 */
-      if (isAutoParamSelect && state.get_try_count_remain() <= 0)
-        break;
+      /* 5走終了 */
+      if (isAutoParamSelect && state.get_try_count_remain() <= 0) {
+        hw->bz->play(hardware::Buzzer::COMPLETE);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        // return true;
+      }
       /* 回収待ち */
       if (sp->ui->waitForPickup())
         return false;
@@ -215,9 +222,6 @@ public:
         auto_pi_run();
       }
     }
-    /* 5走終了 */
-    hw->bz->play(hardware::Buzzer::COMPLETE);
-    return true;
   }
   void print() const {
     for (const auto &wl : maze.getWallRecords())
@@ -249,10 +253,7 @@ protected:
   }
   void backupMazeToFlash() override { backup(); }
   void stopDequeue() override { ma->disable(); }
-  void startDequeue() override {
-    ma->enable(MoveAction::TaskActionSearchRun);
-    hw->led->set(1); //< for debug
-  }
+  void startDequeue() override { ma->enable(MoveAction::TaskActionSearchRun); }
   void calibration() override { ma->calibration(); }
   void calcNextDirectionsPreCallback() override {
     /* ゴール判定用フラグ */
