@@ -21,6 +21,7 @@ public:
   static constexpr int acc_num = 4;
 
 public:
+  /* 読み取り専用 */
   ctrl::Polar ref_v;
   ctrl::Polar ref_a;
   ctrl::Polar est_v;
@@ -35,10 +36,8 @@ private:
   hardware::Hardware *hw;
 
 public:
-  SpeedController(const ctrl::FeedbackController<ctrl::Polar>::Model &M,
-                  const ctrl::FeedbackController<ctrl::Polar>::Gain &G,
-                  hardware::Hardware *hw)
-      : fbc(M, G), hw(hw) {
+  SpeedController(hardware::Hardware *hw)
+      : fbc(model::SpeedControllerModel, model::SpeedControllerGain), hw(hw) {
     reset();
   }
   bool init() {
@@ -46,6 +45,19 @@ public:
         [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
         "SpeedCtrl", 4096, this, 5, NULL, PRO_CPU_NUM);
     return true;
+  }
+  void reset() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    ref_v.clear();
+    ref_a.clear();
+    est_v.clear();
+    est_a.clear();
+    est_p.clear();
+    enc_v.clear();
+    for (int i = 0; i < 2; i++)
+      wheel_position[i].clear(hw->enc->get_position(i));
+    accel.clear({hw->imu->get_accel().y, hw->imu->get_angular_accel()});
+    fbc.reset();
   }
   void enable() {
     reset();
@@ -59,15 +71,21 @@ public:
     hw->fan->drive(0);
   }
   void set_target(float v_tra, float v_rot, float a_tra = 0, float a_rot = 0) {
+    std::lock_guard<std::mutex> lock_guard(mutex);
     ref_v.tra = v_tra, ref_v.rot = v_rot, ref_a.tra = a_tra, ref_a.rot = a_rot;
   }
-  void fix_pose(ctrl::Pose fix, bool saturate = true) {
-    if (saturate) {
+  void fix_pose(ctrl::Pose fix, bool force = true) {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    if (!force) {
       const float max_fix = 1.0f; //< 補正量の飽和 [mm]
       fix.x = std::max(std::min(fix.x, max_fix), -max_fix);
       fix.y = std::max(std::min(fix.y, max_fix), -max_fix);
     }
-    est_p += fix; // ToDo: make thread safe
+    est_p += fix;
+  }
+  void update_pose(ctrl::Pose new_pose) {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    est_p = new_pose;
   }
   void sampling_sync() const { //
     data_ready_semaphore.take();
@@ -76,6 +94,7 @@ public:
 private:
   volatile bool drive_enabled = false;
   freertospp::Semaphore data_ready_semaphore;
+  std::mutex mutex;
 
   void task() {
     while (1) {
@@ -83,6 +102,7 @@ private:
       hw->imu->sampling_sync();
       hw->enc->sampling_sync();
       /* update data */
+      std::lock_guard<std::mutex> lock_guard(mutex);
       update_samples();
       update_estimator();
       update_odometry();
@@ -93,18 +113,6 @@ private:
       if (drive_enabled)
         drive();
     }
-  }
-  void reset() {
-    ref_v.clear();
-    ref_a.clear();
-    est_p.clear();
-    est_v.clear();
-    est_a.clear();
-    enc_v.clear();
-    for (int i = 0; i < 2; i++)
-      wheel_position[i].clear(hw->enc->get_position(i));
-    accel.clear({hw->imu->get_accel().y, hw->imu->get_angular_accel()});
-    fbc.reset();
   }
   void update_samples() {
     /* add new samples */

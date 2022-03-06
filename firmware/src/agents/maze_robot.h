@@ -68,12 +68,12 @@ private:
       switch (size) {
       case 0:
       case 32:
-        competition_limit_time_s = 60 * 10;
-        expected_fast_run_time_s = 90; //< 90: 6分で打ち切り
+        competition_limit_time_s = 60 * 10 - 60;
+        expected_fast_run_time_s = 60; //< 5分 で打ち切り
         break;
       case 2:
       case 16:
-        competition_limit_time_s = 60 * 5;
+        competition_limit_time_s = 60 * 5 - 30;
         expected_fast_run_time_s = 45; //< 45: 2分で打ち切り
         break;
       case 1:
@@ -200,8 +200,8 @@ public:
       /* 5走終了 */
       if (isAutoParamSelect && state.get_try_count_remain() <= 0) {
         hw->bz->play(hardware::Buzzer::COMPLETE);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        // return true;
+        if (sp->ui->waitForPickup(2000))
+          return false;
       }
       /* 回収待ち */
       if (sp->ui->waitForPickup())
@@ -402,6 +402,7 @@ private:
     if (state.no_more_time()) {
       /* 残り時間が足りない場合 */
       ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
+      ma->rp_fast.up(1), state.running_parameter += 1;
       ma->rp_search.diag_enabled = false; //< 既知区間斜めは無効化
       /* 最短初回なら斜め有効、それ以外は無効 */
       ma->rp_fast.diag_enabled = (state.get_try_count() == 1);

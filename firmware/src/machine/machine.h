@@ -779,7 +779,7 @@ private:
         }
         /* 制御 */
         const float sat_tra = 180.0f; //< [mm/s]
-        const float sat_rot = PI;     //< [rad/s]
+        const float sat_rot = PI / 2; //< [rad/s]
         sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                            math_utils::saturate(wp.rot, sat_rot));
         sp->sc->sampling_sync();
