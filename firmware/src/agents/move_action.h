@@ -150,6 +150,7 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
   void calibration() {
+    vTaskDelay(pdMS_TO_TICKS(400)); //< 期待が静止するための安全ウェイト
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->enc->clear_offset();
@@ -278,6 +279,8 @@ private:
 #if DEBUG_WALL_ATTACH_EMERGENCY
     if (hw->mt->is_emergency())
       hw->led->set(12), vTaskDelay(portMAX_DELAY); //< for debug
+#endif
+#if 1
     /* 謎のバグ回避 */
     if (hw->mt->is_emergency()) {
       emergency_release();
@@ -325,11 +328,13 @@ private:
     const float alpha = force ? 0.4f : 0.1f; //< 補正割合 (0: 補正なし)
     sp->sc->fix_pose({alpha * p_fix.x, alpha * p_fix.y, 0}, force);
     /* お知らせ */
+#if 0
     if (x_diff_abs < 5) {
       hw->bz->play(hardware::Buzzer::SHORT7);
     } else {
       hw->bz->play(hardware::Buzzer::SHORT6);
     }
+#endif
     return;
   }
   void side_wall_fix_v90(const RunParameter &rp) {
@@ -961,7 +966,7 @@ private:
     hw->fan->drive(0);
     /* クラッシュでない場合は機体が完全に停止するまで待つ */
     if (!hw->mt->is_emergency()) {
-      vTaskDelay(pdMS_TO_TICKS(200));
+      vTaskDelay(pdMS_TO_TICKS(400));
       hw->bz->play(hardware::Buzzer::COMPLETE);
     }
     sp->sc->disable();
