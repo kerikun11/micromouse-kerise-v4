@@ -45,6 +45,7 @@ public:
   }
   void calibration() {
     calib_req = true;
+    /* 終了まで待つ */
     std::unique_lock<std::mutex> unique_lock(calib_mutex);
     calib_cv.wait(unique_lock, [&] { return !calib_req; });
   }
@@ -118,6 +119,8 @@ private:
   }
   void task_calibration(TickType_t &xLastWakeTime) {
     const int ave_count = 200;
+    accel_offset = MotionParameter();
+    gyro_offset = MotionParameter();
     for (int j = 0; j < 2; j++) {
       MotionParameter accel_sum, gyro_sum;
       for (int i = 0; i < ave_count; i++) {
@@ -127,7 +130,6 @@ private:
         accel_sum += accel;
         gyro_sum += gyro;
       }
-      std::lock_guard<std::mutex> lock_guard(mutex);
       accel_offset += accel_sum / ave_count;
       gyro_offset += gyro_sum / ave_count;
     }

@@ -16,9 +16,9 @@
 
 using namespace MazeLib;
 
-/* 大会前には必ず 32 にする */
-#define MAZEROBOT_TIMEOUT_SELECT 1
-#define MAZEROBOT_GOAL_SELECT 7
+/* 大会前には必ず 0 にする */
+#define MAZEROBOT_TIMEOUT_SELECT 0
+#define MAZEROBOT_GOAL_SELECT 6
 
 /* ゴール座標 */
 #if MAZEROBOT_GOAL_SELECT == 0
@@ -44,6 +44,12 @@ using namespace MazeLib;
   {                                                                            \
     MazeLib::Position(3, 3), MazeLib::Position(4, 4), MazeLib::Position(4, 3), \
         MazeLib::Position(3, 4),                                               \
+  }
+#elif MAZEROBOT_GOAL_SELECT == 6
+#define MAZE_GOAL                                                              \
+  {                                                                            \
+    MazeLib::Position(6, 9), MazeLib::Position(6, 10),                         \
+        MazeLib::Position(7, 9), MazeLib::Position(7, 10),                     \
   }
 #elif MAZEROBOT_GOAL_SELECT == 7
 #define MAZE_GOAL                                                              \
@@ -181,15 +187,11 @@ public:
   }
   void setTimeout(int timeout_select) { state.set_timeout(timeout_select); }
   bool autoRun(const bool isAutoParamSelect = false,
-               const bool isForcePI = false) {
-    /* 緊急停止の解放 (念のため) */
-    ma->emergency_release();
-    /* 迷路のチェック */
-    if (!auto_maze_check())
-      return false;
+               const bool isPositionIdentificationAtFirst = false) {
     /* 自己位置復帰走行: 任意 -> 復帰 -> ゴール -> スタート */
-    if (isForcePI) {
-      auto_pi_run();
+    if (isPositionIdentificationAtFirst) {
+      if (!auto_pi_run())
+        return false; //< 回収された
     }
     /* 探索走行: スタート -> ゴール -> スタート */
     if (!calcShortestDirections(true))
@@ -215,11 +217,10 @@ public:
           return false; /*< クラッシュではない場合キャンセル */
         /* クラッシュ後の場合、自動復帰 */
         ma->emergency_release();
-        /* 回収待ち */
-        if (sp->ui->waitForPickup())
-          return false;
+        // state.save(), esp_restart(); //< 緊急ループ対策
         /* 自動復帰 */
-        auto_pi_run();
+        if (!auto_pi_run())
+          return false; //< 回収された
       }
     }
   }
@@ -293,11 +294,6 @@ protected:
 
 private:
   bool auto_maze_check() {
-    /* 探索中だった場合はクラッシュ後を想定して直近の壁を削除 */
-    if (!getMaze().getWallRecords().empty() && !isComplete()) {
-      hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
-      maze.resetLastWalls(3);
-    }
     /* 異常検出 */
     if (!isSolvable())
       hw->bz->play(hardware::Buzzer::ERROR);
@@ -309,6 +305,9 @@ private:
     return true;
   }
   bool auto_search_run() {
+    /* 迷路のチェック */
+    if (!auto_maze_check())
+      return false;
     /* 探索走行: スタート -> ゴール -> スタート */
     state.start_search_run(); //< 0 -> 1
     if (searchRun()) {
@@ -317,17 +316,24 @@ private:
     }
     /* エラー処理 */
     if (!isSolvable()) {
-      /* 探索失敗 */
+      /* 迷路異常の場合 */
       hw->bz->play(hardware::Buzzer::ERROR);
       /* ToDo: 迷路を編集して探索を再開 */
-      /* ここでは姿勢復帰をせずとも自己位置同定を開始できる． */
+      /* なお、ここでは姿勢復帰をせずに自己位置同定走行を開始できる． */
       return false;
     }
+    /* クラッシュの場合 */
     ma->emergency_release();
-    /* 自動復帰 */
+    /* 探索中だった場合はクラッシュ後を想定して直近の壁を削除 */
+    hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
+    maze.resetLastWalls(6);
+    /* 自動復帰走行 */
     return auto_pi_run();
   }
   bool auto_fast_run() {
+    /* 迷路のチェック */
+    if (!auto_maze_check())
+      return false;
     /* 最短経路の作成 */
     if (!calcShortestDirections(ma->rp_fast.diag_enabled)) {
       hw->bz->play(hardware::Buzzer::ERROR);
@@ -356,10 +362,12 @@ private:
   }
   bool auto_pi_run() {
     /* 迷路のチェック */
-    // auto_maze_check();
+    auto_maze_check();
+    /* 念のため */
+    ma->emergency_release();
     /* 既知区間斜めを無効化 */
     ma->rp_search.diag_enabled = false;
-    /* 自動復帰: 姿勢復帰 -> 自己位置同定 -> ゴール -> スタート */
+    /* 自動復帰ループ: 姿勢復帰 -> 自己位置同定 -> ゴール -> スタート */
     while (1) {
       /* 姿勢復帰ループ */
       while (1) {
@@ -378,7 +386,7 @@ private:
         /* 成功 */
         break;
       }
-      /* 回収待ち */
+      /* 姿勢復帰完了。回収待ち */
       if (sp->ui->waitForPickup())
         return false;
       /* ゴール区画の訪問を指定 */
@@ -391,7 +399,7 @@ private:
         ma->emergency_release(); //< 自己位置同定中にクラッシュ
       else
         hw->bz->play(hardware::Buzzer::ERROR); //< 自己位置同定に失敗
-      /* 再チャレ */
+      /* 失敗した場合は再チャレ */
     }
     /* スタート位置に戻ってきた */
     hw->bz->play(hardware::Buzzer::COMPLETE);

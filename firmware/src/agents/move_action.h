@@ -52,7 +52,7 @@ public:
     float j_max = 240'000;
     std::array<float, field::ShapeIndexMax> v_slalom;
     /* search run */
-    float v_search = 360;
+    float v_search = 330;
     float v_unknown_accel = 600;
     /* fast run */
     float fan_duty = 0.4f;
@@ -150,7 +150,7 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
   void calibration() {
-    vTaskDelay(pdMS_TO_TICKS(400)); //< 期待が静止するための安全ウェイト
+    sp->sc->disable();
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->enc->clear_offset();
@@ -644,12 +644,13 @@ private:
     if (is_break_state())
       return;
     int dir = (sp->wd->distance.side[0] > sp->wd->distance.side[1]) ? -1 : 1;
+    /* 壁のないほうでターン */
     if (front_wall_attach()) {
-      turn(dir * PI);
+      turn(-dir * PI);
     } else {
-      turn(dir * PI / 2);
+      turn(-dir * PI / 2);
       front_wall_attach();
-      turn(dir * PI / 2);
+      turn(-dir * PI / 2);
     }
     /* 謎バグ: なぜか前進しているので修正 */
     sp->sc->fix_pose({model::CenterOffsetY, 0, 0}, true);
