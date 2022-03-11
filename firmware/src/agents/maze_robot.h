@@ -17,8 +17,8 @@
 using namespace MazeLib;
 
 /* 大会前には必ず 0 にする */
-#define MAZEROBOT_TIMEOUT_SELECT 1
-#define MAZEROBOT_GOAL_SELECT 8
+#define MAZEROBOT_TIMEOUT_SELECT 0
+#define MAZEROBOT_GOAL_SELECT 0
 
 /* ゴール座標 */
 #if MAZEROBOT_GOAL_SELECT == 0

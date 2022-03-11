@@ -148,7 +148,6 @@ public:
   }
   const auto &getSensedWalls() const { return is_wall; }
   void calibration() {
-    sp->sc->disable();
     hw->bz->play(hardware::Buzzer::CALIBRATION);
     hw->imu->calibration();
     hw->enc->clear_offset();

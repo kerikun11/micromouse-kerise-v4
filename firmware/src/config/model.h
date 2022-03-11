@@ -126,7 +126,7 @@ static constexpr float wall_fix_offset = -5; /*< 大きく: 前壁に近く */
 static constexpr float front_wall_attach_gain = 30.0f;
 static constexpr float front_wall_attach_end = 0.1f;
 static constexpr float wall_avoid_alpha = 0.05f;
-static constexpr float wall_fix_theta_gain = 1e-8f;
+static constexpr float wall_fix_theta_gain = 1e-7f;
 static constexpr float wall_comb_threshold = 80;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
