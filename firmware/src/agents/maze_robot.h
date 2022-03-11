@@ -82,8 +82,8 @@ private:
       switch (size) {
       case 0:
       case 32:
-        competition_limit_time_s = 60 * 10 - 60;
-        expected_fast_run_time_s = 60; //< 5分 で打ち切り
+        competition_limit_time_s = 60 * 10 - 120;
+        expected_fast_run_time_s = 60; //< 4分 で打ち切り
         break;
       case 2:
       case 16:
