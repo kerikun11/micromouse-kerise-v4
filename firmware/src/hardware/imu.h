@@ -68,17 +68,21 @@ public:
   void csv() {
     std::cout << "0," << gyro.x << "," << gyro.y << "," << gyro.z << std::endl;
   }
-  const MotionParameter &get_gyro() {
+  const MotionParameter &get_gyro3() {
     std::lock_guard<std::mutex> lock_guard(mutex);
     return gyro;
   }
-  const MotionParameter &get_accel() {
+  const MotionParameter &get_accel3() {
     std::lock_guard<std::mutex> lock_guard(mutex);
     return accel;
   }
-  float get_angle() {
+  float get_accel() {
     std::lock_guard<std::mutex> lock_guard(mutex);
-    return angle;
+    return accel.y;
+  }
+  float get_gyro() {
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    return gyro.z;
   }
   float get_angular_accel() {
     std::lock_guard<std::mutex> lock_guard(mutex);

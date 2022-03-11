@@ -17,8 +17,8 @@
 using namespace MazeLib;
 
 /* 大会前には必ず 0 にする */
-#define MAZEROBOT_TIMEOUT_SELECT 0
-#define MAZEROBOT_GOAL_SELECT 6
+#define MAZEROBOT_TIMEOUT_SELECT 1
+#define MAZEROBOT_GOAL_SELECT 8
 
 /* ゴール座標 */
 #if MAZEROBOT_GOAL_SELECT == 0
@@ -54,6 +54,14 @@ using namespace MazeLib;
 #elif MAZEROBOT_GOAL_SELECT == 7
 #define MAZE_GOAL                                                              \
   { MazeLib::Position(7, 7), }
+#elif MAZEROBOT_GOAL_SELECT == 8
+#define MAZE_GOAL                                                              \
+  {                                                                            \
+    MazeLib::Position(6, 6), MazeLib::Position(6, 7), MazeLib::Position(6, 8), \
+        MazeLib::Position(7, 6), MazeLib::Position(7, 7),                      \
+        MazeLib::Position(7, 8), MazeLib::Position(8, 6),                      \
+        MazeLib::Position(8, 7), MazeLib::Position(8, 8),                      \
+  }
 #endif
 
 class MazeRobot : public RobotBase {
@@ -272,9 +280,10 @@ protected:
     ma->set_unknown_accel_flag(getUnknownAccelFlag());
     /* ゴール判定 */
     if (prevIsForceGoingToGoal && !isForceGoingToGoal) {
-      state.set_reached_goal();
       hw->bz->play(hardware::Buzzer::CONFIRM);
     }
+    if (!isForceGoingToGoal)
+      state.set_reached_goal();
     /* 探索情報のお知らせ */
     if (newState == prevState)
       return;

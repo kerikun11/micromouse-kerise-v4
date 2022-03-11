@@ -112,8 +112,6 @@ public:
   }
 
   void enable(const TaskAction ta) {
-    // disable if enabled
-    sp->sc->disable();
     // set parameter
     this->task_action = ta;
     // enable
@@ -134,8 +132,8 @@ public:
   }
   void set_fast_path(const std::string &fast_path) {
     this->fast_path = fast_path;
-    if (state == STATE_WAITING)
-      state_update(State::STATE_RUNNING);
+    // if (state == STATE_WAITING)
+    //   state_update(State::STATE_RUNNING);
   }
   void emergency_release() {
     if (hw->mt->is_emergency()) {
@@ -280,7 +278,7 @@ private:
     if (hw->mt->is_emergency())
       hw->led->set(12), vTaskDelay(portMAX_DELAY); //< for debug
 #endif
-#if 1
+#if 0
     /* 謎のバグ回避 */
     if (hw->mt->is_emergency()) {
       emergency_release();
@@ -496,12 +494,22 @@ private:
                        std::max(v_end, 30.0f), distance - sp->sc->est_p.x,
                        sp->sc->est_p.x);
       tt.reset(v_start);
+#if DEBUG_WALL_ATTACH_EMERGENCY
+      auto lgr = new Logger();
+      lgr->init({
+          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
+          "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
+          "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
+          "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
+          "ref_q.th",  "est_q.th",
+      });
+#endif
       for (float t = 0; true; t += sp->sc->Ts) {
         if (is_break_state())
           break;
         /* 終了条件 */
         const float remain = distance - sp->sc->est_p.x;
-        if (remain < 0 || t > trajectory.t_end() + 0.01f)
+        if (remain < 0 || t > trajectory.t_end())
           break; //< 静止の場合を考慮した条件
         /* 前壁制御 */
         if (isAlong() && hw->tof->isValid()) {
@@ -511,7 +519,7 @@ private:
             wall_stop_aebs();
           if (v_end > 1 && tof_mm < field::SegWidthFull / 2)
             wall_stop_aebs();
-          /* 未知区間加速のキャンセル */
+          /* 未知区間加速の緊急キャンセル */
           if (unknown_accel && tof_mm < 1.8f * field::SegWidthFull) {
             unknown_accel = false;
             trajectory.reset(rp.j_max, rp.a_max, rp.v_search, sp->sc->ref_v.tra,
@@ -531,7 +539,37 @@ private:
         const auto ref =
             tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a, ref_s);
         sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
+#if DEBUG_WALL_ATTACH_EMERGENCY
+        const auto &bd = sp->sc->fbc.getBreakdown();
+        const auto &ref_q = ref_s.q;
+        const auto &est_q = sp->sc->est_p;
+        lgr->push({
+            sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
+            sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
+            bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
+            sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
+            bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
+            bd.fbd.rot,        ref_q.x,           est_q.x,
+            ref_q.y,           est_q.y,           ref_q.th,
+            est_q.th,
+        });
+#endif
       }
+#if DEBUG_WALL_ATTACH_EMERGENCY
+      if (hw->mt->is_emergency()) {
+        while (1) {
+          // app_logi << "ref_v: " << sp->sc->ref_v << std::endl;
+          // app_logi << "ref_a: " << sp->sc->ref_a << std::endl;
+          // app_logi << "est_p: " << sp->sc->est_p << std::endl;
+          // app_logi << "est_v: " << sp->sc->est_v << std::endl;
+          // app_logi << "est_a: " << sp->sc->est_a << std::endl;
+          // app_logi << "fbc.u: " << sp->sc->fbc.getBreakdown().u << std::endl;
+          // app_logi << "tt.xi: " << tt.xi << std::endl;
+          lgr->print();
+          vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+      }
+#endif
     }
     if (v_end < 1) {
       sp->sc->set_target(0, 0);
@@ -643,14 +681,16 @@ private:
   void u_turn() {
     if (is_break_state())
       return;
+    /* 前壁あり：横壁なし方向でターン */
+    /* 前壁なし：横壁あり方向でターン */
     int dir = (sp->wd->distance.side[0] > sp->wd->distance.side[1]) ? -1 : 1;
-    /* 壁のないほうでターン */
+    dir = sp->wd->is_wall[2] ? -dir : dir;
     if (front_wall_attach()) {
-      turn(-dir * PI);
+      turn(dir * PI);
     } else {
-      turn(-dir * PI / 2);
+      turn(dir * PI / 2);
       front_wall_attach();
-      turn(-dir * PI / 2);
+      turn(dir * PI / 2);
     }
     /* 謎バグ: なぜか前進しているので修正 */
     sp->sc->fix_pose({model::CenterOffsetY, 0, 0}, true);
@@ -723,6 +763,8 @@ private:
       hw->led->set(1), vTaskDelay(portMAX_DELAY); //< for debug
 #endif
     /* スタート */
+    // sp->sc->reset();
+    // vTaskDelay(pdMS_TO_TICKS(100)); //< 緊急ループ防止の delay
     sp->sc->enable();
     /* とりあえず区画の中心に配置 */
     offset = ctrl::Pose(field::SegWidthFull / 2, field::SegWidthFull / 2);
@@ -764,17 +806,9 @@ private:
 #endif
       }
     }
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(6), vTaskDelay(portMAX_DELAY); //< for debug
-#endif
     // cleaning
     while (!sa_queue.empty())
       sa_queue.pop();
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(7), vTaskDelay(portMAX_DELAY); //< for debug
-#endif
     sp->sc->disable();
 #if DEBUG_WALL_ATTACH_EMERGENCY
     if (hw->mt->is_emergency())
@@ -786,6 +820,7 @@ private:
     ctrl::TrajectoryTracker tt(tt_gain);
     ctrl::State ref_s;
     const auto v_start = sp->sc->ref_v.tra;
+    const float x_start = sp->sc->est_p.x;
     ctrl::AccelCurve ac(rp.j_max, rp.a_max, v_start, 0); //< なめらかに減速
     /* start */
     tt.reset(v_start);
@@ -797,9 +832,10 @@ private:
       hw->led->set(0);
       front_wall_fix(rp);
       side_wall_avoid(rp, 0);
-      const auto ref = tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a,
-                                 ctrl::Pose(ac.x(t)), ctrl::Pose(ac.v(t)),
-                                 ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));
+      const auto ref =
+          tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a,
+                    ctrl::Pose(ac.x(t) + x_start), ctrl::Pose(ac.v(t)),
+                    ctrl::Pose(ac.a(t)), ctrl::Pose(ac.j(t)));
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
     }
     /* 注意: 現在位置はやや前に進んだ状態 */
@@ -877,6 +913,10 @@ private:
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF:
       straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
+#if DEBUG_WALL_ATTACH_EMERGENCY
+      if (hw->mt->is_emergency())
+        hw->led->set(7), vTaskDelay(portMAX_DELAY); //< for debug
+#endif
       break;
     case MazeLib::RobotBase::SearchAction::TURN_L:
       if (sp->sc->est_p.x > 5.0f || sp->sc->ref_v.tra > v_s * 1.2f ||
@@ -916,6 +956,10 @@ private:
       break;
     case MazeLib::RobotBase::SearchAction::ROTATE_180:
       u_turn();
+#if DEBUG_WALL_ATTACH_EMERGENCY
+      if (hw->mt->is_emergency())
+        hw->led->set(6), vTaskDelay(portMAX_DELAY); //< for debug
+#endif
       break;
     case MazeLib::RobotBase::SearchAction::ST_HALF_STOP:
       straight_x(field::SegWidthFull / 2, v_s, 0, rp);

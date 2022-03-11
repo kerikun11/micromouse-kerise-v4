@@ -47,14 +47,14 @@ public:
       vTaskDelay(pdMS_TO_TICKS(1));
       float now_enc = hw->enc->get_position(0) + hw->enc->get_position(1);
       /* SELECT */
-      if (hw->imu->get_gyro().y > thr_gyro) {
+      if (hw->imu->get_gyro3().y > thr_gyro) {
         value += range - 1;
         value %= range;
         hw->led->set(value);
         hw->bz->play(hardware::Buzzer::SELECT);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
       }
-      if (hw->imu->get_gyro().y < -thr_gyro) {
+      if (hw->imu->get_gyro3().y < -thr_gyro) {
         value += 1;
         value %= range;
         hw->led->set(value);
@@ -76,7 +76,7 @@ public:
         hw->bz->play(hardware::Buzzer::SELECT);
       }
       /* CONFIRM */
-      if (std::abs(hw->imu->get_accel().z) > thr_accel) {
+      if (std::abs(hw->imu->get_accel3().z) > thr_accel) {
         hw->bz->play(hardware::Buzzer::CONFIRM);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return value;
@@ -87,7 +87,7 @@ public:
         return value;
       }
       /* CANCEL */
-      if (std::abs(hw->imu->get_accel().x) > thr_accel) {
+      if (std::abs(hw->imu->get_accel3().x) > thr_accel) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return -1;
@@ -127,7 +127,7 @@ public:
         return true;
       }
       /* CANCEL */
-      if (std::abs(hw->imu->get_accel().x) > thr_accel) {
+      if (std::abs(hw->imu->get_accel3().x) > thr_accel) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;
@@ -149,9 +149,9 @@ public:
     hw->led->set(0xf);
     for (int ms = 0; ms < wait_ms; ms++) {
       vTaskDelay(pdMS_TO_TICKS(1));
-      if (std::abs(hw->imu->get_gyro().x) > thr_gyro_pickup ||
-          std::abs(hw->imu->get_gyro().y) > thr_gyro_pickup ||
-          std::abs(hw->imu->get_gyro().z) > thr_gyro_pickup) {
+      if (std::abs(hw->imu->get_gyro3().x) > thr_gyro_pickup ||
+          std::abs(hw->imu->get_gyro3().y) > thr_gyro_pickup ||
+          std::abs(hw->imu->get_gyro3().z) > thr_gyro_pickup) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         hw->led->set(0x0);
         return true;
@@ -171,9 +171,9 @@ public:
     while (1) {
       vTaskDelay(pdMS_TO_TICKS(1));
       /* FIX */
-      if (std::abs(hw->imu->get_gyro().x) < thr_fix_gyro &&
-          std::abs(hw->imu->get_gyro().y) < thr_fix_gyro &&
-          std::abs(hw->imu->get_gyro().z) < thr_fix_gyro) {
+      if (std::abs(hw->imu->get_gyro3().x) < thr_fix_gyro &&
+          std::abs(hw->imu->get_gyro3().y) < thr_fix_gyro &&
+          std::abs(hw->imu->get_gyro3().z) < thr_fix_gyro) {
         if (fix_count++ > wait_fix_ms) {
           hw->bz->play(hardware::Buzzer::CONFIRM);
           return true;
@@ -187,7 +187,7 @@ public:
         hw->bz->play(hardware::Buzzer::CANCEL);
         return false;
       }
-      if (std::abs(hw->imu->get_accel().x) > thr_accel) {
+      if (std::abs(hw->imu->get_accel3().x) > thr_accel) {
         hw->bz->play(hardware::Buzzer::CANCEL);
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
         return false;

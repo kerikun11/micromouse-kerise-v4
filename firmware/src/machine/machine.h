@@ -426,8 +426,8 @@ private:
       return lgr->push({
           hw->enc->get_position(0),
           hw->enc->get_position(1),
-          hw->imu->get_gyro().z,
-          hw->imu->get_accel().y,
+          hw->imu->get_gyro(),
+          hw->imu->get_accel(),
           hw->imu->get_angular_accel(),
           bd.u.tra,
           bd.u.rot,
@@ -478,7 +478,7 @@ private:
       const auto &bd = sp->sc->fbc.getBreakdown();
       lgr->push({
           hw->enc->get_position(0), hw->enc->get_position(1),
-          hw->imu->get_gyro().z, hw->imu->get_accel().y,
+          hw->imu->get_gyro(), hw->imu->get_accel(),
           hw->imu->get_angular_accel(), bd.u.tra, bd.u.rot,
           // sp->ui->getBatteryVoltage(),
       });
