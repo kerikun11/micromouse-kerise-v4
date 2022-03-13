@@ -1,8 +1,9 @@
 /**
- * @file TimerSemaphore.h
+ * @file timer_semaphore.h
  * @brief Timer Semaphore for ESP32
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -11,7 +12,7 @@
 #include <freertos/semphr.h>
 
 class TimerSemaphore {
-public:
+ public:
   TimerSemaphore() : esp_timer_handle(nullptr) {
     xSemaphore = xSemaphoreCreateBinary();
   }
@@ -22,13 +23,13 @@ public:
   void periodic(uint32_t microseconds) {
     attach(
         microseconds, true,
-        [](void *arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
+        [](void* arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
         this);
   }
   void oneshot(uint32_t microseconds) {
     attach(
         microseconds, false,
-        [](void *arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
+        [](void* arg) { static_cast<decltype(this)>(arg)->giveFromISR(); },
         this);
   }
   void end() { detach(); }
@@ -36,15 +37,17 @@ public:
     return xSemaphoreTake(xSemaphore, xBlockTime);
   }
 
-private:
+ private:
   SemaphoreHandle_t xSemaphore;
   esp_timer_handle_t esp_timer_handle;
 
   portBASE_TYPE giveFromISR() {
     return xSemaphoreGiveFromISR(xSemaphore, NULL);
   }
-  void attach(uint32_t microseconds, bool repeat, esp_timer_cb_t callback,
-              void *arg) {
+  void attach(uint32_t microseconds,
+              bool repeat,
+              esp_timer_cb_t callback,
+              void* arg) {
     detach();
     esp_timer_create_args_t esp_timer_create_args;
     esp_timer_create_args.arg = arg;

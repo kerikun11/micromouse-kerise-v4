@@ -15,23 +15,23 @@
 namespace hardware {
 
 class Hardware {
-public:
+ public:
   /* Driver */
-  Buzzer *bz;
-  LED *led;
-  Motor *mt;
-  Fan *fan;
+  Buzzer* bz;
+  LED* led;
+  Motor* mt;
+  Fan* fan;
   /* Sensor */
-  Button *btn;
-  IMU *imu;
-  Encoder *enc;
-  Reflector *rfl;
-  ToF *tof;
+  Button* btn;
+  IMU* imu;
+  Encoder* enc;
+  Reflector* rfl;
+  ToF* tof;
 
-private:
+ private:
   static constexpr float thr_battery = 3.8f;
 
-public:
+ public:
   Hardware() {}
   bool init() {
     /* pullup all the pins of the SPI-CS so that the bus is not blocked */
@@ -131,4 +131,4 @@ public:
   }
 };
 
-} // namespace hardware
+}  // namespace hardware

@@ -1,9 +1,9 @@
 /**
  * @file UserInterface.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief マイクロマウスに備わっているセンサを用いてUIを構成する
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2019-02-10
- * @copyright Copyright (c) 2019 Ryotaro Onuki
+ * @copyright Copyright 2019 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -13,7 +13,7 @@
 #include <freertos/task.h>
 
 class UserInterface {
-public:
+ public:
   /* UI パラメータ */
   static constexpr float thr_accel = 3 * 9807; /**< 加速度の閾値 */
   static constexpr float thr_gyro = 4 * PI;    /**< 角速度の閾値 */
@@ -27,11 +27,11 @@ public:
       0.01f * PI; /**< 静止待機の角速度の閾値 */
   static constexpr float thr_gyro_pickup = PI; /**< 回収角速度の閾値 */
 
-private:
-  hardware::Hardware *hw;
+ private:
+  hardware::Hardware* hw;
 
-public:
-  UserInterface(hardware::Hardware *hw) : hw(hw) {}
+ public:
+  UserInterface(hardware::Hardware* hw) : hw(hw) {}
   /**
    * @brief ユーザーに番号を選択させる
    *

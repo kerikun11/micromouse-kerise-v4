@@ -1,9 +1,9 @@
 /**
  * @file spiffs.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief SPIFFS utility
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
- * @copyright Copyright (c) 2021 Ryotaro Onuki
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -14,8 +14,8 @@
 namespace peripheral {
 
 class SPIFFS {
-public:
-  static bool init(const char *mount_path = "/spiffs") {
+ public:
+  static bool init(const char* mount_path = "/spiffs") {
     esp_vfs_spiffs_conf_t conf = {
         .base_path = mount_path,
         .partition_label = NULL,
@@ -40,9 +40,9 @@ public:
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_vfs_spiffs_unregister(NULL));
     return true;
   }
-  static void list_dir(const char *name) {
-    DIR *dir;
-    struct dirent *entry;
+  static void list_dir(const char* name) {
+    DIR* dir;
+    struct dirent* entry;
     struct stat buf;
     if (!(dir = opendir(name)))
       return;
@@ -51,7 +51,7 @@ public:
       snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
       if (entry->d_type == DT_DIR) {
         printf("          %s/\n", path);
-        list_dir(path); // recursive call
+        list_dir(path);  // recursive call
       } else {
         stat(path, &buf);
         printf("%9ld %s/%s\n", buf.st_size, name, entry->d_name);
@@ -75,4 +75,4 @@ public:
   }
 };
 
-}; // namespace peripheral
+};  // namespace peripheral

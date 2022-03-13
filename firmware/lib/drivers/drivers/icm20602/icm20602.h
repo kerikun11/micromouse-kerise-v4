@@ -1,9 +1,9 @@
 /**
  * @file icm20602.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief ICM-20602 Driver
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-05-23
- * @copyright Copyright (c) 2020 Ryotaro Onuki
+ * @copyright Copyright 2020 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -13,10 +13,10 @@
 struct MotionParameter {
   float x, y, z;
   MotionParameter(float x = 0, float y = 0, float z = 0) : x(x), y(y), z(z) {}
-  MotionParameter operator+(const MotionParameter &obj) const {
+  MotionParameter operator+(const MotionParameter& obj) const {
     return MotionParameter(x + obj.x, y + obj.y, z + obj.z);
   }
-  MotionParameter operator-(const MotionParameter &obj) const {
+  MotionParameter operator-(const MotionParameter& obj) const {
     return MotionParameter(x - obj.x, y - obj.y, z - obj.z);
   }
   MotionParameter operator*(const float mul) const {
@@ -25,25 +25,25 @@ struct MotionParameter {
   MotionParameter operator/(const float div) const {
     return MotionParameter(x / div, y / div, z / div);
   }
-  MotionParameter &operator+=(const MotionParameter &obj) {
+  MotionParameter& operator+=(const MotionParameter& obj) {
     return x += obj.x, y += obj.y, z += obj.z, *this;
   }
-  MotionParameter &operator-=(const MotionParameter &obj) {
+  MotionParameter& operator-=(const MotionParameter& obj) {
     return x -= obj.x, y -= obj.y, z -= obj.z, *this;
   }
 };
 
 class ICM20602 {
-private:
-  static constexpr float ACCEL_G = 9806.65f; //< [mm/s/s]
+ private:
+  static constexpr float ACCEL_G = 9806.65f;  //< [mm/s/s]
   static constexpr float ACCEL_FACTOR = ACCEL_G / 2048.0f / 4;
   static constexpr float GYRO_FACTOR = PI / 180 / 16.4f;
 
-public:
+ public:
   ICM20602() {}
-  MotionParameter accel, gyro; //< ToDo: make private
+  MotionParameter accel, gyro;  //< ToDo: make private
 
-public:
+ public:
   bool init(spi_host_device_t spi_host, int8_t pin_cs) {
     // ESP-IDF SPI device initialization
     static spi_device_interface_config_t dev_cfg;
@@ -133,8 +133,8 @@ public:
     gyro.z = int16_t((rx[12] << 8) | rx[13]) * GYRO_FACTOR;
   }
 
-private:
-  static constexpr const char *TAG = "ICM-20602";
+ private:
+  static constexpr const char* TAG = "ICM-20602";
   spi_device_handle_t spi_handle = NULL;
 
   void writeReg(uint8_t reg, uint8_t data) {
@@ -153,7 +153,7 @@ private:
     ESP_ERROR_CHECK(spi_device_transmit(spi_handle, &tx));
     return tx.rx_data[0];
   }
-  void readReg(const uint8_t reg, uint8_t *rx_buffer, size_t length) {
+  void readReg(const uint8_t reg, uint8_t* rx_buffer, size_t length) {
     static spi_transaction_t tx;
     tx.addr = 0x80 | reg;
     tx.tx_buffer = NULL;

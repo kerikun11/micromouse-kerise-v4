@@ -1,9 +1,9 @@
 /**
  * @file ma730.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief MA730 Magnetic Encoder Driver
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-05-23
- * @copyright Copyright (c) 2020 Ryotaro Onuki
+ * @copyright Copyright 2020 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -11,10 +11,10 @@
 #include <esp_err.h>
 
 class MA730 {
-public:
+ public:
   static constexpr int PULSES_SIZE = 16384;
 
-public:
+ public:
   MA730() {}
   bool init(spi_host_device_t spi_host, gpio_num_t pin_cs) {
     // ESP-IDF SPI device initialization
@@ -49,7 +49,7 @@ public:
   }
   int get() const { return pulses; }
 
-private:
+ private:
   spi_device_handle_t encoder_spi = NULL;
   int pulses;
 };

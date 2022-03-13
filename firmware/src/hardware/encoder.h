@@ -1,14 +1,15 @@
 /**
  * @file encoder.h
  * @brief Encoder Driver
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
 #include "app_log.h"
-#include "config/io_mapping.h" //< for KERISE_SELECT
-#include "config/model.h"      //< for ENCODER_NUM
+#include "config/io_mapping.h"  //< for KERISE_SELECT
+#include "config/model.h"       //< for ENCODER_NUM
 
 #include <drivers/as5048a/as5048a.h>
 #include <drivers/ma730/ma730.h>
@@ -21,7 +22,7 @@
 namespace hardware {
 
 class Encoder {
-public:
+ public:
   Encoder() {}
   bool init(spi_host_device_t spi_host,
             std::array<gpio_num_t, ENCODER_NUM> pins_cs) {
@@ -41,7 +42,7 @@ public:
     }
 #endif
     xTaskCreatePinnedToCore(
-        [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "Encoder",
+        [](void* arg) { static_cast<decltype(this)>(arg)->task(); }, "Encoder",
         2048, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
@@ -58,13 +59,13 @@ public:
     pulses_ovf[0] = pulses_ovf[1] = 0;
   }
   void csv() {
-    std::printf("%d,%d\n", -pulses[0], pulses[1]); //
+    std::printf("%d,%d\n", -pulses[0], pulses[1]);  //
   }
   void sampling_sync(portTickType xBlockTime = portMAX_DELAY) const {
     sampling_end_semaphore.take(xBlockTime);
   }
 
-private:
+ private:
 #if KERISE_SELECT == 3 || KERISE_SELECT == 4
   AS5048A_DUAL as;
 #elif KERISE_SELECT == 5
@@ -140,4 +141,4 @@ private:
   }
 };
 
-}; // namespace hardware
+};  // namespace hardware

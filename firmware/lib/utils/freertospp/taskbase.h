@@ -1,7 +1,7 @@
 /**
  * @file taskbase.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- * @author Ryotaro Onuki
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-07-09
  */
 #pragma once
@@ -17,7 +17,7 @@ namespace freertospp {
  * 実行したい関数をもつクラスは，このクラスを継承する．
  */
 class TaskBase {
-public:
+ public:
   /**
    * @brief Construct a new Task Base object
    * このコンストラクタを呼ぶことはない
@@ -38,7 +38,8 @@ public:
    * @return true
    * @return false
    */
-  bool createTask(const char *pcName, UBaseType_t uxPriority = 0,
+  bool createTask(const char* pcName,
+                  UBaseType_t uxPriority = 0,
                   const uint16_t usStackDepth = configMINIMAL_STACK_SIZE,
                   const BaseType_t xCoreID = tskNO_AFFINITY) {
     if (pxCreatedTask != NULL) {
@@ -66,9 +67,9 @@ public:
     pxCreatedTask = NULL;
   }
 
-protected:
-  static constexpr const char *TAG = "TaskBase";
-  TaskHandle_t pxCreatedTask; //< タスクのハンドル
+ protected:
+  static constexpr const char* TAG = "TaskBase";
+  TaskHandle_t pxCreatedTask;  //< タスクのハンドル
 
   /**
    * @brief FreeRTOS
@@ -79,9 +80,9 @@ protected:
    * @brief FreeRTOS により実行される静的関数ポインタ
    * @param pvParameters this ポインタ
    */
-  static void pxTaskCode(void *const pvParameters) {
-    static_cast<TaskBase *>(pvParameters)->task();
+  static void pxTaskCode(void* const pvParameters) {
+    static_cast<TaskBase*>(pvParameters)->task();
   }
 };
 
-} // namespace freertospp
+}  // namespace freertospp

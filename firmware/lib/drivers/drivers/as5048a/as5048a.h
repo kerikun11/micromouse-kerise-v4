@@ -1,9 +1,9 @@
 /**
  * @file as5048a.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
- * @brief Driver of Dual Chain-Connected Magnetic Encoder AS5048A_DUAL
+ * @brief Driver of Dual Chain-Connected Magnetic Encoder AS5048A
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-05-09
- * @copyright Copyright (c) 2020 Ryotaro Onuki
+ * @copyright Copyright 2020 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -12,10 +12,10 @@
 #include <esp_log.h>
 
 class AS5048A_DUAL {
-public:
+ public:
   static constexpr int PULSES_SIZE = 16384;
 
-public:
+ public:
   AS5048A_DUAL() {}
   bool init(const spi_host_device_t spi_host, const int8_t pin_cs) {
     // ESP-IDF SPI device initialization
@@ -60,8 +60,8 @@ public:
   }
   int get(int ch) const { return pulses[ch]; }
 
-private:
-  static constexpr const char *TAG = "AS5048A";
+ private:
+  static constexpr const char* TAG = "AS5048A";
   spi_device_handle_t encoder_spi = NULL;
   int pulses[2] = {0, 0};
 

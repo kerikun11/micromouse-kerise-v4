@@ -1,8 +1,9 @@
 /**
  * @file adc.h
  * @brief ADC for ESP32
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-28
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -12,7 +13,7 @@
 namespace peripheral {
 
 class ADC {
-public:
+ public:
   static bool init() {
     // ESP_ERROR_CHECK(esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF));
     ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_12Bit));
@@ -35,7 +36,7 @@ public:
     return voltage;
   }
 
-private:
+ private:
   static const int DEFAULT_VREF = 1100;
   static const adc_unit_t unit = ADC_UNIT_1;
   static const adc_atten_t atten = ADC_ATTEN_DB_11;
@@ -43,4 +44,4 @@ private:
   // static esp_adc_cal_characteristics_t chars;
 };
 
-}; // namespace peripheral
+};  // namespace peripheral

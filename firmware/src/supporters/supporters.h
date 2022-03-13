@@ -8,19 +8,19 @@
 namespace supporters {
 
 class Supporters {
-private:
-  hardware::Hardware *hw;
+ private:
+  hardware::Hardware* hw;
 
-public:
-  UserInterface *ui;
-  SpeedController *sc;
-  WallDetector *wd;
+ public:
+  UserInterface* ui;
+  SpeedController* sc;
+  WallDetector* wd;
 
-public:
-  Supporters(hardware::Hardware *hw)
-      : hw(hw),                      //
-        ui(new UserInterface(hw)),   //
-        sc(new SpeedController(hw)), //
+ public:
+  Supporters(hardware::Hardware* hw)
+      : hw(hw),                       //
+        ui(new UserInterface(hw)),    //
+        sc(new SpeedController(hw)),  //
         wd(new WallDetector(hw)) {}
   bool init() {
     if (!wd->init()) {
@@ -37,4 +37,4 @@ public:
   }
 };
 
-} // namespace supporters
+}  // namespace supporters

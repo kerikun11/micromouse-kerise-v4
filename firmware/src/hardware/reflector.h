@@ -1,27 +1,28 @@
 /**
  * @file reflector.h
  * @brief Reflector Driver
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
-#include <array>
 #include <ctrl/accumulator.h>
 #include <peripheral/adc.h>
 #include <peripheral/timer_semaphore.h>
+#include <array>
 
 namespace hardware {
 
 class Reflector {
-public:
+ public:
   static constexpr UBaseType_t Priority = 20;
   static constexpr int CH_SIZE = 4;
   static constexpr int ave_num = 1;
 
-public:
-  Reflector(const std::array<gpio_num_t, CH_SIZE> &tx_pins,
-            const std::array<adc1_channel_t, CH_SIZE> &rx_channels)
+ public:
+  Reflector(const std::array<gpio_num_t, CH_SIZE>& tx_pins,
+            const std::array<adc1_channel_t, CH_SIZE>& rx_channels)
       : tx_pins(tx_pins), rx_channels(rx_channels) {}
   bool init() {
     for (int i = 0; i < CH_SIZE; i++) {
@@ -37,7 +38,7 @@ public:
     }
     ts.periodic(200);
     xTaskCreatePinnedToCore(
-        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        [](void* arg) { static_cast<decltype(this)>(arg)->task(); },
         "Reflector", 2048, this, Priority, NULL, APP_CPU_NUM);
     return true;
   }
@@ -54,28 +55,28 @@ public:
     LOGI("Reflector: %4d %4d %4d %4d", read(0), read(1), read(2), read(3));
   }
 
-private:
-  const std::array<gpio_num_t, CH_SIZE> tx_pins; //< 赤外線LEDのピン
+ private:
+  const std::array<gpio_num_t, CH_SIZE> tx_pins;  //< 赤外線LEDのピン
   const std::array<adc1_channel_t, CH_SIZE>
-      rx_channels; //< フォトトランジスタADC1_CHANNEL
-  std::array<int16_t, CH_SIZE> value; //< リフレクタの測定値
-  TimerSemaphore ts;                  //< インターバル用タイマー
-  ctrl::Accumulator<int, ave_num> buffer[CH_SIZE]; //< 平均計算用
+      rx_channels;  //< フォトトランジスタのADC1_CHANNEL
+  std::array<int16_t, CH_SIZE> value;  //< リフレクタの測定値
+  TimerSemaphore ts;                   //< インターバル用タイマー
+  ctrl::Accumulator<int, ave_num> buffer[CH_SIZE];  //< 平均計算用
 
   void update() {
-    ts.take(); //< スタートを同期
+    ts.take();  //< スタートを同期
     for (int i : {2, 1, 0, 3}) {
-      ts.take(); //< 干渉防止のウエイト
+      ts.take();  //< 干渉防止のウエイト
       // Sampling
-      int offset = peripheral::ADC::read_raw(rx_channels[i]); //< ADC取得
-      gpio_set_level(tx_pins[i], 1);                          //< 放電開始
-      int raw = peripheral::ADC::read_raw(rx_channels[i]);    //< ADC取得
-      gpio_set_level(tx_pins[i], 0);                          //< 充電開始
+      int offset = peripheral::ADC::read_raw(rx_channels[i]);  //< ADC取得
+      gpio_set_level(tx_pins[i], 1);                           //< 放電開始
+      int raw = peripheral::ADC::read_raw(rx_channels[i]);     //< ADC取得
+      gpio_set_level(tx_pins[i], 0);                           //< 充電開始
       // Calculation
-      int diff = raw - offset; //< オフセットとの差をとる
+      int diff = raw - offset;  //< オフセットとの差をとる
       if (diff < 1)
-        diff = 1;           //< 0以下にならないように1で飽和
-      buffer[i].push(diff); //< 保存
+        diff = 1;            //< 0以下にならないように1で飽和
+      buffer[i].push(diff);  //< 保存
       value[i] = buffer[i].average();
     }
   }
@@ -88,4 +89,4 @@ private:
   }
 };
 
-}; // namespace hardware
+};  // namespace hardware

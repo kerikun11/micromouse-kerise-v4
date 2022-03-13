@@ -1,7 +1,7 @@
 /**
  * @file semphr.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- * @author Ryotaro Onuki
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-07-09
  */
 #pragma once
@@ -17,7 +17,7 @@ namespace freertospp {
  * @brief C++ Wrapper for Semaphore function
  */
 class Semaphore {
-public:
+ public:
   Semaphore() {
     xSemaphore = xSemaphoreCreateBinary();
     if (xSemaphore == NULL) {
@@ -33,9 +33,9 @@ public:
     return pdTRUE == xSemaphoreTake(xSemaphore, xBlockTime);
   }
 
-private:
-  static constexpr const char *TAG = "Semaphore";
+ private:
+  static constexpr const char* TAG = "Semaphore";
   SemaphoreHandle_t xSemaphore = NULL;
 };
 
-} // namespace freertospp
+}  // namespace freertospp

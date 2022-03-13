@@ -1,8 +1,9 @@
 /**
  * @file maze_robot.h
  * @brief Maze Robot
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -22,16 +23,16 @@ using namespace MazeLib;
 
 /* ゴール座標 */
 #if MAZEROBOT_GOAL_SELECT == 0
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(16, 16), MazeLib::Position(16, 17),                      \
-        MazeLib::Position(16, 18), MazeLib::Position(17, 16),                  \
-        MazeLib::Position(17, 17), MazeLib::Position(17, 18),                  \
-        MazeLib::Position(18, 16), MazeLib::Position(18, 17),                  \
-        MazeLib::Position(18, 18),                                             \
+#define MAZE_GOAL                                             \
+  {                                                           \
+    MazeLib::Position(16, 16), MazeLib::Position(16, 17),     \
+        MazeLib::Position(16, 18), MazeLib::Position(17, 16), \
+        MazeLib::Position(17, 17), MazeLib::Position(17, 18), \
+        MazeLib::Position(18, 16), MazeLib::Position(18, 17), \
+        MazeLib::Position(18, 18),                            \
   }
 #elif MAZEROBOT_GOAL_SELECT == 1
-#define MAZE_GOAL                                                              \
+#define MAZE_GOAL \
   { MazeLib::Position(1, 0) }
 #elif MAZEROBOT_GOAL_SELECT == 2
 #define MAZE_GOAL                                                              \
@@ -46,13 +47,13 @@ using namespace MazeLib;
         MazeLib::Position(3, 4),                                               \
   }
 #elif MAZEROBOT_GOAL_SELECT == 6
-#define MAZE_GOAL                                                              \
-  {                                                                            \
-    MazeLib::Position(6, 9), MazeLib::Position(6, 10),                         \
-        MazeLib::Position(7, 9), MazeLib::Position(7, 10),                     \
+#define MAZE_GOAL                                          \
+  {                                                        \
+    MazeLib::Position(6, 9), MazeLib::Position(6, 10),     \
+        MazeLib::Position(7, 9), MazeLib::Position(7, 10), \
   }
 #elif MAZEROBOT_GOAL_SELECT == 7
-#define MAZE_GOAL                                                              \
+#define MAZE_GOAL \
   { MazeLib::Position(7, 7), }
 #elif MAZEROBOT_GOAL_SELECT == 8
 #define MAZE_GOAL                                                              \
@@ -65,55 +66,55 @@ using namespace MazeLib;
 #endif
 
 class MazeRobot : public RobotBase {
-private:
+ private:
   static constexpr int MAZE_ROBOT_TASK_PRIORITY = 2;
   static constexpr int MAZE_ROBOT_STACK_SIZE = 8192;
   static constexpr auto MAZE_SAVE_PATH = "/spiffs/maze_backup.bin";
   static constexpr auto STATE_SAVE_PATH = "/spiffs/maze_state.bin";
 
-private:
+ private:
   struct State {
-  public:
+   public:
     static constexpr int max_try_count = 5;
 
-  public:
+   public:
     State() { set_timeout(MAZEROBOT_TIMEOUT_SELECT); }
     void set_timeout(int size) {
       switch (size) {
-      case 0:
-      case 32:
-        competition_limit_time_s = 60 * 10 - 120;
-        expected_fast_run_time_s = 60; //< 4分 で打ち切り
-        break;
-      case 2:
-      case 16:
-        competition_limit_time_s = 60 * 5 - 30;
-        expected_fast_run_time_s = 45; //< 45: 2分で打ち切り
-        break;
-      case 1:
-      case 9:
-        competition_limit_time_s = 3 * 60;
-        expected_fast_run_time_s = 30; //< 30: 1分で打ち切り
-        break;
+        case 0:
+        case 32:
+          competition_limit_time_s = 60 * 10 - 120;
+          expected_fast_run_time_s = 60;  //< 4分 で打ち切り
+          break;
+        case 2:
+        case 16:
+          competition_limit_time_s = 60 * 5 - 30;
+          expected_fast_run_time_s = 45;  //< 45: 2分で打ち切り
+          break;
+        case 1:
+        case 9:
+          competition_limit_time_s = 3 * 60;
+          expected_fast_run_time_s = 30;  //< 30: 1分で打ち切り
+          break;
       }
     }
-    bool save(const std::string &filepath = STATE_SAVE_PATH) {
+    bool save(const std::string& filepath = STATE_SAVE_PATH) {
       backup_time_ms = get_eraped_time_ms();
       std::ofstream of(filepath, std::ios::binary);
       if (of.fail()) {
         app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
-      of.write((const char *)this, sizeof(*this));
+      of.write((const char*)this, sizeof(*this));
       return true;
     }
-    bool restore(const std::string &filepath = STATE_SAVE_PATH) {
+    bool restore(const std::string& filepath = STATE_SAVE_PATH) {
       std::ifstream f(filepath, std::ios::binary);
       if (f.fail()) {
         app_loge << "failed to open file! " << filepath << std::endl;
         return false;
       }
-      f.read((char *)this, sizeof(*this));
+      f.read((char*)this, sizeof(*this));
       offset_time_ms = backup_time_ms;
       running_parameter = 0;
       return true;
@@ -154,7 +155,7 @@ private:
     int get_try_count() const { return try_count; }
     int running_parameter = 0; /**< 走行パラメータ */
 
-  private:
+   private:
     int competition_limit_time_s;
     int expected_fast_run_time_s;
     int backup_time_ms = 0;            /**< 追加時間 */
@@ -169,13 +170,13 @@ private:
     }
   };
 
-private:
-  hardware::Hardware *hw;
-  supporters::Supporters *sp;
-  MoveAction *ma;
+ private:
+  hardware::Hardware* hw;
+  supporters::Supporters* sp;
+  MoveAction* ma;
 
-public:
-  MazeRobot(hardware::Hardware *hw, supporters::Supporters *sp, MoveAction *ma)
+ public:
+  MazeRobot(hardware::Hardware* hw, supporters::Supporters* sp, MoveAction* ma)
       : hw(hw), sp(sp), ma(ma) {
     replaceGoals(MAZE_GOAL);
   }
@@ -199,12 +200,12 @@ public:
     /* 自己位置復帰走行: 任意 -> 復帰 -> ゴール -> スタート */
     if (isPositionIdentificationAtFirst) {
       if (!auto_pi_run())
-        return false; //< 回収された
+        return false;  //< 回収された
     }
     /* 探索走行: スタート -> ゴール -> スタート */
     if (!calcShortestDirections(true))
       if (!auto_search_run())
-        return false; //< 探索不能迷路
+        return false;  //< 探索不能迷路
     /* 最短走行ループ: スタート -> ゴール -> スタート */
     while (1) {
       /* 5走終了 */
@@ -228,24 +229,24 @@ public:
         // state.save(), esp_restart(); //< 緊急ループ対策
         /* 自動復帰 */
         if (!auto_pi_run())
-          return false; //< 回収された
+          return false;  //< 回収された
       }
     }
   }
   void print() const {
-    for (const auto &wl : maze.getWallRecords())
+    for (const auto& wl : maze.getWallRecords())
       std::cout << wl << std::endl;
     maze.print();
   }
-  void setGoals(const Positions &goal) { replaceGoals(goal); }
-  const State &getState() const { return state; }
+  void setGoals(const Positions& goal) { replaceGoals(goal); }
+  const State& getState() const { return state; }
 
-private:
+ private:
   State state;
   bool prevIsForceGoingToGoal = false; /*< ゴール判定用 */
 
   /* override virtual functions */
-protected:
+ protected:
   void waitForEndAction() override {
     // vTaskDelay(pdMS_TO_TICKS(300)); //< 計算処理に時間がかかる場合を模擬
     ma->waitForEndAction();
@@ -255,7 +256,7 @@ protected:
   void queueAction(const RobotBase::SearchAction action) override {
     return ma->enqueue_action(action);
   }
-  void senseWalls(bool &left, bool &front, bool &right) override {
+  void senseWalls(bool& left, bool& front, bool& right) override {
     left = ma->getSensedWalls()[0];
     right = ma->getSensedWalls()[1];
     front = ma->getSensedWalls()[2];
@@ -273,9 +274,9 @@ protected:
       hw->bz->play(hardware::Buzzer::TIMEOUT);
     }
   }
-  void
-  calcNextDirectionsPostCallback(SearchAlgorithm::State prevState,
-                                 SearchAlgorithm::State newState) override {
+  void calcNextDirectionsPostCallback(
+      SearchAlgorithm::State prevState,
+      SearchAlgorithm::State newState) override {
     /* 未知区間加速の設定 */
     ma->set_unknown_accel_flag(getUnknownAccelFlag());
     /* ゴール判定 */
@@ -288,26 +289,26 @@ protected:
     if (newState == prevState)
       return;
     if (prevState == SearchAlgorithm::SEARCHING_FOR_GOAL)
-      hw->bz->play(hardware::Buzzer::SUCCESSFUL); //< ゴールについた
+      hw->bz->play(hardware::Buzzer::SUCCESSFUL);  //< ゴールについた
     if (prevState == SearchAlgorithm::IDENTIFYING_POSITION &&
         newState != SearchAlgorithm::IMPOSSIBLE)
-      hw->bz->play(hardware::Buzzer::COMPLETE); //< 自己位置同定完了
+      hw->bz->play(hardware::Buzzer::COMPLETE);  //< 自己位置同定完了
     if (prevState == SearchAlgorithm::SEARCHING_ADDITIONALLY &&
         newState != SearchAlgorithm::IMPOSSIBLE && !isForceBackToStart)
-      hw->bz->play(hardware::Buzzer::COMPLETE); //< 追加探索完了
+      hw->bz->play(hardware::Buzzer::COMPLETE);  //< 追加探索完了
   }
   void discrepancyWithKnownWall() override {
     hw->bz->play(hardware::Buzzer::ERROR);
   }
   /* end of override virtual functions */
 
-private:
+ private:
   bool auto_maze_check() {
     /* 異常検出 */
     if (!isSolvable())
       hw->bz->play(hardware::Buzzer::ERROR);
     while (!isSolvable()) {
-      maze.resetLastWalls(6); //< 探索可能になるまで壁を消す
+      maze.resetLastWalls(6);  //< 探索可能になるまで壁を消す
       if (getMaze().getWallRecords().empty())
         reset(), hw->bz->play(hardware::Buzzer::ERROR);
     }
@@ -318,7 +319,7 @@ private:
     if (!auto_maze_check())
       return false;
     /* 探索走行: スタート -> ゴール -> スタート */
-    state.start_search_run(); //< 0 -> 1
+    state.start_search_run();  //< 0 -> 1
     if (searchRun()) {
       hw->bz->play(hardware::Buzzer::COMPLETE);
       return true;
@@ -359,13 +360,13 @@ private:
     //< FastRun End
     if (hw->mt->is_emergency()) {
       state.end_fast_run(false);
-      return false; //< クラッシュした
+      return false;  //< クラッシュした
     }
     /* 最短成功 */
     state.end_fast_run(true);
     /* ゴールで回収されるか待つ */
     if (sp->ui->waitForPickup())
-      return false; //< 回収された
+      return false;  //< 回収された
     /* 帰る */
     return endFastRunBackingToStartRun();
   }
@@ -405,9 +406,9 @@ private:
         break;
       /* エラー処理 */
       if (hw->mt->is_emergency())
-        ma->emergency_release(); //< 自己位置同定中にクラッシュ
+        ma->emergency_release();  //< 自己位置同定中にクラッシュ
       else
-        hw->bz->play(hardware::Buzzer::ERROR); //< 自己位置同定に失敗
+        hw->bz->play(hardware::Buzzer::ERROR);  //< 自己位置同定に失敗
       /* 失敗した場合は再チャレ */
     }
     /* スタート位置に戻ってきた */
@@ -420,7 +421,7 @@ private:
       /* 残り時間が足りない場合 */
       ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
       ma->rp_fast.up(1), state.running_parameter += 1;
-      ma->rp_search.diag_enabled = false; //< 既知区間斜めは無効化
+      ma->rp_search.diag_enabled = false;  //< 既知区間斜めは無効化
       /* 最短初回なら斜め有効、それ以外は無効 */
       ma->rp_fast.diag_enabled = (state.get_try_count() == 1);
       hw->bz->play(hardware::Buzzer::TIMEOUT);
@@ -429,20 +430,20 @@ private:
       if (state.get_at_least_fast_run_succeeded()) {
         /* 少なくとも1回は最短が成功している: パラメータを1落として再チャレ */
         ma->rp_fast.down(1), state.running_parameter -= 1;
-        ma->rp_fast.diag_enabled = true; //< 斜めあり
+        ma->rp_fast.diag_enabled = true;  //< 斜めあり
       } else {
         /* 最短未成功の状態: パラメータ0の斜めありなしを交互に試す */
-        ma->rp_fast.diag_enabled = !ma->rp_fast.diag_enabled; //< 斜めを交互に
+        ma->rp_fast.diag_enabled = !ma->rp_fast.diag_enabled;  //< 斜めを交互に
         ma->rp_fast.down(state.running_parameter), state.running_parameter = 0;
       }
       hw->bz->play(hardware::Buzzer::DOWN);
     } else {
       /* 初回 or 完走した場合 */
-      if (state.get_try_count() == 1) //< 最短初回だけ特別にパラメータを上げる
+      if (state.get_try_count() == 1)  //< 最短初回だけ特別にパラメータを上げる
         ma->rp_fast.up(3), state.running_parameter += 3;
-      if (ma->rp_fast.diag_enabled) //< 既に斜めあり -> 単にパラメータを上げる
+      if (ma->rp_fast.diag_enabled)  //< 既に斜めあり -> 単にパラメータを上げる
         ma->rp_fast.up(2), state.running_parameter += 2;
-      else //< 斜めなしで成功 -> 同じパラメータで斜めありにする
+      else  //< 斜めなしで成功 -> 同じパラメータで斜めありにする
         ma->rp_fast.diag_enabled = true;
       // ma->rp_search.diag_enabled = true; //< 既知区間斜めを有効化
       hw->bz->play(hardware::Buzzer::UP);

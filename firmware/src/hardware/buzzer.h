@@ -1,8 +1,9 @@
 /**
  * @file buzzer.h
  * @brief Buzzer Driver for MicroMouse KERISE
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -15,7 +16,7 @@
 namespace hardware {
 
 class Buzzer {
-public:
+ public:
   enum Music : uint8_t {
     SELECT,
     CANCEL,
@@ -40,9 +41,9 @@ public:
     MUSIC_MAX,
   };
 
-public:
-  static Buzzer *get_instance() {
-    static Buzzer *instatnce = new Buzzer();
+ public:
+  static Buzzer* get_instance() {
+    static Buzzer* instatnce = new Buzzer();
     return instatnce;
   }
   bool init(gpio_num_t gpio_num, ledc_channel_t channel, ledc_timer_t timer) {
@@ -69,7 +70,7 @@ public:
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
     // Player Task
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+    xTaskCreate([](void* arg) { static_cast<decltype(this)>(arg)->task(); },
                 "Buzzer", /* stack */ 4096, this, /* priority */ 1, NULL);
     // Ending
     initialized = true;
@@ -80,8 +81,8 @@ public:
     xQueueSendToBack(playList, &music, xTicksToWait);
   }
 
-protected:
-  static constexpr const char *TAG = "Buzzer";
+ protected:
+  static constexpr const char* TAG = "Buzzer";
   bool initialized = false;
   QueueHandle_t playList;
   ledc_channel_t channel;
@@ -107,7 +108,7 @@ protected:
     playList = xQueueCreate(/* uxQueueLength = */ 10, sizeof(enum Music));
   }
   void task() {
-    vTaskDelay(pdMS_TO_TICKS(1)); //< for first note drop bug avoidance
+    vTaskDelay(pdMS_TO_TICKS(1));  //< for first note drop bug avoidance
     while (1) {
       enum Music music;
       xQueueReceive(playList, &music, portMAX_DELAY);
@@ -125,7 +126,7 @@ protected:
     }
     uint32_t freq = noteFrequencyBase[note] / (1 << (8 - octave));
     ledc_set_freq(mode, timer, freq);
-    ledc_set_duty(mode, channel, 4); //< duty in [0, 2^duty_resolution]
+    ledc_set_duty(mode, channel, 4);  //< duty in [0, 2^duty_resolution]
     ledc_update_duty(mode, channel);
   }
   void note(const note_t note, uint8_t octave, uint32_t time_ms) {
@@ -139,135 +140,135 @@ protected:
   }
   void play_music(enum Music music) {
     switch (music) {
-    case SELECT:
-      note(NOTE_C, 6, 100);
-      mute(100);
-      break;
-    case CANCEL:
-      note(NOTE_E, 6, 100);
-      note(NOTE_C, 6, 100);
-      mute(100);
-      break;
-    case CONFIRM:
-      note(NOTE_C, 6, 100);
-      note(NOTE_E, 6, 100);
-      mute(100);
-      break;
-    case SUCCESSFUL:
-      note(NOTE_C, 6, 100);
-      note(NOTE_E, 6, 100);
-      note(NOTE_G, 6, 100);
-      mute();
-      break;
-    case UP:
-      note(NOTE_C, 7, 100);
-      note(NOTE_D, 7, 100);
-      note(NOTE_E, 7, 100);
-      mute();
-      break;
-    case DOWN:
-      note(NOTE_E, 7, 100);
-      note(NOTE_D, 7, 100);
-      note(NOTE_C, 7, 100);
-      mute();
-      break;
-    case ERROR:
-      for (int i = 0; i < 4; i++) {
+      case SELECT:
+        note(NOTE_C, 6, 100);
+        mute(100);
+        break;
+      case CANCEL:
+        note(NOTE_E, 6, 100);
+        note(NOTE_C, 6, 100);
+        mute(100);
+        break;
+      case CONFIRM:
+        note(NOTE_C, 6, 100);
+        note(NOTE_E, 6, 100);
+        mute(100);
+        break;
+      case SUCCESSFUL:
+        note(NOTE_C, 6, 100);
+        note(NOTE_E, 6, 100);
+        note(NOTE_G, 6, 100);
+        mute();
+        break;
+      case UP:
+        note(NOTE_C, 7, 100);
+        note(NOTE_D, 7, 100);
+        note(NOTE_E, 7, 100);
+        mute();
+        break;
+      case DOWN:
+        note(NOTE_E, 7, 100);
+        note(NOTE_D, 7, 100);
+        note(NOTE_C, 7, 100);
+        mute();
+        break;
+      case ERROR:
+        for (int i = 0; i < 4; i++) {
+          note(NOTE_C, 7, 100);
+          note(NOTE_E, 7, 100);
+        }
+        mute();
+        break;
+      case COMPLETE:
+        note(NOTE_C, 6, 100);
+        note(NOTE_D, 6, 100);
+        note(NOTE_E, 6, 100);
+        note(NOTE_F, 6, 100);
+        note(NOTE_G, 6, 100);
+        note(NOTE_A, 6, 100);
+        note(NOTE_B, 6, 100);
+        note(NOTE_C, 7, 100);
+        mute();
+        break;
+      case BOOT:
+        note(NOTE_B, 5, 200);
+        note(NOTE_E, 6, 400);
+        note(NOTE_Fs, 6, 200);
+        note(NOTE_B, 6, 600);
+        mute();
+        break;
+      case SHUTDOWN:
+        note(NOTE_Gs, 6, 200);
+        note(NOTE_Eb, 6, 200);
+        note(NOTE_Gs, 5, 200);
+        note(NOTE_Bb, 5, 600);
+        mute();
+        break;
+      case TIMEOUT:
+        note(NOTE_C, 7, 400);
+        mute(200);
+        note(NOTE_C, 7, 400);
+        mute(200);
+        note(NOTE_C, 7, 400);
+        mute(200);
+        break;
+      case EMERGENCY:
+        note(NOTE_C, 6, 100);
+        note(NOTE_F, 6, 100);
+        mute(100);
+        note(NOTE_F, 6, 75);
+        mute(25);
+        note(NOTE_F, 6, 176);
+        note(NOTE_E, 6, 176);
+        note(NOTE_D, 6, 176);
+        note(NOTE_C, 6, 200);
+        mute();
+        break;
+      case MAZE_BACKUP:
+        note(NOTE_G, 7, 200);
+        note(NOTE_E, 7, 100);
+        note(NOTE_C, 7, 100);
+        mute();
+        break;
+      case MAZE_RESTORE:
+        note(NOTE_C, 7, 200);
+        note(NOTE_E, 7, 100);
+        note(NOTE_G, 7, 100);
+        mute();
+        break;
+      case CALIBRATION:
         note(NOTE_C, 7, 100);
         note(NOTE_E, 7, 100);
-      }
-      mute();
-      break;
-    case COMPLETE:
-      note(NOTE_C, 6, 100);
-      note(NOTE_D, 6, 100);
-      note(NOTE_E, 6, 100);
-      note(NOTE_F, 6, 100);
-      note(NOTE_G, 6, 100);
-      note(NOTE_A, 6, 100);
-      note(NOTE_B, 6, 100);
-      note(NOTE_C, 7, 100);
-      mute();
-      break;
-    case BOOT:
-      note(NOTE_B, 5, 200);
-      note(NOTE_E, 6, 400);
-      note(NOTE_Fs, 6, 200);
-      note(NOTE_B, 6, 600);
-      mute();
-      break;
-    case SHUTDOWN:
-      note(NOTE_Gs, 6, 200);
-      note(NOTE_Eb, 6, 200);
-      note(NOTE_Gs, 5, 200);
-      note(NOTE_Bb, 5, 600);
-      mute();
-      break;
-    case TIMEOUT:
-      note(NOTE_C, 7, 400);
-      mute(200);
-      note(NOTE_C, 7, 400);
-      mute(200);
-      note(NOTE_C, 7, 400);
-      mute(200);
-      break;
-    case EMERGENCY:
-      note(NOTE_C, 6, 100);
-      note(NOTE_F, 6, 100);
-      mute(100);
-      note(NOTE_F, 6, 75);
-      mute(25);
-      note(NOTE_F, 6, 176);
-      note(NOTE_E, 6, 176);
-      note(NOTE_D, 6, 176);
-      note(NOTE_C, 6, 200);
-      mute();
-      break;
-    case MAZE_BACKUP:
-      note(NOTE_G, 7, 200);
-      note(NOTE_E, 7, 100);
-      note(NOTE_C, 7, 100);
-      mute();
-      break;
-    case MAZE_RESTORE:
-      note(NOTE_C, 7, 200);
-      note(NOTE_E, 7, 100);
-      note(NOTE_G, 7, 100);
-      mute();
-      break;
-    case CALIBRATION:
-      note(NOTE_C, 7, 100);
-      note(NOTE_E, 7, 100);
-      mute();
-      break;
-    case AEBS:
-      for (int i = 0; i < 8; ++i) {
-        note(NOTE_E, 7, 150);
+        mute();
+        break;
+      case AEBS:
+        for (int i = 0; i < 8; ++i) {
+          note(NOTE_E, 7, 150);
+          mute(50);
+        }
+        break;
+      case SHORT6:
+        note(NOTE_C, 6, 50);
         mute(50);
-      }
-      break;
-    case SHORT6:
-      note(NOTE_C, 6, 50);
-      mute(50);
-      break;
-    case SHORT7:
-      note(NOTE_C, 7, 50);
-      mute(50);
-      break;
-    case SHORT8:
-      note(NOTE_C, 8, 50);
-      mute(50);
-      break;
-    case SHORT9:
-      note(NOTE_G, 8, 50);
-      mute(50);
-      break;
-    default:
-      note(NOTE_C, 4, 1000);
-      mute();
-      break;
+        break;
+      case SHORT7:
+        note(NOTE_C, 7, 50);
+        mute(50);
+        break;
+      case SHORT8:
+        note(NOTE_C, 8, 50);
+        mute(50);
+        break;
+      case SHORT9:
+        note(NOTE_G, 8, 50);
+        mute(50);
+        break;
+      default:
+        note(NOTE_C, 4, 1000);
+        mute();
+        break;
     }
   }
 };
 
-}; // namespace hardware
+};  // namespace hardware

@@ -1,7 +1,7 @@
 /**
  * @file app_log.h
- * @author Ryotaro Onuki (kerikun11+github@gmail.com)
  * @brief this provides logging formats
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-12-18
  */
 #pragma once
@@ -10,7 +10,7 @@
 
 #define APP_STRINGIFY(n) #n
 #define APP_TOSTRING(n) APP_STRINGIFY(n)
-#define APP_LOG_OSTREAM_COMMON(c)                                              \
+#define APP_LOG_OSTREAM_COMMON(c) \
   (std::cout << "[" c "][" __FILE__ ":" APP_TOSTRING(__LINE__) "] ")
 
 #ifndef app_logd
@@ -48,9 +48,9 @@
 #include <cstdio>
 #define __STRINGIFY__(n) #n
 #define __TO_STR__(n) __STRINGIFY__(n)
-#define LOG_COMMON(l, c, f, ...)                                               \
-  std::printf(c "[" l "][" __FILE__ ":" __TO_STR__(__LINE__) "]\x1b[0m\t" f    \
-                                                             "\n",             \
+#define LOG_COMMON(l, c, f, ...)                                            \
+  std::printf(c "[" l "][" __FILE__ ":" __TO_STR__(__LINE__) "]\x1b[0m\t" f \
+                                                             "\n",          \
               ##__VA_ARGS__)
 #define LOGD(fmt, ...) LOG_COMMON("D", "\x1b[34m", fmt, ##__VA_ARGS__)
 #define LOGI(fmt, ...) LOG_COMMON("I", "\x1b[32m", fmt, ##__VA_ARGS__)

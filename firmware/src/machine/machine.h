@@ -1,8 +1,9 @@
 /**
  * @file machine.h
  * @brief MircoMouse Machine
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -14,63 +15,63 @@
 namespace machine {
 
 class Machine {
-private:
+ private:
   void driveManually() {
     int mode = sp->ui->waitForSelect(16);
     switch (mode) {
-    case 0: /* 探索・最短を含む通常の自律走行 */
-      Machine::driveNormally();
-      break;
-    case 1: /* パラメータの相対設定 */
-      Machine::selectParamManually();
-      break;
-    case 2: /* パラメータの絶対設定 */
-      Machine::selectParamPreset();
-      break;
-    case 3: /* 走行設定 */
-      Machine::selectRunConfig();
-      break;
-    case 4: /* ファン設定 */
-      Machine::selectFanGain();
-      break;
-    case 5: /* 迷路データ・探索状態の復元・削除 */
-      Machine::selectBackupData();
-      break;
-    case 6: /* ゴール区画の設定 */
-      Machine::setGoalPositions();
-      break;
-    case 7: /* 宴会芸 */
-      Machine::partyStunt();
-      break;
-    case 8: /* 壁センサキャリブレーション */
-      Machine::wallCalibration();
-      break;
-    case 9: /* 壁センサのリアルタイム表示 */
-      Machine::print_wall_detector();
-      break;
-    case 10: /* 迷路情報の表示 */
-      mr->print();
-      break;
-    case 11: /* プチコン */
-      Machine::petitcon();
-      break;
-    case 12: /* タイヤ径の測定 */
-      Machine::wheel_diameter_measurement();
-      break;
-    case 13:
-      // Machine::encoder_test();
-      // Machine::accel_test();
-      Machine::front_wall_attach_test();
-      // Machine::position_recovery();
-      // Machine::sysid();
-      // Machine::wall_test();
-      break;
-    case 14: /* テスト */
-      Machine::slalom_test();
-      break;
-    case 15: /* ログの表示 */
-      lgr->print();
-      break;
+      case 0: /* 探索・最短を含む通常の自律走行 */
+        Machine::driveNormally();
+        break;
+      case 1: /* パラメータの相対設定 */
+        Machine::selectParamManually();
+        break;
+      case 2: /* パラメータの絶対設定 */
+        Machine::selectParamPreset();
+        break;
+      case 3: /* 走行設定 */
+        Machine::selectRunConfig();
+        break;
+      case 4: /* ファン設定 */
+        Machine::selectFanGain();
+        break;
+      case 5: /* 迷路データ・探索状態の復元・削除 */
+        Machine::selectBackupData();
+        break;
+      case 6: /* ゴール区画の設定 */
+        Machine::setGoalPositions();
+        break;
+      case 7: /* 宴会芸 */
+        Machine::partyStunt();
+        break;
+      case 8: /* 壁センサキャリブレーション */
+        Machine::wallCalibration();
+        break;
+      case 9: /* 壁センサのリアルタイム表示 */
+        Machine::print_wall_detector();
+        break;
+      case 10: /* 迷路情報の表示 */
+        mr->print();
+        break;
+      case 11: /* プチコン */
+        Machine::petitcon();
+        break;
+      case 12: /* タイヤ径の測定 */
+        Machine::wheel_diameter_measurement();
+        break;
+      case 13:
+        // Machine::encoder_test();
+        // Machine::accel_test();
+        Machine::front_wall_attach_test();
+        // Machine::position_recovery();
+        // Machine::sysid();
+        // Machine::wall_test();
+        break;
+      case 14: /* テスト */
+        Machine::slalom_test();
+        break;
+      case 15: /* ログの表示 */
+        lgr->print();
+        break;
     }
   }
   void driveAutomatically() {
@@ -84,13 +85,13 @@ private:
   }
   void driveNormally() {
     /* 探索状態のお知らせ */
-    if (mr->getMaze().getWallRecords().empty()) //< 完全に未探索状態
+    if (mr->getMaze().getWallRecords().empty())  //< 完全に未探索状態
       hw->bz->play(hardware::Buzzer::CONFIRM);
-    else if (mr->isComplete()) //< 完全に探索終了
+    else if (mr->isComplete())  //< 完全に探索終了
       hw->bz->play(hardware::Buzzer::SUCCESSFUL);
-    else if (mr->calcShortestDirections(true)) //< 探索中だが経路はある
+    else if (mr->calcShortestDirections(true))  //< 探索中だが経路はある
       hw->bz->play(hardware::Buzzer::MAZE_RESTORE);
-    else //< 行きの探索中
+    else  //< 行きの探索中
       hw->bz->play(hardware::Buzzer::MAZE_BACKUP);
     /* 異常検出 */
     if (!mr->isSolvable()) {
@@ -104,11 +105,11 @@ private:
       return;
     bool isAutoParamSelect = true;
     switch (mode) {
-    case 0: /*< デフォルト */
-      break;
-    case 1: /*< パラメータ固定 */
-      isAutoParamSelect = false;
-      break;
+      case 0: /*< デフォルト */
+        break;
+      case 1: /*< パラメータ固定 */
+        isAutoParamSelect = false;
+        break;
     }
     if (!sp->ui->waitForCover())
       return;
@@ -126,7 +127,7 @@ private:
       return;
     if (value > 7)
       value -= 16;
-    for (auto &vs : ma->rp_fast.v_slalom)
+    for (auto& vs : ma->rp_fast.v_slalom)
       vs *= std::pow(ma->rp_fast.vs_factor, float(value));
     /* 最大速度 */
     for (int i = 0; i < 2; i++)
@@ -168,38 +169,38 @@ private:
     if (value < 0)
       return;
     switch (mode) {
-    case 0: /* 斜め走行 */
-      ma->rp_search.diag_enabled = value & 0x01;
-      ma->rp_fast.diag_enabled = value & 0x02;
-      break;
-    case 1: /* 未知区間加速 */
-      ma->rp_search.unknown_accel_enabled = value & 0x01;
-      ma->rp_fast.unknown_accel_enabled = value & 0x02;
-      break;
-    case 2: /* 前壁補正 */
-      ma->rp_search.front_wall_fix_enabled = value & 1;
-      ma->rp_fast.front_wall_fix_enabled = value & 2;
-      break;
-    case 3: /* 横壁補正 */
-      ma->rp_search.side_wall_avoid_enabled = value & 1;
-      ma->rp_fast.side_wall_avoid_enabled = value & 2;
-      break;
-    case 4: /* 横壁姿勢補正 */
-      ma->rp_search.side_wall_fix_theta_enabled = value & 1;
-      ma->rp_fast.side_wall_fix_theta_enabled = value & 2;
-      break;
-    case 5: /* V90の横壁補正 */
-      ma->rp_search.side_wall_fix_v90_enabled = value & 1;
-      ma->rp_fast.side_wall_fix_v90_enabled = value & 2;
-      break;
-    case 6: /* 壁切れ */
-      ma->rp_search.side_wall_cut_enabled = value & 1;
-      ma->rp_fast.side_wall_cut_enabled = value & 2;
-      break;
-    case 7: /* 探索速度 */
-      value = (value < 3) ? 12 : value;
-      ma->rp_search.v_search = ma->rp_fast.v_search = 30 * value;
-      break;
+      case 0: /* 斜め走行 */
+        ma->rp_search.diag_enabled = value & 0x01;
+        ma->rp_fast.diag_enabled = value & 0x02;
+        break;
+      case 1: /* 未知区間加速 */
+        ma->rp_search.unknown_accel_enabled = value & 0x01;
+        ma->rp_fast.unknown_accel_enabled = value & 0x02;
+        break;
+      case 2: /* 前壁補正 */
+        ma->rp_search.front_wall_fix_enabled = value & 1;
+        ma->rp_fast.front_wall_fix_enabled = value & 2;
+        break;
+      case 3: /* 横壁補正 */
+        ma->rp_search.side_wall_avoid_enabled = value & 1;
+        ma->rp_fast.side_wall_avoid_enabled = value & 2;
+        break;
+      case 4: /* 横壁姿勢補正 */
+        ma->rp_search.side_wall_fix_theta_enabled = value & 1;
+        ma->rp_fast.side_wall_fix_theta_enabled = value & 2;
+        break;
+      case 5: /* V90の横壁補正 */
+        ma->rp_search.side_wall_fix_v90_enabled = value & 1;
+        ma->rp_fast.side_wall_fix_v90_enabled = value & 2;
+        break;
+      case 6: /* 壁切れ */
+        ma->rp_search.side_wall_cut_enabled = value & 1;
+        ma->rp_fast.side_wall_cut_enabled = value & 2;
+        break;
+      case 7: /* 探索速度 */
+        value = (value < 3) ? 12 : value;
+        ma->rp_search.v_search = ma->rp_fast.v_search = 30 * value;
+        break;
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
@@ -232,12 +233,12 @@ private:
       return;
     /* apply */
     switch (mode) {
-    case 0: /* restore */
-      restore();
-      break;
-    case 1: /* reset */
-      reset();
-      break;
+      case 0: /* restore */
+        restore();
+        break;
+      case 1: /* reset */
+        reset();
+        break;
     }
   }
   void restore() {
@@ -275,37 +276,37 @@ private:
   void wallCalibration() {
     int mode = sp->ui->waitForSelect(3);
     switch (mode) {
-    /* 前壁補正データの保存 */
-    case 0:
-      hw->led->set(15);
-      if (!sp->ui->waitForCover())
-        return;
-      if (sp->wd->backup()) {
-        hw->bz->play(hardware::Buzzer::SUCCESSFUL);
-      } else {
-        hw->bz->play(hardware::Buzzer::ERROR);
-      }
-      break;
-    /* 横壁キャリブレーション */
-    case 1:
-      hw->led->set(9);
-      if (!sp->ui->waitForCover())
-        return;
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      hw->bz->play(hardware::Buzzer::CONFIRM);
-      sp->wd->calibration_side();
-      hw->bz->play(hardware::Buzzer::CANCEL);
-      break;
-    /* 前壁キャリブレーション */
-    case 2:
-      hw->led->set(6);
-      if (!sp->ui->waitForCover(true))
-        return;
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      hw->bz->play(hardware::Buzzer::CONFIRM);
-      sp->wd->calibration_front();
-      hw->bz->play(hardware::Buzzer::CANCEL);
-      break;
+      /* 前壁補正データの保存 */
+      case 0:
+        hw->led->set(15);
+        if (!sp->ui->waitForCover())
+          return;
+        if (sp->wd->backup()) {
+          hw->bz->play(hardware::Buzzer::SUCCESSFUL);
+        } else {
+          hw->bz->play(hardware::Buzzer::ERROR);
+        }
+        break;
+      /* 横壁キャリブレーション */
+      case 1:
+        hw->led->set(9);
+        if (!sp->ui->waitForCover())
+          return;
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        hw->bz->play(hardware::Buzzer::CONFIRM);
+        sp->wd->calibration_side();
+        hw->bz->play(hardware::Buzzer::CANCEL);
+        break;
+      /* 前壁キャリブレーション */
+      case 2:
+        hw->led->set(6);
+        if (!sp->ui->waitForCover(true))
+          return;
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        hw->bz->play(hardware::Buzzer::CONFIRM);
+        sp->wd->calibration_front();
+        hw->bz->play(hardware::Buzzer::CANCEL);
+        break;
     }
   }
   void setGoalPositions() {
@@ -315,37 +316,37 @@ private:
     if (value < 0)
       return;
     switch (value) {
-    case 0: { //< マニュアル選択
-      int x = sp->ui->waitForSelect(16);
-      int y = sp->ui->waitForSelect(16);
-      mr->setGoals({MazeLib::Position(x, y)});
-      break;
-    }
-    case 1: //< 調整迷路
-      mr->setGoals({MazeLib::Position(1, 0)});
-      mr->setTimeout(9);
-      break;
-    case 2: //< 調整迷路
-      mr->setGoals({MazeLib::Position(8, 8)});
-      mr->setTimeout(16);
-      break;
-    case 15: //< 本番迷路
-      mr->setGoals({
-          MazeLib::Position(16, 16),
-          MazeLib::Position(16, 17),
-          MazeLib::Position(16, 18),
-          MazeLib::Position(17, 16),
-          MazeLib::Position(17, 17),
-          MazeLib::Position(17, 18),
-          MazeLib::Position(18, 16),
-          MazeLib::Position(18, 17),
-          MazeLib::Position(18, 18),
-      });
-      mr->setTimeout(32);
-      break;
-    default:
-      mr->setGoals({MazeLib::Position(value, value)});
-      break;
+      case 0: {  //< マニュアル選択
+        int x = sp->ui->waitForSelect(16);
+        int y = sp->ui->waitForSelect(16);
+        mr->setGoals({MazeLib::Position(x, y)});
+        break;
+      }
+      case 1:  //< 調整迷路
+        mr->setGoals({MazeLib::Position(1, 0)});
+        mr->setTimeout(9);
+        break;
+      case 2:  //< 調整迷路
+        mr->setGoals({MazeLib::Position(8, 8)});
+        mr->setTimeout(16);
+        break;
+      case 15:  //< 本番迷路
+        mr->setGoals({
+            MazeLib::Position(16, 16),
+            MazeLib::Position(16, 17),
+            MazeLib::Position(16, 18),
+            MazeLib::Position(17, 16),
+            MazeLib::Position(17, 17),
+            MazeLib::Position(17, 18),
+            MazeLib::Position(18, 16),
+            MazeLib::Position(18, 17),
+            MazeLib::Position(18, 18),
+        });
+        mr->setTimeout(32);
+        break;
+      default:
+        mr->setGoals({MazeLib::Position(value, value)});
+        break;
     }
     hw->bz->play(hardware::Buzzer::SUCCESSFUL);
   }
@@ -371,7 +372,7 @@ private:
     ma->emergency_release();
   }
 
-private:
+ private:
   enum LOG_SELECT {
     LOG_PID,
     LOG_SYSID,
@@ -379,81 +380,81 @@ private:
   };
   void log_init(enum LOG_SELECT log_select) {
     switch (log_select) {
-    case LOG_PID:
-      return lgr->init({
-          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
-          "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
-          "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
-          "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
-          "ref_q.th",  "est_q.th",
-      });
-    case LOG_SYSID:
-      return lgr->init({
-          "enc[0]",
-          "enc[1]",
-          "gyro.z",
-          "accel.y",
-          "angular_accel",
-          "u.tra",
-          "u.rot",
-      });
-    case LOG_WALL:
-      return lgr->init({
-          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ref_q.x",
-          "est_q.x",   "ref_q.y",   "est_q.y",   "ref_q.th",  "est_q.th",
-          "ref_0",     "ref_1",     "ref_2",     "ref_3",     "wd_0",
-          "wd_1",      "wd_2",      "wd_3",      "tof",
-      });
+      case LOG_PID:
+        return lgr->init({
+            "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
+            "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
+            "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
+            "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
+            "ref_q.th",  "est_q.th",
+        });
+      case LOG_SYSID:
+        return lgr->init({
+            "enc[0]",
+            "enc[1]",
+            "gyro.z",
+            "accel.y",
+            "angular_accel",
+            "u.tra",
+            "u.rot",
+        });
+      case LOG_WALL:
+        return lgr->init({
+            "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ref_q.x",
+            "est_q.x",   "ref_q.y",   "est_q.y",   "ref_q.th",  "est_q.th",
+            "ref_0",     "ref_1",     "ref_2",     "ref_3",     "wd_0",
+            "wd_1",      "wd_2",      "wd_3",      "tof",
+        });
     }
   }
   void log_push(enum LOG_SELECT log_select,
-                const ctrl::Pose &ref_q = ctrl::Pose(),
-                const ctrl::Pose &est_q = ctrl::Pose()) {
-    const auto &bd = sp->sc->fbc.getBreakdown();
+                const ctrl::Pose& ref_q = ctrl::Pose(),
+                const ctrl::Pose& est_q = ctrl::Pose()) {
+    const auto& bd = sp->sc->fbc.getBreakdown();
     switch (log_select) {
-    case LOG_PID:
-      return lgr->push({
-          sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
-          sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
-          bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
-          sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
-          bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
-          bd.fbd.rot,        ref_q.x,           est_q.x,
-          ref_q.y,           est_q.y,           ref_q.th,
-          est_q.th,
-      });
-    case LOG_SYSID:
-      return lgr->push({
-          hw->enc->get_position(0),
-          hw->enc->get_position(1),
-          hw->imu->get_gyro(),
-          hw->imu->get_accel(),
-          hw->imu->get_angular_accel(),
-          bd.u.tra,
-          bd.u.rot,
-      });
-    case LOG_WALL:
-      return lgr->push({
-          sp->sc->ref_v.tra,
-          sp->sc->est_v.tra,
-          sp->sc->ref_v.rot,
-          sp->sc->est_v.rot,
-          ref_q.x,
-          est_q.x,
-          ref_q.y,
-          est_q.y,
-          ref_q.th,
-          est_q.th,
-          (float)hw->rfl->side(0),
-          (float)hw->rfl->front(0),
-          (float)hw->rfl->front(1),
-          (float)hw->rfl->side(1),
-          (float)sp->wd->distance.side[0],
-          (float)sp->wd->distance.front[0],
-          (float)sp->wd->distance.front[1],
-          (float)sp->wd->distance.side[1],
-          (float)hw->tof->getDistance(),
-      });
+      case LOG_PID:
+        return lgr->push({
+            sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
+            sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
+            bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
+            sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
+            bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
+            bd.fbd.rot,        ref_q.x,           est_q.x,
+            ref_q.y,           est_q.y,           ref_q.th,
+            est_q.th,
+        });
+      case LOG_SYSID:
+        return lgr->push({
+            hw->enc->get_position(0),
+            hw->enc->get_position(1),
+            hw->imu->get_gyro(),
+            hw->imu->get_accel(),
+            hw->imu->get_angular_accel(),
+            bd.u.tra,
+            bd.u.rot,
+        });
+      case LOG_WALL:
+        return lgr->push({
+            sp->sc->ref_v.tra,
+            sp->sc->est_v.tra,
+            sp->sc->ref_v.rot,
+            sp->sc->est_v.rot,
+            ref_q.x,
+            est_q.x,
+            ref_q.y,
+            est_q.y,
+            ref_q.th,
+            est_q.th,
+            (float)hw->rfl->side(0),
+            (float)hw->rfl->front(0),
+            (float)hw->rfl->front(1),
+            (float)hw->rfl->side(1),
+            (float)sp->wd->distance.side[0],
+            (float)sp->wd->distance.front[0],
+            (float)sp->wd->distance.front[1],
+            (float)sp->wd->distance.side[1],
+            (float)hw->tof->getDistance(),
+        });
     }
   }
   void sysid() {
@@ -475,7 +476,7 @@ private:
         "battery_voltage",
     });
     const auto push_log = [&]() {
-      const auto &bd = sp->sc->fbc.getBreakdown();
+      const auto& bd = sp->sc->fbc.getBreakdown();
       lgr->push({
           hw->enc->get_position(0), hw->enc->get_position(1),
           hw->imu->get_gyro(), hw->imu->get_accel(),
@@ -489,9 +490,9 @@ private:
     vTaskDelay(pdMS_TO_TICKS(500));
     /* start */
     if (dir == 1)
-      hw->mt->drive(-gain * 0.05f, gain * 0.05f); //< 回転
+      hw->mt->drive(-gain * 0.05f, gain * 0.05f);  //< 回転
     else
-      hw->mt->drive(gain * 0.1f, gain * 0.1f); //< 並進
+      hw->mt->drive(gain * 0.1f, gain * 0.1f);  //< 並進
     for (int i = 0; i < 2000; i++) {
       sp->sc->sampling_sync();
       push_log();
@@ -505,7 +506,7 @@ private:
     int cells = sp->ui->waitForSelect(16);
     if (cells < 0)
       return;
-    cells = (cells == 0) ? 8 : cells; //< default is 8 cells straight
+    cells = (cells == 0) ? 8 : cells;  //< default is 8 cells straight
     while (1) {
       /* wait for start */
       if (!sp->ui->waitForCover())
@@ -522,7 +523,7 @@ private:
       ctrl::AccelDesigner ad;
       ad.reset(120'000, 3'000, 720, 0, 30, dist);
       /* start */
-      sp->sc->enable(); //< includes position reset
+      sp->sc->enable();  //< includes position reset
       for (float t = 0; !hw->mt->is_emergency(); t += 1e-3f) {
         sp->sc->set_target(ad.v(t), 0, ad.a(t), 0);
         sp->sc->sampling_sync();
@@ -639,7 +640,7 @@ private:
     hw->imu->calibration();
     hw->enc->clear_offset();
     /* parameter */
-    const auto &shape = field::shapes[field::ShapeIndex::F180];
+    const auto& shape = field::shapes[field::ShapeIndex::F180];
     const bool mirror = mode;
     const float velocity = 600;
     const float Ts = 1e-3f;
@@ -687,7 +688,7 @@ private:
       log_push(log_select, ref_s.q.homogeneous(offset),
                est_q.homogeneous(offset));
     }
-    const auto &net = st.getShape().curve;
+    const auto& net = st.getShape().curve;
     sp->sc->est_p = (sp->sc->est_p - net).rotate(-net.th);
     offset += net.rotate(offset.th);
     /* decel */
@@ -760,7 +761,7 @@ private:
       hw->led->set(6);
       hw->tof->disable(); /*< ノイズ防止のためToFを無効化 */
       vTaskDelay(pdMS_TO_TICKS(20));
-      sp->sc->est_p.clear(); //< 初動防止のため位置をクリア
+      sp->sc->est_p.clear();  //< 初動防止のため位置をクリア
       for (int i = 0; i < 2000; i++) {
         // if (is_break_state())
         //   break;
@@ -774,12 +775,12 @@ private:
         /* 終了条件 */
         const float end = model::front_wall_attach_end;
         if (math_utils::sum_of_square(wp.wheel[0], wp.wheel[1]) < end) {
-          result = true; //< 補正成功
+          result = true;  //< 補正成功
           break;
         }
         /* 制御 */
-        const float sat_tra = 180.0f; //< [mm/s]
-        const float sat_rot = PI / 2; //< [rad/s]
+        const float sat_tra = 180.0f;  //< [mm/s]
+        const float sat_rot = PI / 2;  //< [rad/s]
         sp->sc->set_target(math_utils::saturate(wp.tra, sat_tra),
                            math_utils::saturate(wp.rot, sat_rot));
         sp->sc->sampling_sync();
@@ -788,8 +789,8 @@ private:
                           : hardware::Buzzer::CANCEL);
       sp->sc->set_target(0, 0);
       vTaskDelay(pdMS_TO_TICKS(100));
-      hw->tof->enable();     //< ToF の有効化を忘れずに！
-      sp->sc->est_p.clear(); //< 位置を補正
+      hw->tof->enable();      //< ToF の有効化を忘れずに！
+      sp->sc->est_p.clear();  //< 位置を補正
       hw->led->set(0);
       // ending
       sp->sc->disable();
@@ -806,13 +807,14 @@ private:
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1) {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
-      LOGI("Dist:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
-           "ToF:[%3d mm %3d ms (%3d mm)]",
-           (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
-           (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
-           sp->wd->is_wall[0] ? 'X' : '_', sp->wd->is_wall[2] ? 'X' : '_',
-           sp->wd->is_wall[1] ? 'X' : '_', hw->tof->getDistance(),
-           hw->tof->passedTimeMs(), hw->tof->getRangeRaw());
+      LOGI(
+          "Dist:[%5.1f %5.1f %5.1f %5.1f] Wall:[%c %c %c] "
+          "ToF:[%3d mm %3d ms (%3d mm)]",
+          (double)sp->wd->distance.side[0], (double)sp->wd->distance.front[0],
+          (double)sp->wd->distance.front[1], (double)sp->wd->distance.side[1],
+          sp->wd->is_wall[0] ? 'X' : '_', sp->wd->is_wall[2] ? 'X' : '_',
+          sp->wd->is_wall[1] ? 'X' : '_', hw->tof->getDistance(),
+          hw->tof->passedTimeMs(), hw->tof->getRangeRaw());
     }
   }
   void show_info() {
@@ -832,7 +834,7 @@ private:
     return true;
   }
 
-public:
+ public:
   Machine() {}
   bool init() {
     bool result = true;
@@ -842,7 +844,7 @@ public:
     show_info();
     /* check chip */
     if (!check_chip()) {
-      auto *bz = hardware::Buzzer::get_instance();
+      auto* bz = hardware::Buzzer::get_instance();
       bz->init(BUZZER_PIN, BUZZER_LEDC_CHANNEL, BUZZER_LEDC_TIMER);
       bz->play(hardware::Buzzer::TIMEOUT);
       return false;
@@ -869,7 +871,7 @@ public:
     return true;
   }
   void drive() {
-    driveAutomatically();
+    // driveAutomatically();
     while (1)
       driveManually();
     vTaskDelay(portMAX_DELAY);
@@ -887,19 +889,19 @@ public:
     }
   }
 
-private:
+ private:
   freertospp::Task<Machine> task_drive;
   freertospp::Task<Machine> task_print;
 
   /* Hardware */
-  hardware::Hardware *hw;
+  hardware::Hardware* hw;
   /* Supporter */
-  supporters::Supporters *sp;
+  supporters::Supporters* sp;
   /* Agents */
-  MoveAction *ma;
-  MazeRobot *mr;
+  MoveAction* ma;
+  MazeRobot* mr;
   /* Logger */
-  Logger *lgr;
+  Logger* lgr;
 };
 
-} // namespace machine
+}  // namespace machine

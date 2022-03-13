@@ -1,8 +1,9 @@
 /**
  * @file button.h
  * @brief Button Driver
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
@@ -13,7 +14,7 @@
 namespace hardware {
 
 class Button {
-public:
+ public:
   Button() {}
   bool init(const gpio_num_t pin) {
     this->pin = pin;
@@ -21,7 +22,7 @@ public:
     ESP_ERROR_CHECK(gpio_set_direction(pin, GPIO_MODE_INPUT));
     ESP_ERROR_CHECK(gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY));
     flags = 0x00;
-    xTaskCreate([](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+    xTaskCreate([](void* arg) { static_cast<decltype(this)>(arg)->task(); },
                 "Button", configMINIMAL_STACK_SIZE, this, 1, NULL);
     return true;
   }
@@ -39,14 +40,14 @@ public:
     };
   };
 
-private:
+ private:
   static constexpr int button_sampling_time_ms = 20;
   static constexpr int button_time_press = 1;
   static constexpr int button_time_long_press_1 = 20;
   static constexpr int button_time_long_press_2 = 100;
   static constexpr int button_time_long_press_3 = 500;
 
-private:
+ private:
   gpio_num_t pin;
   int counter = 0;
 
@@ -84,4 +85,4 @@ private:
   }
 };
 
-}; // namespace hardware
+};  // namespace hardware

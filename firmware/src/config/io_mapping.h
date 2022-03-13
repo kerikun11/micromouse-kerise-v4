@@ -1,12 +1,14 @@
 /**
  * @file io_mapping.h
  * @brief ハードウェアの設定
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-04-20
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
 #include "model.h"
+
 #include <driver/adc.h>
 #include <driver/i2c.h>
 #include <driver/ledc.h>
@@ -14,9 +16,9 @@
 
 /* Hardware Mapping */
 #define BAT_VOL_ADC1_CHANNEL ADC1_CHANNEL_7
-#define REFLECTOR_TX_PINS                                                      \
+#define REFLECTOR_TX_PINS \
   { GPIO_NUM_12, GPIO_NUM_13, GPIO_NUM_14, GPIO_NUM_15 }
-#define REFLECTOR_RX_CHANNELS                                                  \
+#define REFLECTOR_RX_CHANNELS \
   { ADC1_CHANNEL_0, ADC1_CHANNEL_1, ADC1_CHANNEL_2, ADC1_CHANNEL_3 }
 #define BUTTON_PIN GPIO_NUM_0
 
@@ -34,18 +36,18 @@
 #define AS5048A_CS_PIN GPIO_NUM_4
 
 #define ENCODER_SPI_HOST AS5048A_SPI_HOST
-#define ENCODER_CS_PINS                                                        \
+#define ENCODER_CS_PINS \
   { AS5048A_CS_PIN }
 #define ENCODER_NUM 1
 
 #define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_L_CS_PIN GPIO_NUM_26
 #define ICM20602_R_CS_PIN GPIO_NUM_27
-#define ICM20602_CS_PINS                                                       \
+#define ICM20602_CS_PINS \
   { ICM20602_L_CS_PIN, ICM20602_R_CS_PIN }
 
 /* for pull-up*/
-#define CONFIG_SPI_CS_PINS                                                     \
+#define CONFIG_SPI_CS_PINS \
   { AS5048A_CS_PIN, ICM20602_L_CS_PIN, ICM20602_R_CS_PIN }
 
 #elif KERISE_SELECT == 5
@@ -56,17 +58,17 @@
 #define MA730_R_CS_PIN GPIO_NUM_5
 
 #define ENCODER_SPI_HOST MA730_SPI_HOST
-#define ENCODER_CS_PINS                                                        \
+#define ENCODER_CS_PINS \
   { MA730_L_CS_PIN, MA730_R_CS_PIN }
 #define ENCODER_NUM 2
 
 #define ICM20602_SPI_HOST CONFIG_SPI_HOST
 #define ICM20602_CS_PIN GPIO_NUM_26
-#define ICM20602_CS_PINS                                                       \
+#define ICM20602_CS_PINS \
   { ICM20602_CS_PIN }
 
 /* for pull-up */
-#define CONFIG_SPI_CS_PINS                                                     \
+#define CONFIG_SPI_CS_PINS \
   { MA730_L_CS_PIN, MA730_R_CS_PIN, ICM20602_CS_PIN }
 
 #endif

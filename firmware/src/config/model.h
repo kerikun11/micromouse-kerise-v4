@@ -1,13 +1,14 @@
 /**
  * @file model.h
  * @brief マイクロマウスのモデル
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2020-04-20
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
-#include "ctrl/feedback_controller.h"
-#include "ctrl/trajectory_tracker.h"
+#include <ctrl/feedback_controller.h>
+#include <ctrl/trajectory_tracker.h>
 
 /* Math Constants */
 static constexpr float PI = 3.14159265358979323846f;
@@ -19,7 +20,7 @@ static constexpr float SegWidthFull = 90.0f;
 static constexpr float SegWidthDiag = 127.2792206135786f;
 static constexpr float WallThickness = 6.0f;
 
-}; // namespace field
+};  // namespace field
 
 namespace model {
 
@@ -27,11 +28,11 @@ namespace model {
 
 #if KERISE_SELECT == 5
 /* KERISE v5 */
-static constexpr uint64_t MAC_ID = 0xD866'5A1D'A0D8; //< efuse 48 bit MAC
+static constexpr uint64_t MAC_ID = 0xD866'5A1D'A0D8;  //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 29.0f / 2;
 static constexpr float GearRatio = 1.0f;
-static constexpr float WheelDiameter = 12.72f; //< 径を大きく：進行距離を短く
+static constexpr float WheelDiameter = 12.72f;  //< 径を大きく：進行距離を短く
 static constexpr float CenterOffsetY = 0.0f;
 static constexpr float TailLength = 13.0f;
 /* ToF */
@@ -69,11 +70,11 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 
 #elif KERISE_SELECT == 4
 /* Original KERISE v4 */
-static constexpr uint64_t MAC_ID = 0x080C'401D'A0D8; //< efuse 48 bit MAC
+static constexpr uint64_t MAC_ID = 0x080C'401D'A0D8;  //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.67f; //< 径を大きく：進行距離を短く
+static constexpr float WheelDiameter = 12.67f;  //< 径を大きく：進行距離を短く
 static constexpr float CenterOffsetY = 8.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
@@ -89,8 +90,8 @@ static constexpr float wall_comb_threshold = 54;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5789, 1000), //< 大きく：FF定常成分小さく
-        .T1 = ctrl::Polar(0.12f, 0.48f), //< 大きく：FF立ち上がり成分大きく
+        .K1 = ctrl::Polar(5789, 1000),  //< 大きく：FF定常成分小さく
+        .T1 = ctrl::Polar(0.12f, 0.48f),  //< 大きく：FF立ち上がり成分大きく
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
@@ -111,11 +112,11 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 
 #elif KERISE_SELECT == 3
 /* KERISE v4 Copy */
-static constexpr uint64_t MAC_ID = 0x807F'631D'A0D8; //< efuse 48 bit MAC
+static constexpr uint64_t MAC_ID = 0x807F'631D'A0D8;  //< efuse 48 bit MAC
 /* Machine Size Parameter */
 static constexpr float RotationRadius = 15.0f;
 static constexpr float GearRatio = (12.0f / 38.0f);
-static constexpr float WheelDiameter = 12.96f; //< 径を大きく：進行距離を短く
+static constexpr float WheelDiameter = 12.96f;  //< 径を大きく：進行距離を短く
 static constexpr float CenterOffsetY = 8.0f;
 static constexpr float TailLength = 16.4f;
 /* ToF */
@@ -131,8 +132,8 @@ static constexpr float wall_comb_threshold = 80;
 /* Model */
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Model
     SpeedControllerModel = {
-        .K1 = ctrl::Polar(5400, 100), //< 大きく：FF定常成分小さく
-        .T1 = ctrl::Polar(0.18f, 0.12f), //< 大きく：FF立ち上がり成分大きく
+        .K1 = ctrl::Polar(5400, 100),  //< 大きく：FF定常成分小さく
+        .T1 = ctrl::Polar(0.18f, 0.12f),  //< 大きく：FF立ち上がり成分大きく
 };
 static constexpr ctrl::FeedbackController<ctrl::Polar>::Gain
     SpeedControllerGain = {
@@ -160,4 +161,4 @@ static constexpr ctrl::TrajectoryTracker::Gain TrajectoryTrackerGain = {
 
 #endif
 
-}; // namespace model
+};  // namespace model

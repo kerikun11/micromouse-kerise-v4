@@ -1,20 +1,20 @@
 /**
  * @file wall_detector.h
  * @brief Wall Detector
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
 #include "hardware/hardware.h"
 
-#include <cmath>
-#include <fstream>
+#include <cmath>    //< std::log
+#include <fstream>  //< for std::ifstream, std::ofstream
 #include <iostream>
-#include <vector>
 
 class WallDetector {
-public:
+ public:
   static constexpr float Ts = 1e-3f;
   static constexpr int wall_threshold_front = 135;
   static constexpr int wall_threshold_side = 25;
@@ -29,17 +29,17 @@ public:
     // シリアライズされたメンバ
     float value[4] = {0, 0, 0, 0};
 
-    WallValue &operator+=(const WallValue &wv) {
+    WallValue& operator+=(const WallValue& wv) {
       for (int i = 0; i < 4; ++i)
         value[i] += wv.value[i];
       return *this;
     }
-    WallValue &operator-=(const WallValue &wv) {
+    WallValue& operator-=(const WallValue& wv) {
       for (int i = 0; i < 4; ++i)
         value[i] -= wv.value[i];
       return *this;
     }
-    WallValue operator-(const WallValue &wv) const {
+    WallValue operator-(const WallValue& wv) const {
       WallValue ret;
       for (int i = 0; i < 4; ++i)
         ret.value[i] = value[i] - wv.value[i];
@@ -53,21 +53,21 @@ public:
     }
   };
 
-public:
+ public:
   WallValue distance;
   WallValue distance_average;
   std::array<bool, 3> is_wall;
 
-private:
-  hardware::Hardware *hw;
+ private:
+  hardware::Hardware* hw;
 
-public:
-  WallDetector(hardware::Hardware *hw) : hw(hw) {}
+ public:
+  WallDetector(hardware::Hardware* hw) : hw(hw) {}
   bool init() {
     if (!restore())
       return false;
     xTaskCreatePinnedToCore(
-        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        [](void* arg) { static_cast<decltype(this)>(arg)->task(); },
         "WallDetector", 4096, this, 3, NULL, PRO_CPU_NUM);
     return true;
   }
@@ -77,7 +77,7 @@ public:
       app_loge << "Can't open file. " << WALL_DETECTOR_BACKUP_PATH << std::endl;
       return false;
     }
-    of.write((const char *)&wall_ref, sizeof(WallDetector::WallValue));
+    of.write((const char*)&wall_ref, sizeof(WallDetector::WallValue));
     return true;
   }
   bool restore() {
@@ -91,10 +91,10 @@ public:
                << std::endl;
       return false;
     }
-    f.read((char *)&wall_ref, sizeof(WallDetector::WallValue));
+    f.read((char*)&wall_ref, sizeof(WallDetector::WallValue));
     app_logi << "Wall Reference Restore:"
-             << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0] //
-             << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1] //
+             << "\t" << wall_ref.side[0] << "\t" << wall_ref.front[0]  //
+             << "\t" << wall_ref.front[1] << "\t" << wall_ref.side[1]  //
              << std::endl;
     return true;
   }
@@ -129,14 +129,14 @@ public:
     hw->tof->enable();
   }
   void print() {
-    app_logi                                                       //
-        << std::setw(10) << std::setfill(' ') << distance.side[0]  //
-        << std::setw(10) << std::setfill(' ') << distance.front[0] //
-        << std::setw(10) << std::setfill(' ') << distance.front[1] //
-        << std::setw(10) << std::setfill(' ') << distance.side[1]  //
-        << "\t" << (is_wall[0] ? "X" : "_")                        //
-        << " " << (is_wall[2] ? "X" : "_")                         //
-        << " " << (is_wall[1] ? "X" : "_")                         //
+    app_logi                                                        //
+        << std::setw(10) << std::setfill(' ') << distance.side[0]   //
+        << std::setw(10) << std::setfill(' ') << distance.front[0]  //
+        << std::setw(10) << std::setfill(' ') << distance.front[1]  //
+        << std::setw(10) << std::setfill(' ') << distance.side[1]   //
+        << "\t" << (is_wall[0] ? "X" : "_")                         //
+        << " " << (is_wall[2] ? "X" : "_")                          //
+        << " " << (is_wall[1] ? "X" : "_")                          //
         << std::endl;
   }
   void csv() {
@@ -146,7 +146,7 @@ public:
     std::cout << std::endl;
   }
 
-private:
+ private:
   WallValue wall_ref;
   static const int ave_num = 16;
   ctrl::Accumulator<WallValue, ave_num> buffer;
@@ -170,7 +170,7 @@ private:
     // 前壁の更新
     int front_mm = hw->tof->getDistance();
     if (!hw->tof->isValid())
-      is_wall[2] = false; //< ToFの測距範囲内に壁がない場合はinvalidになる
+      is_wall[2] = false;  //< ToFの測距範囲内に壁がない場合はinvalidになる
     else if (front_mm < wall_threshold_front * 0.95f)
       is_wall[2] = true;
     else if (front_mm > wall_threshold_front * 1.05f)

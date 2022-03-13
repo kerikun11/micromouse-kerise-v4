@@ -1,7 +1,7 @@
 /**
  * @file task.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- * @author Ryotaro Onuki
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-07-09
  */
 #pragma once
@@ -20,8 +20,9 @@ namespace freertospp {
  *
  * @tparam T 実行するメンバ関数のクラス
  */
-template <typename T> class Task {
-public:
+template <typename T>
+class Task {
+ public:
   /**
    * @brief Construct a new Task object
    */
@@ -40,13 +41,13 @@ public:
    * @param uxPriority 優先度
    * @param xCoreID 実行させるCPUコア番号
    */
-  bool start(
-      T *obj,                   //< thisポインタ
-      void (T::*func)(),        //< メンバ関数ポインタ
-      const char *const pcName, //< タスク名文字列
-      unsigned short usStackDepth = configMINIMAL_STACK_SIZE, //< スタックサイズ
-      unsigned portBASE_TYPE uxPriority = 0,    //< タスク優先度
-      const BaseType_t xCoreID = tskNO_AFFINITY //< 実行コア
+  bool start(T* obj,                    //< thisポインタ
+             void (T::*func)(),         //< メンバ関数ポインタ
+             const char* const pcName,  //< タスク名文字列
+             unsigned short usStackDepth =
+                 configMINIMAL_STACK_SIZE,           //< スタックサイズ
+             unsigned portBASE_TYPE uxPriority = 0,  //< タスク優先度
+             const BaseType_t xCoreID = tskNO_AFFINITY  //< 実行コア
   ) {
     this->obj = obj;
     this->func = func;
@@ -69,19 +70,19 @@ public:
     pxCreatedTask = NULL;
   }
 
-private:
-  static constexpr const char *TAG = "Task";
-  TaskHandle_t pxCreatedTask = NULL; //< タスクのハンドル
-  T *obj = NULL;                     //< thisポインタ
-  void (T::*func)() = NULL;          //< メンバ関数ポインタ
+ private:
+  static constexpr const char* TAG = "Task";
+  TaskHandle_t pxCreatedTask = NULL;  //< タスクのハンドル
+  T* obj = NULL;                      //< thisポインタ
+  void (T::*func)() = NULL;           //< メンバ関数ポインタ
 
   /**
    * @brief FreeRTOSにより実行される関数ポインタ
    */
-  static void entry_point(void *arg) {
-    auto task_obj = static_cast<Task *>(arg);
+  static void entry_point(void* arg) {
+    auto task_obj = static_cast<Task*>(arg);
     (task_obj->obj->*task_obj->func)();
   }
 };
 
-} // namespace freertospp
+}  // namespace freertospp

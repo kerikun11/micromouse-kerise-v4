@@ -1,7 +1,7 @@
 /**
  * @file thread.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- * @author Ryotaro Onuki
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-07-09
  */
 #pragma once
@@ -17,8 +17,9 @@ namespace freertospp {
  * @brief C++ Wrapper for Thread function
  */
 class Thread {
-public:
-  Thread(std::function<void()> func, const char *const pcName = "unknown",
+ public:
+  Thread(std::function<void()> func,
+         const char* const pcName = "unknown",
          unsigned short usStackDepth = 8192,
          unsigned portBASE_TYPE uxPriority = 0,
          const BaseType_t xCoreID = tskNO_AFFINITY)
@@ -40,16 +41,16 @@ public:
     xSemaphoreGive(xSemaphore);
   }
 
-private:
+ private:
   TaskHandle_t pxCreatedTask = NULL;
   SemaphoreHandle_t xSemaphore = NULL;
   std::function<void()> func;
 
-  static void entry_point(void *arg) {
-    auto obj = static_cast<Thread *>(arg);
+  static void entry_point(void* arg) {
+    auto obj = static_cast<Thread*>(arg);
     obj->func();
     obj->detach();
   }
 };
 
-}; // namespace freertospp
+};  // namespace freertospp

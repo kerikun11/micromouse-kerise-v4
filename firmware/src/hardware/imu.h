@@ -1,13 +1,14 @@
 /**
- * @file hw->imu->h
+ * @file imu.h
  * @brief IMU Driver
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
 #include "app_log.h"
-#include "config/model.h" //< for KERISE_SELECT
+#include "config/model.h"  //< for KERISE_SELECT
 
 #include <drivers/icm20602/icm20602.h>
 #include <freertospp/semphr.h>
@@ -19,7 +20,7 @@
 namespace hardware {
 
 class IMU {
-public:
+ public:
   static constexpr float Ts = 1e-3f;
 
 #if KERISE_SELECT == 4 || KERISE_SELECT == 3
@@ -29,7 +30,7 @@ public:
   static constexpr int IMU_NUM = 1;
 #endif
 
-public:
+ public:
   IMU() {}
   bool init(spi_host_device_t spi_host, std::array<int8_t, IMU_NUM> pins_cs) {
     for (int i = 0; i < IMU_NUM; ++i) {
@@ -39,7 +40,7 @@ public:
       }
     }
     xTaskCreatePinnedToCore(
-        [](void *arg) { static_cast<decltype(this)>(arg)->task(); }, "IMU",
+        [](void* arg) { static_cast<decltype(this)>(arg)->task(); }, "IMU",
         4096, this, 6, NULL, PRO_CPU_NUM);
     return true;
   }
@@ -54,25 +55,25 @@ public:
   }
   void print() {
     app_logi << "Gyro:"
-             << "\t" << gyro.x //
-             << "\t" << gyro.y //
-             << "\t" << gyro.z //
+             << "\t" << gyro.x  //
+             << "\t" << gyro.y  //
+             << "\t" << gyro.z  //
              << std::endl;
     app_logi << "Accel:"
-             << "\t" << accel.x //
-             << "\t" << accel.y //
-             << "\t" << accel.z //
+             << "\t" << accel.x  //
+             << "\t" << accel.y  //
+             << "\t" << accel.z  //
              << std::endl;
     app_logi << "Angle:\t" << angle << "\t" << angular_accel << std::endl;
   }
   void csv() {
     std::cout << "0," << gyro.x << "," << gyro.y << "," << gyro.z << std::endl;
   }
-  const MotionParameter &get_gyro3() {
+  const MotionParameter& get_gyro3() {
     std::lock_guard<std::mutex> lock_guard(mutex);
     return gyro;
   }
-  const MotionParameter &get_accel3() {
+  const MotionParameter& get_accel3() {
     std::lock_guard<std::mutex> lock_guard(mutex);
     return accel;
   }
@@ -89,12 +90,12 @@ public:
     return angular_accel;
   }
 
-private:
+ private:
   MotionParameter gyro, accel;
   float angle = 0, angular_accel = 0;
   std::mutex mutex;
 
-private:
+ private:
   ICM20602 icm[IMU_NUM];
   freertospp::Semaphore sampling_end_semaphore;
   MotionParameter gyro_offset, accel_offset;
@@ -121,7 +122,7 @@ private:
       }
     }
   }
-  void task_calibration(TickType_t &xLastWakeTime) {
+  void task_calibration(TickType_t& xLastWakeTime) {
     const int ave_count = 200;
     accel_offset = MotionParameter();
     gyro_offset = MotionParameter();
@@ -193,4 +194,4 @@ private:
   }
 };
 
-}; // namespace hardware
+};  // namespace hardware

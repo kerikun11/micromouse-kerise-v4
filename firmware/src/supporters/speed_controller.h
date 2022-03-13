@@ -1,14 +1,15 @@
 /**
  * @file speed_controller.h
  * @brief Speed Controller
- * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2021-11-21
+ * @copyright Copyright 2021 Ryotaro Onuki <kerikun11+github@gmail.com>
  */
 #pragma once
 
 #include "config/wheel_parameter.h"
-
 #include "hardware/hardware.h"
+
 #include <ctrl/accumulator.h>
 #include <ctrl/feedback_controller.h>
 #include <ctrl/polar.h>
@@ -16,11 +17,11 @@
 #include <freertospp/semphr.h>
 
 class SpeedController {
-public:
+ public:
   static constexpr const float Ts = 1e-3f;
   static constexpr int acc_num = 4;
 
-public:
+ public:
   /* 読み取り専用 */
   ctrl::Polar ref_v;
   ctrl::Polar ref_a;
@@ -32,17 +33,17 @@ public:
   ctrl::Accumulator<ctrl::Polar, acc_num> accel;
   ctrl::FeedbackController<ctrl::Polar> fbc;
 
-private:
-  hardware::Hardware *hw;
+ private:
+  hardware::Hardware* hw;
 
-public:
-  SpeedController(hardware::Hardware *hw)
+ public:
+  SpeedController(hardware::Hardware* hw)
       : fbc(model::SpeedControllerModel, model::SpeedControllerGain), hw(hw) {
     reset();
   }
   bool init() {
     xTaskCreatePinnedToCore(
-        [](void *arg) { static_cast<decltype(this)>(arg)->task(); },
+        [](void* arg) { static_cast<decltype(this)>(arg)->task(); },
         "SpeedCtrl", 4096, this, 5, NULL, PRO_CPU_NUM);
     return true;
   }
@@ -60,7 +61,7 @@ public:
       accel.clear({hw->imu->get_accel(), hw->imu->get_angular_accel()});
       fbc.reset();
     }
-    vTaskDelay(pdMS_TO_TICKS(100)); //< 緊急ループ防止の delay
+    vTaskDelay(pdMS_TO_TICKS(100));  //< 緊急ループ防止の delay
   }
   void enable() {
     reset();
@@ -80,21 +81,21 @@ public:
   void fix_pose(ctrl::Pose fix, bool force = true) {
     std::lock_guard<std::mutex> lock_guard(mutex);
     if (!force) {
-      const float max_fix = 1.0f; //< 補正量の飽和 [mm]
+      const float max_fix = 1.0f;  //< 補正量の飽和 [mm]
       fix.x = std::max(std::min(fix.x, max_fix), -max_fix);
       fix.y = std::max(std::min(fix.y, max_fix), -max_fix);
     }
     est_p += fix;
   }
-  void update_pose(const ctrl::Pose &new_pose) {
+  void update_pose(const ctrl::Pose& new_pose) {
     std::lock_guard<std::mutex> lock_guard(mutex);
     est_p = new_pose;
   }
-  void sampling_sync() const { //
+  void sampling_sync() const {  //
     data_ready_semaphore.take();
   }
 
-private:
+ private:
   volatile bool drive_enabled = false;
   freertospp::Semaphore data_ready_semaphore;
   std::mutex mutex;

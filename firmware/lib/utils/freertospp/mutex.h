@@ -1,7 +1,7 @@
 /**
  * @file mutex.h
  * @brief C++ Wrapper for FreeRTOS in ESP32
- * @author Ryotaro Onuki
+ * @author Ryotaro Onuki <kerikun11+github@gmail.com>
  * @date 2018-07-09
  */
 #pragma once
@@ -16,7 +16,7 @@ namespace freertospp {
  * @brief C++ Wrapper for Mutex function
  */
 class Mutex {
-public:
+ public:
   Mutex() {
     xSemaphore = xSemaphoreCreateMutex();
     if (xSemaphore == NULL) {
@@ -32,9 +32,9 @@ public:
     return pdTRUE == xSemaphoreTake(xSemaphore, xBlockTime);
   }
 
-private:
-  static constexpr const char *TAG = "Mutex";
+ private:
+  static constexpr const char* TAG = "Mutex";
   SemaphoreHandle_t xSemaphore = NULL;
 };
 
-} // namespace freertospp
+}  // namespace freertospp
