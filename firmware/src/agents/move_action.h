@@ -26,8 +26,6 @@
 #include <condition_variable>
 #include <mutex>
 
-#define DEBUG_WALL_ATTACH_EMERGENCY 0
-
 class MoveAction {
  public:
   /* Action Category */
@@ -231,10 +229,6 @@ class MoveAction {
     // 通常モードのときは1マス以内
     if (!force && hw->tof->getDistance() > field::SegWidthFull)
       return false;
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(10), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
     /* wall_attach start */
     bool result = false;
     hw->led->set(6);
@@ -242,10 +236,6 @@ class MoveAction {
     vTaskDelay(pdMS_TO_TICKS(20));
     sp->sc->reset();  //< 初動防止のため位置をクリア
     for (int i = 0; i < 2000; i++) {
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(11), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       if (is_break_state())
         break;
       /* 差分計算 */
@@ -275,18 +265,6 @@ class MoveAction {
     hw->tof->enable();  //< ToF の有効化を忘れずに！
     sp->sc->reset();    //< 位置を補正
     hw->led->set(0);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(12), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
-#if 0
-    /* 謎のバグ回避 */
-    if (hw->mt->is_emergency()) {
-      emergency_release();
-      sp->sc->enable();
-      return false;
-    }
-#endif
     return result;
   }
   void front_wall_fix(const RunParameter& rp, bool force = false) {
@@ -498,16 +476,6 @@ class MoveAction {
                        std::max(v_end, 30.0f), distance - sp->sc->est_p.x,
                        sp->sc->est_p.x);
       tt.reset(v_start);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      auto lgr = new Logger();
-      lgr->init({
-          "ref_v.tra", "est_v.tra", "ref_a.tra", "est_a.tra", "ff.tra",
-          "fbp.tra",   "fbi.tra",   "fbd.tra",   "ref_v.rot", "est_v.rot",
-          "ref_a.rot", "est_a.rot", "ff.rot",    "fbp.rot",   "fbi.rot",
-          "fbd.rot",   "ref_q.x",   "est_q.x",   "ref_q.y",   "est_q.y",
-          "ref_q.th",  "est_q.th",
-      });
-#endif
       for (float t = 0; true; t += sp->sc->Ts) {
         if (is_break_state())
           break;
@@ -543,37 +511,7 @@ class MoveAction {
         const auto ref =
             tt.update(sp->sc->est_p, sp->sc->est_v, sp->sc->est_a, ref_s);
         sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-        const auto& bd = sp->sc->fbc.getBreakdown();
-        const auto& ref_q = ref_s.q;
-        const auto& est_q = sp->sc->est_p;
-        lgr->push({
-            sp->sc->ref_v.tra, sp->sc->est_v.tra, sp->sc->ref_a.tra,
-            sp->sc->est_a.tra, bd.ff.tra,         bd.fbp.tra,
-            bd.fbi.tra,        bd.fbd.tra,        sp->sc->ref_v.rot,
-            sp->sc->est_v.rot, sp->sc->ref_a.rot, sp->sc->est_a.rot,
-            bd.ff.rot,         bd.fbp.rot,        bd.fbi.rot,
-            bd.fbd.rot,        ref_q.x,           est_q.x,
-            ref_q.y,           est_q.y,           ref_q.th,
-            est_q.th,
-        });
-#endif
       }
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency()) {
-        while (1) {
-          // app_logi << "ref_v: " << sp->sc->ref_v << std::endl;
-          // app_logi << "ref_a: " << sp->sc->ref_a << std::endl;
-          // app_logi << "est_p: " << sp->sc->est_p << std::endl;
-          // app_logi << "est_v: " << sp->sc->est_v << std::endl;
-          // app_logi << "est_a: " << sp->sc->est_a << std::endl;
-          // app_logi << "fbc.u: " << sp->sc->fbc.getBreakdown().u << std::endl;
-          // app_logi << "tt.xi: " << tt.xi << std::endl;
-          lgr->print();
-          vTaskDelay(pdMS_TO_TICKS(1000));
-        }
-      }
-#endif
     }
     if (v_end < 1) {
       sp->sc->set_target(0, 0);
@@ -764,10 +702,6 @@ class MoveAction {
 
   void search_run_task() {
     const auto& rp = rp_search;
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(1), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
     /* スタート */
     // sp->sc->reset();
     // vTaskDelay(pdMS_TO_TICKS(100)); //< 緊急ループ防止の delay
@@ -775,10 +709,6 @@ class MoveAction {
     /* とりあえず区画の中心に配置 */
     offset = ctrl::Pose(field::SegWidthFull / 2, field::SegWidthFull / 2);
     while (1) {
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(2), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       /* 離脱確認 */
       if (is_break_state())
         break;
@@ -790,36 +720,20 @@ class MoveAction {
       /* Actionがキューされるまで直進で待つ */
       if (sa_queue.empty())
         search_run_queue_wait_decel(rp);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(3), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       /* 既知区間走行 */
       if (sa_queue.size() >= 2)
         search_run_known(rp);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(4), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       /* 探索走行 */
       if (!sa_queue.empty()) {
         const auto action = sa_queue.front();
         sa_queue.pop();
         search_run_switch(action, rp);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-        if (hw->mt->is_emergency())
-          hw->led->set(5), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       }
     }
     // cleaning
     while (!sa_queue.empty())
       sa_queue.pop();
     sp->sc->disable();
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(8), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
   }
   void search_run_queue_wait_decel(const RunParameter& rp) {
     /* Actionがキューされるまで減速しながら待つ */
@@ -845,10 +759,6 @@ class MoveAction {
       sp->sc->set_target(ref.v, ref.w, ref.dv, ref.dw);
     }
     /* 注意: 現在位置はやや前に進んだ状態 */
-#if DEBUG_WALL_ATTACH_EMERGENCY
-    if (hw->mt->is_emergency())
-      hw->led->set(13), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
   }
   void search_run_known(const RunParameter& rp) {
     /* path の作成 */
@@ -879,19 +789,11 @@ class MoveAction {
             static_cast<MazeLib::RobotBase::FastAction>(path[path_index]);
         fast_run_switch(action, straight, rp);
       }
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(14), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
       /* 最後の直線を消化 */
       if (straight > 0.1f) {
         straight_x(straight, rp.v_max, rp.v_search, rp);
         straight = 0;
       }
-#if DEBUG_WALL_ATTACH_EMERGENCY
-      if (hw->mt->is_emergency())
-        hw->led->set(15), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
     }
   }
   void search_run_switch(const MazeLib::RobotBase::SearchAction action,
@@ -919,10 +821,6 @@ class MoveAction {
         break;
       case MazeLib::RobotBase::SearchAction::ST_HALF:
         straight_x(field::SegWidthFull / 2, v_s, v_s, rp);
-#if DEBUG_WALL_ATTACH_EMERGENCY
-        if (hw->mt->is_emergency())
-          hw->led->set(7), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
         break;
       case MazeLib::RobotBase::SearchAction::TURN_L:
         if (sp->sc->est_p.x > 5.0f || sp->sc->ref_v.tra > v_s * 1.2f ||
@@ -962,10 +860,6 @@ class MoveAction {
         break;
       case MazeLib::RobotBase::SearchAction::ROTATE_180:
         u_turn();
-#if DEBUG_WALL_ATTACH_EMERGENCY
-        if (hw->mt->is_emergency())
-          hw->led->set(6), vTaskDelay(portMAX_DELAY);  //< for debug
-#endif
         break;
       case MazeLib::RobotBase::SearchAction::ST_HALF_STOP:
         straight_x(field::SegWidthFull / 2, v_s, 0, rp);
